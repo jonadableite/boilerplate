@@ -1,0 +1,286 @@
+---
+title: "API Client"
+description: "Learn how to use the Igniter API Client for type-safe API calls in your frontend applications with automatic error handling and caching."
+cover: "/backgrounds/light.png"
+date: "2025-03-08"
+index: 10
+category: "igniter-js"
+author: "Igniter Team"
+authorImage: "https://avatar.vercel.sh/igniterteam"
+---
+
+# API Client
+
+The Igniter API Client provides a seamless way to interact with your backend API from your frontend applications. It offers full type safety, automatic error handling, and integration with popular React hooks for data fetching and mutations.
+
+## Setting Up the API Client
+
+The first step is to create your API client by connecting it to your Igniter router:
+
+```typescript
+// src/igniter.client.ts
+import { createIgniterClient, useIgniterQueryClient } from '@igniter-js/core/client';
+import { AppRouter } from './igniter.router';
+
+/**
+ * Client for Igniter
+ *
+ * This client is used to fetch data on the client-side
+ * It uses the createIgniterClient function to create a client instance
+ */
+export const api = createIgniterClient(AppRouter);
+
+/**
+ * Query client for Igniter
+ *
+ * This client provides access to the Igniter query functions
+ * and handles data fetching with respect to the application router.
+ * It will enable the necessary hooks for query management.
+ */
+export const useQueryClient = useIgniterQueryClient<typeof AppRouter>;
+```
+
+## Integrating with React
+
+To use the API client in your React application, wrap your app with the Igniter provider:
+
+```typescript
+// app/providers.tsx
+import { IgniterProvider } from '@igniter-js/core/client'
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <IgniterProvider>
+      {children}
+    </IgniterProvider>
+  )
+}
+```
+
+## Making API Calls
+
+### Using Queries (GET Requests)
+
+The `useQuery` hook provides a powerful way to fetch data with automatic caching and revalidation:
+
+```typescript
+import { api } from '@/igniter.client'
+
+function UsersList() {
+  const { data: users, loading, error, refetch } = api.users.list.useQuery({
+    // Optional configuration
+    initialData: [], // Initial data while loading
+    staleTime: 1000 * 60, // Data stays fresh for 1 minute
+    refetchInterval: 1000 * 30, // Refetch every 30 seconds
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnReconnect: true, // Refetch when reconnecting
+    onLoading: (isLoading) => console.log('Loading:', isLoading),
+    onRequest: (response) => console.log('Data received:', response)
+  })
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+
+  return (
+    <div>
+      <button onClick={() => refetch()}>Refresh</button>
+      {users.map(user => (
+        <div key={user.id}>{user.name}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+### Using Mutations (POST, PUT, DELETE Requests)
+
+The `useMutation` hook handles data modifications with loading states and error handling:
+
+```typescript
+function CreateUserForm() {
+  const { mutate, loading, error } = api.users.create.useMutation({
+    // Optional configuration
+    defaultValues: { name: '', email: '' },
+    onLoading: (isLoading) => console.log('Loading:', isLoading),
+    onRequest: (response) => console.log('Created user:', response)
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await mutate({
+        body: {
+          name: 'John Doe',
+          email: 'john@example.com'
+        }
+      })
+      // Handle success
+    } catch (error) {
+      // Handle error
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+      <button type="submit" disabled={loading}>
+        {loading ? 'Creating...' : 'Create User'}
+      </button>
+      {error && <div>Error: {error.message}</div>}
+    </form>
+  )
+}
+```
+
+## Managing Cache
+
+You can invalidate queries manually or automatically after mutations:
+
+```typescript
+function AdminPanel() {
+  const queryClient = useQueryClient()
+
+  // Invalidate specific queries
+  const invalidateUsers = () => {
+    queryClient.invalidate('users.list')
+  }
+
+  // Invalidate multiple queries
+  const invalidateAll = () => {
+    queryClient.invalidate([
+      'users.list',
+      'users.get'
+    ])
+  }
+
+  return (
+    <button onClick={invalidateUsers}>
+      Refresh Users
+    </button>
+  )
+}
+```
+
+## Type Safety
+
+The Igniter API Client provides full type inference for your API:
+
+```typescript
+// All these types are automatically inferred
+import { InferOutput, InferInput } from '@igniter-js/core/client'
+
+type User = InferOutput<typeof api.users.get>
+type CreateUserInput = InferInput<typeof api.users.create>
+
+// TypeScript will show errors for invalid inputs
+api.users.create.useMutation({
+  onRequest: (data) => {
+    data.id // ✅ Typed as string
+    data.invalid // ❌ TypeScript error
+  }
+})
+```
+
+## Server-Side Usage
+
+### Next.js App Router Integration
+
+You can use direct server calls with React Server Components:
+
+```typescript
+// app/users/page.tsx
+import { api } from '@/igniter.client'
+
+export default async function UsersPage() {
+  const users = await api.users.list.call()
+
+  return (
+    <div>
+      {users.map(user => (
+        <div key={user.id}>{user.name}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+### Server Actions
+
+```typescript
+// app/users/actions.ts
+'use server'
+
+import { api } from '@/igniter.client'
+
+export async function createUser(formData: FormData) {
+  const name = formData.get('name') as string
+  const email = formData.get('email') as string
+
+  return api.users.create.call({
+    body: { name, email }
+  })
+}
+
+// app/users/create-form.tsx
+export function CreateUserForm() {
+  return (
+    <form action={createUser}>
+      <input name="name" />
+      <input name="email" type="email" />
+      <button type="submit">Create User</button>
+    </form>
+  )
+}
+```
+
+## Error Handling
+
+The API client provides robust error handling capabilities:
+
+```typescript
+function UserProfile() {
+  const { data, error, retry } = api.users.get.useQuery({
+    onError: (error) => {
+      console.error('Failed to fetch user:', error)
+    },
+    retry: 3, // Retry failed requests
+    retryDelay: 1000, // Wait 1 second between retries
+  })
+
+  if (error) {
+    return (
+      <div>
+        Error loading profile
+        <button onClick={retry}>Try Again</button>
+      </div>
+    )
+  }
+
+  return <div>{/* User profile content */}</div>
+}
+```
+
+## Testing
+
+The API client can be used in tests to verify your API functionality:
+
+```typescript
+import { api } from '@/igniter.client'
+
+describe('User API', () => {
+  it('should create a user', async () => {
+    const result = await api.users.create.call({
+      body: {
+        name: 'Test User',
+        email: 'test@example.com'
+      }
+    })
+
+    expect(result.status).toBe(201)
+    expect(result.data).toHaveProperty('id')
+  })
+})
+```
+
+By using the Igniter API Client, you get a fully type-safe way to interact with your backend API, with built-in support for caching, error handling, and React integration.

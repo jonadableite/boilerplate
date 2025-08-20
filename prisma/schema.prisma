@@ -1,0 +1,372 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InstanceConnectionStatus {
+  open
+  close
+  connecting
+}
+
+model ApiKey {
+  id             String       @id @default(uuid())
+  description    String
+  key            String       @unique
+  enabled        Boolean      @default(true)
+  neverExpires   Boolean      @default(false)
+  expiresAt      DateTime?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, key])
+  @@map("api_key")
+}
+
+model Webhook {
+  id     String   @id @default(uuid())
+  url    String
+  secret String
+  events String[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  Integration Integration[]
+
+  @@map("webhook")
+}
+
+model Member {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invitations Invitation[]
+
+  teamId String?
+
+  @@unique([organizationId, userId])
+  @@map("memberships")
+}
+
+model User {
+  id                String             @id
+  name              String
+  email             String
+  emailVerified     Boolean
+  image             String?
+  role              String?
+  createdAt         DateTime
+  updatedAt         DateTime
+  sessions          Session[]
+  accounts          Account[]
+  members           Member[]
+  invitations       Invitation[]
+  whatsappInstances WhatsAppInstance[] @relation("UserWhatsAppInstances")
+  metadata          Json?
+
+  twoFactorEnabled Boolean?
+  twofactors       TwoFactor[]
+  WhatsAppInstance WhatsAppInstance[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime
+  updatedAt            DateTime
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Organization {
+  id        String   @id
+  name      String
+  slug      String?
+  logo      String?
+  createdAt DateTime
+  metadata  String?
+
+  members      Member[]
+  invitations  Invitation[]
+  apiKeys      ApiKey[]
+  webhooks     Webhook[]
+  integrations Integration[]
+  submissions  Submission[]
+  leads        Lead[]
+
+  customer         Customer?
+  WhatsAppInstance WhatsAppInstance[]
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String
+  expiresAt      DateTime
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  Member         Member?      @relation(fields: [memberId], references: [id])
+  memberId       String?
+
+  teamId String?
+
+  @@map("invitation")
+}
+
+model Integration {
+  id       String  @id @default(cuid())
+  provider String
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  webhookId String?
+  webhook   Webhook? @relation(fields: [webhookId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, organizationId])
+  @@index([organizationId])
+  @@index([webhookId])
+  @@map("integration")
+}
+
+model TwoFactor {
+  id          String @id
+  secret      String
+  backupCodes String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor")
+}
+
+model Customer {
+  id         String  @id @default(uuid())
+  providerId String  @unique
+  name       String
+  email      String?
+  metadata   Json?
+
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("customer")
+}
+
+model Plan {
+  id          String  @id @default(uuid())
+  providerId  String  @unique
+  slug        String  @unique
+  name        String
+  description String?
+  metadata    Json?
+
+  prices Price[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  archived  Boolean  @default(false)
+
+  @@map("plan")
+}
+
+model Price {
+  id            String @id @default(uuid())
+  providerId    String @unique
+  slug          String @unique
+  amount        Int
+  currency      String
+  interval      String // 'day' | 'week' | 'month' | 'year'
+  intervalCount Int
+  metadata      Json?
+
+  subscriptions Subscription[]
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("price")
+}
+
+enum ProrationBehavior {
+  create_prorations
+  none
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+  past_due
+  unpaid
+  trialing
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  providerId         String             @unique
+  quantity           Int?
+  trialDays          Int?
+  metadata           Json?
+  billingCycleAnchor DateTime?
+  prorationBehavior  ProrationBehavior?
+  status             SubscriptionStatus
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  priceId String
+  price   Price  @relation(fields: [priceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription")
+}
+
+model Lead {
+  id       String  @id @default(uuid())
+  email    String
+  name     String?
+  phone    String?
+  metadata Json?
+
+  submissions Submission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("lead")
+}
+
+model Submission {
+  id String @id @default(uuid())
+
+  metadata Json?
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("submissions")
+}
+
+model WhatsAppInstance {
+  id                  String                   @id @default(uuid())
+  evolutionInstanceId String?                  @unique
+  instanceName        String                   @unique
+  status              InstanceConnectionStatus @default(connecting)
+  ownerJid            String? // Exemplo: 5512988444921@s.whatsapp.net
+  profileName         String?
+  profilePicUrl       String?
+
+  lastSeen DateTime?
+  metadata Json?
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("UserWhatsAppInstances", fields: [createdById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, instanceName])
+  @@index([organizationId, userId])
+  @@index([status])
+  @@map("whatsapp_instance")
+}

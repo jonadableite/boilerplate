@@ -1,0 +1,435 @@
+---
+description: 
+globs: src/plugins/*.ts
+alwaysApply: false
+---
+# Plugin Manager System Guide for SaaS Boilerplate
+
+This guide provides a comprehensive overview of the Plugin Manager system in SaaS Boilerplate, explaining its architecture, key concepts, and implementation patterns for extending functionality through plugins.
+
+## 1. Plugin System Overview
+
+The Plugin Manager is a core provider in SaaS Boilerplate that enables external integrations and extensibility. It allows:
+
+- Dynamic registration of third-party services
+- Typed configuration management
+- Standardized action execution
+- Organization-specific plugin configurations
+- Secure credential management for external services
+
+## 2. Key Concepts
+
+### 2.1 Plugin Instance
+
+A plugin represents an integration with an external service (like Slack, Discord, WhatsApp) and follows a consistent structure:
+
+```typescript
+interface IPluginInstance<
+  TPluginConfigSchema extends StandardSchemaV1,
+  TPluginActions extends Record<string, PluginAction<any, any, any>>,
+> {
+  slug: string              // Unique identifier for the plugin
+  name: string              // Display name for UI
+  schema: TPluginConfigSchema  // Zod schema for configuration
+  actions: TPluginActions   // Available operations
+  metadata: {
+    verified: boolean       // Official verification status
+    published: boolean      // Visibility in the marketplace
+    description: string     // Plugin description
+    category: string        // Categorization
+    developer: string       // Creator information
+    website: string         // Official website
+    logo?: string           // Logo URL
+    screenshots?: string[]  // UI screenshots
+    links: Record<string, string>  // Related links (docs, install)
+  }
+}
+```
+
+### 2.2 Plugin Actions
+
+Actions are the operations a plugin can perform:
+
+```typescript
+type PluginAction<
+  TPluginConfigSchema extends StandardSchemaV1,
+  TPluginActionSchema extends StandardSchemaV1,
+  TPluginActionResponse,
+> = {
+  name: string                // Action name for UI display
+  schema: TPluginActionSchema // Input parameters (Zod schema)
+  handler: (params: {        // Implementation function
+    config: StandardSchemaV1.InferOutput<TPluginConfigSchema>
+    input: StandardSchemaV1.InferInput<TPluginActionSchema>
+  }) => TPluginActionResponse
+}
+```
+
+### 2.3 Plugin Manager
+
+The central class that manages all plugins:
+
+```typescript
+class PluginProvider<T extends Record<string, IPluginInstance<any, any>>> {
+  extensions: T;
+  
+  // Register a single plugin
+  static plugin = <TConfigSchema, TActions>(
+    plugin: IPluginInstance<TConfigSchema, TActions>
+  ) => plugin;
+  
+  // Initialize the plugin system with multiple plugins
+  static initialize<TExtensions>(options: { plugins: TExtensions });
+  
+  // Configure plugin instances
+  setup<TConfig>(config: TConfig);
+  
+  // List all available plugins
+  list(): Integration[];
+  
+  // Get a specific plugin by slug
+  get<TSlug extends keyof T>(slug: TSlug);
+}
+```
+
+## 3. Implementation Patterns
+
+### 3.1 Creating a Plugin
+
+```typescript
+import { PluginProvider } from '@/@saas-boilerplate/providers/plugin-manager/provider'
+import { z } from 'zod'
+
+export const myPlugin = PluginProvider.plugin({
+  slug: 'my-plugin',
+  name: 'My Plugin',
+  schema: z.object({
+    apiKey: z.string().describe('Your API key'),
+    // Other configuration fields
+  }),
+  metadata: {
+    verified: true,
+    published: true,
+    logo: 'https://example.com/logo.png',
+    description: 'Integration with My Service to perform actions',
+    category: 'communication',
+    developer: 'Your Company',
+    website: 'https://example.com',
+    screenshots: [
+      'https://example.com/screenshot1.png',
+    ],
+    links: {
+      install: 'https://example.com/install',
+      guide: 'https://example.com/docs',
+    },
+  },
+  actions: {
+    send: {
+      name: 'Send Message',
+      schema: z.object({
+        message: z.string(),
+        recipient: z.string().optional(),
+      }),
+      handler: async ({ config, input }) => {
+        // Implementation code that uses config.apiKey and input.message
+        // to interact with external API
+        
+        return { success: true };
+      },
+    },
+    // Additional actions
+  },
+})
+```
+
+### 3.2 Registering Plugins
+
+In your application initialization code:
+
+```typescript
+import { PluginProvider } from '@/@saas-boilerplate/providers/plugin-manager/provider'
+import { slack } from '@/plugins/slack.plugin'
+import { discord } from '@/plugins/discord.plugin'
+// Import other plugins
+
+export const PluginProvider = PluginProvider.initialize({
+  plugins: {
+    slack,
+    discord,
+    // Other plugins
+  },
+})
+```
+
+### 3.3 Using Plugins in Code
+
+```typescript
+// Configure plugins with organization-specific settings
+const actions = PluginProvider.setup({
+  slack: { 
+    webhook: 'https://hooks.slack.com/services/...'
+  },
+  discord: {
+    webhook: 'https://discord.com/api/webhooks/...'
+  }
+})
+
+// Execute plugin actions
+await actions.slack.send({ 
+  message: 'Hello from SaaS Boilerplate!' 
+})
+
+// Access plugin metadata
+const plugins = PluginProvider.list()
+```
+
+### 3.4 Plugin Field Discovery
+
+The Plugin Manager automatically extracts fields from the schema for UI rendering:
+
+```typescript
+const slackPlugin = PluginProvider.get('slack')
+// Returns plugin with extracted fields:
+// {
+//   slug: 'slack',
+//   name: 'Slack',
+//   fields: [
+//     { name: 'webhook', type: 'string', required: true, ... }
+//   ],
+//   ...
+// }
+```
+
+## 4. Integration with Features
+
+### 4.1 Creating Integration UI
+
+```tsx
+function IntegrationForm({ plugin }) {
+  const form = useForm({
+    defaultValues: {},
+    schema: plugin.schema // Type-safe form schema
+  })
+  
+  return (
+    <Form {...form}>
+      {plugin.fields.map(field => (
+        <FormField
+          key={field.name}
+          name={field.name}
+          label={field.label}
+          placeholder={field.placeholder}
+          required={field.required}
+        />
+      ))}
+      <Button type="submit">Connect</Button>
+    </Form>
+  )
+}
+```
+
+### 4.2 Storing Plugin Configurations
+
+Configuration data should be stored per-organization:
+
+```typescript
+// Database model
+model Integration {
+  id            String      @id @default(cuid())
+  name          String
+  slug          String
+  enabled       Boolean     @default(true)
+  config        String      // JSON string of plugin configuration
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@unique([organizationId, slug])
+}
+```
+
+### 4.3 Executing Plugin Actions
+
+```typescript
+async function executePluginAction(organizationId: string, pluginSlug: string, action: string, input: any) {
+  // Fetch organization's plugin configuration
+  const integration = await prisma.integration.findUnique({
+    where: { 
+      organizationId_slug: {
+        organizationId,
+        slug: pluginSlug
+      }
+    }
+  })
+  
+  if (!integration || !integration.enabled) {
+    throw new Error("Integration not found or disabled")
+  }
+  
+  // Parse config
+  const config = JSON.parse(integration.config)
+  
+  // Get plugin
+  const plugin = PluginProvider.get(pluginSlug)
+  
+  // Initialize with config and execute action
+  const actions = plugin.initialize(config)
+  return await actions[action](mdc:input)
+}
+```
+
+## 5. Common Plugin Categories
+
+### 5.1 Communication
+
+- Slack, Discord, WhatsApp, Telegram
+- For sending notifications, alerts, and messages
+
+### 5.2 Marketing
+
+- Mailchimp, SendGrid, Customer.io
+- For managing email campaigns and audience
+
+### 5.3 Automation
+
+- Zapier, Make.com (Integromat)
+- For creating workflows with multiple services
+
+### 5.4 Analytics
+
+- Google Analytics, Amplitude, Mixpanel
+- For tracking user behavior
+
+## 6. Best Practices
+
+### 6.1 Security Considerations
+
+- Never log sensitive configuration data
+- Use environment variables for storing API keys during development
+- Encrypt plugin configuration data in the database
+- Validate input data using schema before passing to handler
+
+### 6.2 Error Handling
+
+Implement robust error handling in plugin actions:
+
+```typescript
+handler: async ({ config, input }) => {
+  try {
+    // API call logic here
+    return { success: true }
+  } catch (error) {
+    console.error(`[MyPlugin] Error: ${error.message}`)
+    return { 
+      success: false, 
+      error: {
+        message: "Failed to perform action",
+        code: "ACTION_FAILED",
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      }
+    }
+  }
+}
+```
+
+### 6.3 Documentation
+
+Each plugin should include thorough documentation:
+
+- Required credentials and how to obtain them
+- Available actions and their parameters
+- Example use cases
+- Troubleshooting common issues
+
+### 6.4 Testing
+
+Create tests for your plugins:
+
+```typescript
+describe('Slack Plugin', () => {
+  it('should send a message successfully', async () => {
+    const result = await slackPlugin.actions.send.handler({
+      config: { webhook: 'mockWebhook' },
+      input: { message: 'Test message' }
+    })
+    
+    expect(result.success).toBe(true)
+  })
+})
+```
+
+## 7. Example: Complete Slack Plugin
+
+```typescript
+import { PluginProvider } from '@/@saas-boilerplate/providers/plugin-manager/provider'
+import { tryCatch } from '@/@saas-boilerplate/utils'
+import { z } from 'zod'
+
+export const slack = PluginProvider.plugin({
+  slug: 'slack',
+  name: 'Slack',
+  schema: z.object({
+    webhook: z
+      .string()
+      .describe(
+        'Ex: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
+      ),
+  }),
+  metadata: {
+    verified: true,
+    published: true,
+    logo: 'https://a.slack-edge.com/80588/img/icons/app-256.png',
+    description:
+      'Integrate Slack to centralize your notifications, streamline team communication, and automate alerts directly into your workspace channels.',
+    category: 'notifications',
+    developer: 'Slack',
+    screenshots: [],
+    website: 'https://slack.com/',
+    links: {
+      install: 'https://slack.com/',
+      guide: 'https://api.slack.com/start',
+    },
+  },
+  actions: {
+    send: {
+      name: 'Send',
+      schema: z.object({
+        message: z.string(),
+        channel: z.string().optional(),
+      }),
+      handler: async ({ config, input }) => {
+        try {
+          const response = await fetch(config.webhook, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              text: input.message,
+              channel: input.channel,
+            }),
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Slack API error: ${response.statusText}`)
+          }
+          
+          return { success: true }
+        } catch (error) {
+          console.error(`[Slack] Error: ${error.message}`)
+          return { 
+            success: false, 
+            error: {
+              message: "Failed to send message to Slack",
+              code: "SLACK_SEND_FAILED"
+            }
+          }
+        }
+      },
+    },
+  },
+})
+```
+
+This comprehensive guide should help developers understand and implement plugins for the SaaS Boilerplate, extending its functionality with third-party integrations in a type-safe, secure, and maintainable way. 

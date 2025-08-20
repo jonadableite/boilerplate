@@ -1,0 +1,243 @@
+---
+title: "Local Development"
+description: "Set up your local development environment for the SaaS Boilerplate and start building your next great project."
+cover: "/backgrounds/light.png"
+date: "2025-03-08"
+index: 5
+category: "getting-started"
+author: "Felipe Barcelos"
+authorImage: "https://avatar.vercel.sh/felipebarcelospro"
+---
+
+# Local Development
+
+This guide will walk you through setting up your local development environment for the SaaS Boilerplate. By the end of this guide, you'll have a fully functional development environment ready to build your next SaaS application.
+
+## Prerequisites
+
+Before you begin, make sure you have the following installed on your machine:
+
+- **Node.js 18+**: The SaaS Boilerplate requires Node.js version 18 or higher. [Download Node.js](https://nodejs.org/)
+- **Bun or pnpm**: We recommend using Bun for faster package installation and better performance. [Install Bun](https://bun.sh/)
+- **Docker**: Used for running local development services like PostgreSQL. [Install Docker](https://www.docker.com/get-started)
+- **Git**: For version control. [Install Git](https://git-scm.com/downloads)
+
+## Installation Options
+
+You have two options to set up the SaaS Boilerplate:
+
+### Option 1: Using the CLI (Recommended)
+
+The easiest way to get started is using our CLI, which will guide you through the setup process:
+
+```bash
+npx saas-boilerplate create my-saas-app
+```
+
+Replace `my-saas-app` with your project name. The CLI will:
+
+1. Create a new directory with your project name
+2. Set up the boilerplate with all dependencies
+3. Configure initial environment variables
+4. Guide you through the remaining setup steps
+
+Simply follow the CLI prompts to complete the installation.
+
+### Option 2: Cloning the Repository
+
+Alternatively, you can clone the repository directly:
+
+```bash
+git clone https://github.com/felipebarcelospro/saas-boilerplate
+cd saas-boilerplate
+```
+
+## Setting Up Your Development Environment
+
+Once you've installed the SaaS Boilerplate using either method above, follow these steps to set up your development environment:
+
+### Step 1: Install Dependencies
+
+If you used the CLI method, dependencies are already installed. If you cloned the repository, install dependencies using Bun:
+
+```bash
+bun install
+```
+
+Alternatively, if you prefer using pnpm:
+
+```bash
+pnpm install
+```
+
+### Step 2: Set Up Environment Variables
+
+If you used the CLI method, basic environment variables are already configured. Otherwise, copy the example environment variables file:
+
+```bash
+cp .env.example .env
+```
+
+Open the `.env` file in your favorite code editor and update the variables as needed. For more details, refer to the [Environment Variables](/docs/getting-started/enviroment-variables) guide.
+
+### Step 3: Start the Development Database
+
+The SaaS Boilerplate uses Docker to run a PostgreSQL database locally. Start the database with:
+
+```bash
+bun docker:up
+```
+
+This command will start a PostgreSQL instance with the configuration specified in your `.env` file.
+
+### Step 4: Run Database Migrations
+
+Next, apply the database migrations to set up your database schema:
+
+```bash
+bun db:migrate:dev
+```
+
+This command uses Prisma to apply all the necessary migrations to your development database.
+
+### Step 5: Start the Development Server
+
+Now you're ready to start the development server:
+
+```bash
+bun dev
+```
+
+Your SaaS Boilerplate application should now be running at [https://localhost:3000](https://localhost:3000).
+
+## Working with the Database
+
+### Exploring Your Database with Prisma Studio
+
+Prisma Studio provides a visual interface to view and edit the data in your database. To open Prisma Studio:
+
+```bash
+bun db:studio
+```
+
+This will launch Prisma Studio in your browser, typically at [http://localhost:5555](http://localhost:5555).
+
+### Creating New Migrations
+
+When you make changes to your Prisma schema (`prisma/schema.prisma`), you'll need to create and apply new migrations:
+
+```bash
+bun db:migrate:dev --name describe_your_changes
+```
+
+Replace `describe_your_changes` with a brief description of the schema changes you've made.
+
+## Working with Features
+
+### Generating New Features
+
+The SaaS Boilerplate uses Igniter.js for type-safe API development. To create a new feature:
+
+1. First, define your feature's schema in `prisma/schema.prisma`
+2. Run migrations to update your database:
+   ```bash
+   bun db:migrate:dev --name add_your_feature
+   ```
+3. Generate the feature using Igniter.js CLI:
+   ```bash
+   bun igniter generate feature
+   ```
+4. Select your feature from the available options
+
+This will generate all necessary files for your feature, including:
+- Types and interfaces
+- Controllers with proper authentication
+- Procedures with business logic
+- API routes with organization-based tenancy
+
+### Understanding the Feature Structure
+
+Each feature follows a consistent structure:
+
+```
+src/features/your-feature/
+├── controllers/         # API endpoints and request handling
+├── procedures/          # Business logic and database operations
+├── presentation/        # UI components
+│   ├── components/      # React components
+│   └── hooks/           # Custom React hooks
+├── your-feature.interface.ts  # TypeScript interfaces
+└── your-feature.router.ts     # API route registration
+```
+
+## Working with Authentication
+
+The SaaS Boilerplate uses a role-based authentication system with organization-based multi-tenancy. To access authentication in your features:
+
+```typescript
+// In your controller
+const auth = await context.auth.getSession({
+  requirements: 'authenticated',
+  roles: ['admin', 'owner', 'member']
+})
+
+// Access the current organization
+const organizationId = auth.organization.id
+```
+
+## Setting Up Stripe Webhooks
+
+For local development with Stripe payments, you'll need to set up webhook forwarding:
+
+1. Install the Stripe CLI from [https://stripe.com/docs/stripe-cli](https://stripe.com/docs/stripe-cli)
+2. Run the following command to forward Stripe webhooks to your local server:
+
+```bash
+bun stripe:webhook
+```
+
+This will forward Stripe webhook events to your local development server at `https://localhost:3000/api/billing/webhook`.
+
+## Development Best Practices
+
+### Code Structure
+
+The SaaS Boilerplate follows a feature-based architecture, with code organized into the following directories:
+
+- `src/saas-boilerplate/`: Core SaaS features (auth, billing, organizations)
+- `src/app/`: Next.js app router pages organized by section
+  - `(dashboard)/`: Protected application pages
+  - `(marketing)/`: Public marketing pages
+  - `(auth)/`: Authentication pages
+- `src/content/`: Documentation, blog posts, and other content
+- `src/core/`: Core components, providers, and utilities
+- `src/features/`: Your application-specific features
+
+### Organization-Based Multi-Tenancy
+
+All features in the SaaS Boilerplate follow an organization-based multi-tenant architecture:
+
+- Each entity is related to an organization, not individual users
+- Users belong to organizations with specific roles
+- API requests are scoped to the current organization
+- Permissions are enforced based on user roles within organizations
+
+### TypeScript and Type Safety
+
+All code in the SaaS Boilerplate is written in TypeScript with strong typing. Igniter.js provides end-to-end type safety from your database schema to your API endpoints and React components.
+
+### Testing
+
+The SaaS Boilerplate uses Vitest for testing. You can run tests with:
+
+```bash
+bun test
+```
+
+## What's Next?
+
+Now that you have your local development environment set up, you might want to:
+
+- Learn about [Environment Variables](/docs/getting-started/enviroment-variables)
+- Follow the [First Steps](/docs/getting-started/first-steps) guide to create your first feature
+- Explore the [Key Features](/docs/introduction/key-features) of the SaaS Boilerplate

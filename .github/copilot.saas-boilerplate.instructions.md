@@ -1,0 +1,246 @@
+# SaaS Boilerplate: Structure and Architecture
+
+## 1. Project Overview
+The SaaS Boilerplate is a complete solution for building modern SaaS applications based on a multi-tenant architecture with organizations. Built with Next.js 15, Igniter.js, Prisma, and Shadcn UI, it provides a solid foundation for developers to quickly create full-featured SaaS products.
+
+## 2. Main Folder Structure
+
+```
+src/
+├── app/                       # Next.js App Router routes and pages
+│   ├── (api)/                 # API route handlers (Edge/serverless)
+│   ├── (auth)/                # Authentication pages
+│   ├── (private)/             # Protected pages (dashboard)
+│   ├── (site)/                # Public pages (marketing)
+├── components/                # Shared UI components
+├── content/                   # Static content and documentation
+├── features/                  # Application-specific features
+├── plugins/                   # Third-party or custom plugins
+├── providers/                 # Global providers
+├── utils/                     # Utilities
+├── @saas-boilerplate/         # SaaS core (reusable modules)
+│   ├── features/              # Core SaaS features
+│   ├── hooks/                 # Custom React hooks
+│   ├── providers/             # Service providers
+│   ├── types/                 # Type definitions
+│   ├── utils/                 # Shared utilities
+```
+
+## 3. The @saas-boilerplate Directory
+
+The `@saas-boilerplate` directory is the heart of the boilerplate, containing the core modules that form the foundation of any SaaS application.
+
+### 3.1 @saas-boilerplate/features
+
+Contains the main SaaS functionalities, each following a consistent structure:
+
+- **account**: User account management
+- **api-key**: API key management
+- **auth**: Authentication and authorization
+- **billing**: Payment and subscription management
+- **integration**: External service integrations
+- **invitation**: Organization invitation system
+- **membership**: Organization member management
+- **organization**: Organization management
+- **plan**: Subscription plans
+- **session**: User session management
+- **user**: User management
+- **webhook**: Webhook management
+
+Each feature follows a consistent internal structure:
+
+```
+feature/
+├── controllers/           # Controllers for request handling
+├── presentation/          # UI components and presentation logic
+│   ├── components/        # Feature-specific React components
+│   ├── contexts/          # React contexts
+│   ├── hooks/             # Feature-specific React hooks
+│   ├── utils/             # UI utilities
+├── procedures/            # Business logic/middleware
+```
+
+### 3.2 @saas-boilerplate/providers
+
+Essential service providers for SaaS applications, each with adapters for different implementations:
+
+- **content-layer**: Content management using Contentlayer for Blog, Help Center and Changelog posts
+- **agent:**: A AI Agent Framework
+  - **managers**: Specific implementations (ToolsetManager, etc.)
+  - **types**: Types for Agent Framework and Depedencies
+  - **helpers**: A set of helpers for agent provider
+- **bot**: A Bot Manager with adapters for different services
+  - **adapters**: Specific implementations (WhatsApp, Telegram, etc.)
+  - **types**: Contracts for adapters
+- **mail**: Email system with adapters for different services
+  - **adapters**: Specific implementations (SendGrid, Resend, etc.)
+  - **types**: Contracts for adapters
+  - **helpers**: Email handling utilities
+- **payment**: Payment processing
+  - **databases**: Adapters for different databases
+  - **providers**: Adapters for different payment providers (Stripe, etc.)
+- **plugin-manager**: Extensible plugin system
+  - **utils**: Plugin management utilities
+- **storage**: File storage
+  - **adapters**: Implementations for different services (S3, local, etc.)
+  - **interfaces**: Contracts for adapters
+
+### 3.3 @saas-boilerplate/hooks
+
+Reusable React hooks providing common functionality throughout the application:
+
+- **use-boolean**: Boolean value management
+- **use-broadcast-channel**: Communication between browser tabs
+- **use-clipboard**: Clipboard manipulation
+- **use-content-layer**: Access to Contentlayer-managed content
+- **use-debounce**: Input debouncing implementation
+- **use-device-orientation**: Device orientation access
+- **use-disclosure**: Open/closed state management
+- **use-form-with-zod**: Integration between forms and Zod validation
+- **use-forward-ref**: React ref forwarding
+- **use-gesture**: User gesture detection
+- **use-location**: User location access and manipulation
+- **use-media-query**: Responsiveness with media queries
+- **use-mobile**: Mobile device detection
+- **use-mutation**: Data mutation management
+- **use-network**: Network state monitoring
+- **use-query-state**: State synchronization with query parameters
+- **use-share**: Web Share API interface
+- **use-speech-to-text**: Speech to text conversion
+- **use-steps**: Multi-step flow management
+- **use-text-selection**: Text selection interaction
+- **use-toast**: Toast notification system
+- **use-upload**: File upload management
+
+### 3.4 @saas-boilerplate/utils
+
+Shared utilities for common tasks:
+
+- **client**: Client-specific utilities
+- **color**: Color manipulation and conversion
+- **currency**: Currency formatting and conversion
+- **deep-merge**: Deep object merging
+- **delay**: Execution delay functions
+- **format**: Various formatters
+- **object**: Object manipulation
+- **string**: String manipulation
+- **template**: Template system
+- **try-catch**: Error handling wrappers
+- **url**: URL manipulation and validation
+- **validate**: Data validation
+
+## 4. App Router Structure
+
+The Next.js App Router structure organizes routes into logical groups using route groups (folders with parentheses):
+
+### 4.1 (api)
+API endpoints organized by domain and functionality:
+
+```
+(api)/
+└── api/
+    ├── auth/
+    │   └── [...all]/          # Auth.js endpoints
+    ├── billing/
+    │   └── webhook/           # Stripe webhook handler
+    ├── storage/               # File storage endpoints
+    └── v1/
+        └── [[...all]]/        # API routes via Igniter.js
+```
+
+### 4.2 (auth)
+Authentication-related pages:
+
+```
+(auth)/
+└── auth/                      # Authentication layout
+    └── page.tsx               # Sign-in/sign-up page
+```
+
+### 4.3 (private)
+Protected application routes requiring authentication:
+
+```
+(private)/
+└── app/                       # Main application
+    ├── layout.tsx             # Application layout with navigation
+    ├── get-started/           # Onboarding flow
+    ├── invites/               # Invitation acceptance
+    │   └── [id]/              # Specific invitation
+    └── (organization)/        # Organization-specific routes
+        ├── (billing)/
+        │   └── upgrade/       # Plan upgrade page
+        └── (dashboard)/       # Main dashboard
+            ├── (main)/        # Default dashboard view
+            ├── integrations/  # Available integrations
+            │   └── [slug]/    # Specific integration
+            ├── settings/      # Settings pages
+            │   ├── account/   # Account settings
+            │   │   ├── profile/
+            │   │   ├── security/
+            │   │   └── notifications/
+            │   └── organization/
+            │       ├── information/
+            │       ├── billing/
+            │       ├── members/
+            │       └── integrations/
+```
+
+### 4.4 (site)
+Public marketing and information pages:
+
+```
+(site)/
+├── (main)/                    # Main marketing pages
+├── blog/                      # Blog posts
+│   └── [slug]/                # Individual blog post
+├── contact/                   # Contact page
+├── docs/                      # Documentation
+│   └── [category]/
+│       └── [slug]/            # Documentation page
+├── help/                      # Help center
+│   └── [category]/
+│       └── [slug]/            # Help article
+├── pricing/                   # Pricing page
+└── updates/                   # Product updates
+```
+
+### 4.5 forms
+Public form pages:
+
+```
+forms/
+└── [slug]/                    # Dynamic form pages
+```
+
+## 5. Feature Architecture
+
+Each feature in saas-boilerplate follows Domain-Driven Design (DDD) and Clean Architecture principles:
+
+- **Controllers**: Responsible for handling HTTP requests and returning responses.
+- **Procedures**: Contain the business logic of the feature, independent of the presentation layer.
+- **Presentation**: UI components and presentation logic, following React composition pattern.
+
+## 6. Multi-tenant System
+
+The saas-boilerplate implements an organization-based multi-tenant system:
+- Each user can belong to multiple organizations
+- Resources are isolated by organization
+- Role-based access control (owner, admin, member)
+
+## 7. Service Providers
+
+Providers follow the Adapter pattern, allowing easy swapping of implementations:
+
+- **Mail Provider**: Email sending with React templates
+- **Payment Provider**: Subscription, plan, and payment management
+- **Storage Provider**: File storage with context isolation
+- **Plugin Manager**: Extensible system for third-party plugins
+
+## 8. Development Recommendations
+
+1. Follow the existing structure when creating new features
+2. Maintain a clear separation between business logic and presentation
+3. Use existing hooks and utilities in @saas-boilerplate
+4. Ensure new features respect multi-tenant isolation
+5. Leverage existing providers before implementing new solutions

@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 15%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 20%;
+    --destructive: 0 0% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 0 0% 20%;
+    --radius: 0.4rem;
+    --chart-1: 0 0% 60%;
+    --chart-2: 0 0% 50%;
+    --chart-3: 0 0% 40%;
+    --chart-4: 0 0% 30%;
+    --chart-5: 0 0% 20%;
+  }
+
+  .dark {
+    --background: 240 3% 6%;
+    --foreground: 0 0% 93%;
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 0 0% 93%;
+    --primary-foreground: 0 0% 13%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 0 0% 22%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 93%;
+    --border: 0 0% 18%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 80%;
+    --chart-1: 0 0% 50%;
+    --chart-2: 0 0% 45%;
+    --chart-3: 0 0% 55%;
+    --chart-4: 0 0% 60%;
+    --chart-5: 0 0% 40%;
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 0 0% 93%;
+    --sidebar-primary: 0 0% 93%;
+    --sidebar-primary-foreground: 0 0% 13%;
+    --sidebar-accent: 0 0% 19%;
+    --sidebar-accent-foreground: 0 0% 93%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 0% 80%;
+  }
+}
+
+@layer base {
+  a {
+    @apply inline-flex items-center gap-2;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased min-h-screen;
+  }
+  html {
+    @apply antialiased scroll-smooth;
+  }
+  ::selection {
+    @apply bg-primary/30;
+  }
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
+  }
+
+  @font-face {
+    font-family: "geist";
+    font-style: normal;
+    font-weight: 100 900;
+    src: url(/fonts/geist.woff2) format("woff2");
+  }
+
+  @font-face {
+    font-family: "geist-mono";
+    font-style: normal;
+    font-weight: 100 900;
+    src: url(/fonts/geist-mono.woff2) format("woff2");
+  }
+}
+
+.merge-form-section {
+  @apply flex flex-col space-y-0 border rounded-md bg-card divide-y;
+}
+
+.merge-form-section > div {
+  @apply rounded-none border-0 bg-transparent px-6;
+}
+
+.merge-form-section > header {
+  @apply px-6;
+}
+
+.merge-form-section > footer {
+  @apply px-6;
+}
+
+nextjs-portal {
+  display: none;
+}
+
+.highlight {
+  background: url(https://s2.svgbox.net/pen-brushes.svg?ic=brush-5&color=ffff43);
+  margin: -2px -4px;
+  padding: 2px 4px;
+}
+
+.dark .highlight {
+  background: url(https://s2.svgbox.net/pen-brushes.svg?ic=brush-5&color=333);
+  margin: -2px -4px;
+  padding: 2px 4px;
+}
+
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    hsl(var(--primary) / 0.05) 0%,
+    transparent 70%
+  );
+  z-index: -1;
+  pointer-events: none;
+}
