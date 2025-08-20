@@ -913,5 +913,39 @@ export const evolutionApi = PluginManager.plugin({
         }
       },
     },
+
+    // Conectar instância e obter QR Code
+    connectInstance: {
+      name: 'connectInstance',
+      description:
+        'Conecta uma instância do WhatsApp e retorna o QR Code se necessário.',
+      schema: z.object({
+        instanceName: z.string().describe('Nome da instância do WhatsApp'),
+      }),
+      handler: async ({ input }) => {
+        try {
+          const client = createEvolutionApiClient()
+
+          // Chamar o endpoint de conexão da Evolution API
+          const response = await client.get(
+            `/instance/connect/${input.instanceName}`,
+          )
+
+          console.log('[Evolution API] Instância conectada:', {
+            instanceName: input.instanceName,
+            status: response.data?.state,
+            hasQrCode: !!response.data?.qrcode,
+          })
+
+          return response.data
+        } catch (error: any) {
+          console.error(
+            '[Evolution API] Erro ao conectar instância:',
+            error.response?.data || error.message,
+          )
+          throw error
+        }
+      },
+    },
   },
 })

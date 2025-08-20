@@ -100,10 +100,7 @@ export default function WhatsAppInstancesPage() {
               </BreadcrumbList>
             </Breadcrumb>
 
-            {/* Botão Nova Instância - Posicionado à direita */}
-            <div className="flex items-center">
-              <WhatsAppInstanceCreate />
-            </div>
+            {/* O botão WhatsAppInstanceCreate foi removido daqui */}
           </div>
         </PageMainBar>
       </PageHeader>
@@ -111,8 +108,12 @@ export default function WhatsAppInstancesPage() {
       {/* Header Secundário - Toolbar de Busca e Filtros */}
       <PageSecondaryHeader className="bg-card/20 backdrop-blur-md border-border/30">
         <div className="flex items-center justify-center w-full">
-          <div className="w-full max-w-4xl">
+          {/* MODIFICADO: Este div agora contém tanto a Toolbar quanto o botão de Criar Instância,
+              usando flexbox para alinhá-los na mesma linha e espaçá-los. */}
+          <div className="w-full max-w-4xl flex items-center justify-between gap-4">
             <WhatsAppInstanceToolbar />
+            {/* O botão WhatsAppInstanceCreate foi movido para cá */}
+            <WhatsAppInstanceCreate />
           </div>
         </div>
       </PageSecondaryHeader>

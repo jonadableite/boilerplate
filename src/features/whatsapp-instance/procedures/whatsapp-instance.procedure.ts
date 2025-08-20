@@ -37,6 +37,7 @@ interface EvolutionApiService {
     password?: string;
   }) => Promise<any>;
   findProxy: (data: { instanceName: string }) => Promise<any>;
+  connectInstance: (instanceName: string) => Promise<any>;
 }
 
 // Implementação mock para client-side (nunca será executada)
@@ -54,6 +55,7 @@ const createEvolutionApiService = (): EvolutionApiService => {
       listInstances: async () => { throw new Error('Só executável no servidor') }, // Mock para listInstances
       setProxy: async () => { throw new Error('Só executável no servidor') },
       findProxy: async () => { throw new Error('Só executável no servidor') },
+      connectInstance: async () => { throw new Error('Só executável no servidor') }, // Mock para connectInstance
     };
   }
 
@@ -117,6 +119,13 @@ const createEvolutionApiService = (): EvolutionApiService => {
       return await evolutionApi.actions.findProxy.handler({
         config: {},
         input: data,
+      });
+    },
+    connectInstance: async (instanceName) => {
+      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      return await evolutionApi.actions.connectInstance.handler({
+        config: {},
+        input: { instanceName },
       });
     },
   };
@@ -722,6 +731,115 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               localMetadata: localProxy,
               error: error.message,
             };
+          }
+        },
+
+        // Conectar instância e obter QR Code
+        connectInstance: async (data: { id: string; organizationId: string }) => {
+          // Verificar se a instância existe e pertence à organização
+          const instance = await context.providers.database.whatsAppInstance.findFirst({
+            where: {
+              id: data.id,
+              organizationId: data.organizationId,
+            },
+          });
+
+          if (!instance) {
+            throw new Error('Instância não encontrada');
+          }
+
+          // Verificar se a instância pode ser conectada
+          if (instance.status === InstanceConnectionStatus.OPEN) {
+            throw new Error('Instância já está conectada');
+          }
+
+          try {
+            console.log('[WhatsApp Instance] Conectando instância:', instance.instanceName);
+
+            // Chamar Evolution API para conectar a instância
+            const evolutionApi = createEvolutionApiService();
+            const connectionResult = await evolutionApi.connectInstance(instance.instanceName);
+
+            console.log('[WhatsApp Instance] Resultado da conexão:', connectionResult);
+
+            // Verificar se há QR Code na resposta
+            // A Evolution API retorna o QR Code diretamente no objeto principal
+            const hasQrCode = !!(connectionResult?.base64 || connectionResult?.qrcode?.base64);
+            const qrCodeData = connectionResult?.qrcode || connectionResult;
+
+            console.log('[WhatsApp Instance] Análise do QR Code:', {
+              hasQrCode,
+              qrCodeData,
+              connectionResultKeys: Object.keys(connectionResult || {}),
+              qrcodeBase64: connectionResult?.qrcode?.base64,
+              directBase64: connectionResult?.base64,
+              base64Length: connectionResult?.base64?.length || 0,
+            });
+
+            // Atualizar status da instância para "connecting"
+            const updatedInstance = await context.providers.database.whatsAppInstance.update({
+              where: { id: data.id },
+              data: {
+                status: InstanceConnectionStatus.CONNECTING,
+                metadata: {
+                  ...(instance.metadata as Record<string, any> || {}),
+                  lastConnectionAttempt: {
+                    timestamp: new Date().toISOString(),
+                    evolutionResponse: connectionResult,
+                  },
+                  // Armazenar QR Code se disponível
+                  ...(hasQrCode && {
+                    qrcode: {
+                      base64: connectionResult?.base64 || connectionResult?.qrcode?.base64,
+                      code: connectionResult?.code || connectionResult?.qrcode?.code || null,
+                    },
+                  }),
+                },
+              },
+              include: {
+                user: true,
+                createdBy: true,
+              },
+            });
+
+            console.log('[WhatsApp Instance] Instância atualizada:', {
+              id: updatedInstance.id,
+              status: updatedInstance.status,
+              hasQrCode,
+              qrCodeData: hasQrCode ? 'disponível' : 'não disponível',
+              metadataQrCode: (updatedInstance.metadata as any)?.qrcode ? 'armazenado' : 'não armazenado',
+            });
+
+            return {
+              success: true,
+              message: hasQrCode ? 'QR Code gerado com sucesso' : 'Instância conectada com sucesso',
+              data: updatedInstance,
+              hasQrCode,
+              qrCode: hasQrCode ? {
+                base64: qrCodeData.base64,
+                code: qrCodeData.code || null,
+              } : null,
+              evolutionResponse: connectionResult,
+            };
+          } catch (error: any) {
+            console.error('[WhatsApp Instance] Erro ao conectar instância:', error);
+
+            // Atualizar status para "close" em caso de erro
+            await context.providers.database.whatsAppInstance.update({
+              where: { id: data.id },
+              data: {
+                status: InstanceConnectionStatus.CLOSE,
+                metadata: {
+                  ...(instance.metadata as Record<string, any> || {}),
+                  lastConnectionError: {
+                    timestamp: new Date().toISOString(),
+                    error: error.message,
+                  },
+                },
+              },
+            });
+
+            throw new Error(`Erro ao conectar instância: ${error.message}`);
           }
         },
       },

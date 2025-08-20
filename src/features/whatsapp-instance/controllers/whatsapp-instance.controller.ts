@@ -174,9 +174,10 @@ export const WhatsAppInstanceController = igniter.controller({
           return response.unauthorized('Organização não selecionada')
         }
 
-        const updatedInstances = await context.whatsAppInstance.syncAllInstances(
-          session.organization.id,
-        )
+        const updatedInstances =
+          await context.whatsAppInstance.syncAllInstances(
+            session.organization.id,
+          )
 
         return response.success({
           message: `${updatedInstances.length} instâncias sincronizadas`,
@@ -247,6 +248,29 @@ export const WhatsAppInstanceController = igniter.controller({
         }
 
         const result = await context.whatsAppInstance.getProxy({
+          id: request.params.id,
+          organizationId: session.organization.id,
+        })
+
+        return response.success(result)
+      },
+    }),
+
+    // Conectar instância e obter QR Code
+    connect: igniter.mutation({
+      method: 'POST',
+      path: '/:id/connect' as const,
+      use: [AuthFeatureProcedure(), WhatsAppInstanceProcedure()],
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        const result = await context.whatsAppInstance.connectInstance({
           id: request.params.id,
           organizationId: session.organization.id,
         })

@@ -40,12 +40,29 @@ export function WhatsAppInstanceQrModal({
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [countdown, setCountdown] = useState(0)
 
+  // Debug logs
+  console.log('[QR Modal] Props recebidos:', {
+    instance,
+    isOpen,
+    hasInstance: !!instance,
+    instanceId: instance?.id,
+    instanceName: instance?.instanceName,
+  })
+
   // Get QR Code from metadata
   const qrCodeData = currentInstance?.metadata?.qrcode
   const hasQrCode = qrCodeData?.base64
   const isConnected = currentInstance?.status === InstanceConnectionStatus.OPEN
   const isConnecting =
     currentInstance?.status === InstanceConnectionStatus.CONNECTING
+
+  console.log('[QR Modal] Estado do QR Code:', {
+    hasQrCode,
+    qrCodeData,
+    isConnected,
+    isConnecting,
+    metadata: currentInstance?.metadata,
+  })
 
   // Auto-refresh instance status
   const refreshInstanceStatus = useCallback(async () => {
@@ -54,12 +71,14 @@ export function WhatsAppInstanceQrModal({
     try {
       setIsRefreshing(true)
       const result = await api.whatsAppInstances.list.query({
-        search: currentInstance.instanceName,
-        limit: 1,
+        query: {
+          search: currentInstance.instanceName,
+          limit: 1,
+        },
       })
 
-      if (result.data.length > 0) {
-        const updatedInstance = result.data[0]
+      if (result.data && result.data.data.length > 0) {
+        const updatedInstance = result.data.data[0]
         setCurrentInstance(updatedInstance)
 
         // If connected, notify success and close modal
@@ -110,6 +129,15 @@ export function WhatsAppInstanceQrModal({
   useEffect(() => {
     setCurrentInstance(instance)
   }, [instance])
+
+  // Monitor modal open/close state
+  useEffect(() => {
+    console.log('[QR Modal] Estado do modal mudou:', {
+      isOpen,
+      hasInstance: !!instance,
+      instanceId: instance?.id,
+    })
+  }, [isOpen, instance])
 
   const handleManualRefresh = () => {
     setCountdown(0)

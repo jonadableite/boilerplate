@@ -115,6 +115,19 @@ export const setProxySchema = z.object({
 
 export type SetProxyDTO = z.infer<typeof setProxySchema>
 
+// Tipos para conexão de instância
+export interface ConnectInstanceResponse {
+  success: boolean
+  message: string
+  data: WhatsAppInstance
+  hasQrCode: boolean
+  qrCode: {
+    base64: string
+    code?: string
+  } | null
+  evolutionResponse: any
+}
+
 // Adicionar hasProxy ao WhatsAppInstance interface
 export interface WhatsAppInstanceWithProxy extends WhatsAppInstance {
   hasProxy?: boolean

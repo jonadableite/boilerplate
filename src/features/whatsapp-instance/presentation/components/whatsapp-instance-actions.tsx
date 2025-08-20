@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Shield,
   Trash2,
+  Wifi,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -31,6 +32,7 @@ import {
   InstanceConnectionStatus,
 } from '../../whatsapp-instance.types'
 import { WhatsAppInstanceProxySetup } from './whatsapp-instance-proxy-setup'
+import { WhatsAppInstanceQrModal } from './whatsapp-instance-qr-modal'
 
 interface WhatsAppInstanceActionsProps {
   instance: WhatsAppInstance
@@ -42,6 +44,59 @@ export function WhatsAppInstanceActions({
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
+
+  // QR Modal state
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false)
+  const [qrInstance, setQrInstance] = useState<WhatsAppInstance | null>(null)
+
+  // Conectar instância e obter QR Code
+  const handleConnect = async () => {
+    try {
+      setIsLoading(true)
+      console.log(
+        '[WhatsApp Instance] Iniciando conexão da instância:',
+        instance.id,
+      )
+
+      const result = await api.whatsAppInstances.connect.mutate({
+        params: { id: instance.id },
+      })
+
+      console.log('[WhatsApp Instance] Resultado da conexão:', result)
+      console.log('[WhatsApp Instance] hasQrCode:', result.data?.hasQrCode)
+      console.log('[WhatsApp Instance] qrCode:', result.data?.qrCode)
+
+      if (result.data?.hasQrCode && result.data?.qrCode) {
+        // Se há QR Code, abrir modal
+        console.log(
+          '[WhatsApp Instance] Abrindo modal QR com instância:',
+          result.data.data,
+        )
+        setQrInstance(result.data.data as WhatsAppInstance)
+        setIsQrModalOpen(true)
+        toast.success('QR Code gerado! Escaneie para conectar.')
+      } else {
+        console.log(
+          '[WhatsApp Instance] Sem QR Code, apenas atualizando status',
+        )
+        toast.success('Instância conectada com sucesso!')
+        router.refresh()
+      }
+    } catch (error: any) {
+      console.error('[WhatsApp Instance] Erro na conexão:', error)
+      let errorMessage = 'Erro ao conectar instância'
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (error?.error?.message) {
+        errorMessage = error.error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Sincronizar status
   const handleSync = async () => {
@@ -93,6 +148,24 @@ export function WhatsAppInstanceActions({
     }
   }
 
+  // Verificar se a instância pode ser conectada
+  const canConnect =
+    instance.status === InstanceConnectionStatus.CLOSE ||
+    instance.status === InstanceConnectionStatus.CONNECTING
+
+  const handleQrModalSuccess = (instance: WhatsAppInstance) => {
+    setQrInstance(null)
+    setIsQrModalOpen(false)
+    router.refresh()
+    toast.success(`Instância "${instance.instanceName}" conectada com sucesso!`)
+  }
+
+  const handleQrModalClose = () => {
+    setQrInstance(null)
+    setIsQrModalOpen(false)
+    router.refresh()
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -102,6 +175,17 @@ export function WhatsAppInstanceActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {/* Botão Conectar - só aparece se a instância não estiver conectada */}
+          {canConnect && (
+            <>
+              <DropdownMenuItem onClick={handleConnect} disabled={isLoading}>
+                <Wifi className="mr-2 h-4 w-4" />
+                Conectar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
           <DropdownMenuItem onClick={handleSync} disabled={isLoading}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Sincronizar Status
@@ -138,6 +222,7 @@ export function WhatsAppInstanceActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Modal de confirmação para deletar */}
       <AlertDialog open={isOpen} onOpenChange={onClose}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -161,6 +246,15 @@ export function WhatsAppInstanceActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal QR Code para conexão */}
+      <WhatsAppInstanceQrModal
+        instance={qrInstance}
+        isOpen={isQrModalOpen}
+        onClose={handleQrModalClose}
+        onSuccess={handleQrModalSuccess}
+        autoRefresh={true}
+      />
     </>
   )
 }

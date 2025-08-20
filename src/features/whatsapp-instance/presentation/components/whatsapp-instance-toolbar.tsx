@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/igniter.client'
-import { Filter, RefreshCw, Search } from 'lucide-react'
+import { RefreshCw, Search } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -17,7 +17,7 @@ import { InstanceConnectionStatus } from '../../whatsapp-instance.types'
 
 // Mapa de status para exibição
 const statusOptions = [
-  { value: 'all', label: 'Todos os Status', icon: '🔄' },
+  { value: 'all', label: 'Todos', icon: '🔄' },
   { value: InstanceConnectionStatus.OPEN, label: 'Conectado', icon: '🟢' },
   { value: InstanceConnectionStatus.CLOSE, label: 'Desconectado', icon: '🔴' },
   {
@@ -45,7 +45,6 @@ export function WhatsAppInstanceToolbar() {
     try {
       setIsRefreshing(true)
       const result = await api.whatsAppInstances.syncAll.mutate()
-
       // Verifica se a resposta é de sucesso e tem dados
       if (result && 'data' in result && result.data) {
         toast.success(
@@ -54,7 +53,6 @@ export function WhatsAppInstanceToolbar() {
       } else {
         toast.success('Instâncias sincronizadas com sucesso!')
       }
-
       router.refresh()
     } catch (error) {
       toast.error('Erro ao sincronizar instâncias')
@@ -67,7 +65,6 @@ export function WhatsAppInstanceToolbar() {
   const createQueryString = useCallback(
     (params: Record<string, string>) => {
       const current = new URLSearchParams(Array.from(searchParams.entries()))
-
       // Remove valores vazios ou undefined
       Object.entries(params).forEach(([key, value]) => {
         if (!value || value.trim() === '') {
@@ -76,7 +73,6 @@ export function WhatsAppInstanceToolbar() {
           current.set(key, value.trim())
         }
       })
-
       return current.toString()
     },
     [searchParams],
@@ -88,34 +84,31 @@ export function WhatsAppInstanceToolbar() {
       search: debouncedSearch,
       status,
     })
-
     router.push(`${pathname}?${queryString}`)
   }, [debouncedSearch, status, pathname, router, createQueryString])
 
   return (
-    <div className="flex items-center gap-4 w-full">
-      {/* Seção de Busca */}
-      <div className="flex-1 max-w-md">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+      {/* Seção de Busca - Responsiva */}
+      <div className="flex-1 min-w-0">
         <div className="relative group">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           </div>
           <Input
             type="text"
-            placeholder="Buscar por nome ou número..."
+            placeholder="Buscar instâncias..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 placeholder:text-muted-foreground/70"
+            className="pl-10 pr-4 h-10 bg-background/60 backdrop-blur-sm border-border/40 focus:border-primary/60 focus:bg-background/80 transition-all duration-200 placeholder:text-muted-foreground/60 text-sm"
           />
         </div>
       </div>
-
-      {/* Filtro de Status */}
+      {/* Filtro de Status - Compacto */}
       <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-[180px] bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50">
-            <SelectValue placeholder="Filtrar por status" />
+          <SelectTrigger className="h-10 w-[140px] bg-background/60 backdrop-blur-sm border-border/40 focus:border-primary/60 text-sm">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent className="bg-background/95 backdrop-blur-sm border-border/50">
             {statusOptions.map((option) => (
@@ -128,21 +121,21 @@ export function WhatsAppInstanceToolbar() {
             ))}
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Botão de Sincronização */}
-      <Button
-        variant="outline"
-        size="default"
-        onClick={handleRefreshAll}
-        disabled={isRefreshing}
-        className="bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/30 text-primary hover:text-primary/90 backdrop-blur-sm transition-all duration-200"
-      >
-        <RefreshCw
-          className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`}
-        />
-        {isRefreshing ? 'Sincronizando...' : 'Atualizar Tudo'}
-      </Button>
+        {/* Botão de Atualizar Todas as Instâncias - MODIFICADO */}
+        <Button
+          variant="outline"
+          size="icon" // Use size="icon" para um botão quadrado com apenas o ícone
+          onClick={handleRefreshAll}
+          disabled={isRefreshing}
+          className="group h-10 w-10 bg-background/60 backdrop-blur-sm border-border/40 hover:border-primary/60 transition-colors duration-200"
+        >
+          <RefreshCw
+            className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200 ${isRefreshing ? 'animate-spin' : 'group-hover:animate-spin'
+              }`}
+          />
+        </Button>
+      </div>
     </div>
   )
 }
