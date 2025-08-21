@@ -92,6 +92,13 @@ model User {
   twofactors       TwoFactor[]
   WhatsAppInstance WhatsAppInstance[]
 
+  assignedContacts      Contact[]            @relation("ContactAssignedTo")
+  assignedConversations Conversation[]       @relation("ConversationAssignedTo")
+  sentMessages          Message[]            @relation("MessageSentBy")
+  funnelStageChanges    FunnelStageHistory[] @relation("FunnelStageChangedBy")
+  WarmupStats           WarmupStats[]
+  WarmupContent         WarmupContent[]
+
   @@unique([email])
   @@map("user")
 }
@@ -150,16 +157,25 @@ model Organization {
   createdAt DateTime
   metadata  String?
 
-  members      Member[]
-  invitations  Invitation[]
-  apiKeys      ApiKey[]
-  webhooks     Webhook[]
-  integrations Integration[]
-  submissions  Submission[]
-  leads        Lead[]
+  members            Member[]
+  invitations        Invitation[]
+  apiKeys            ApiKey[]
+  webhooks           Webhook[]
+  integrations       Integration[]
+  submissions        Submission[]
+  leads              Lead[]
+  contacts           Contact[]
+  conversations      Conversation[]
+  messages           Message[]
+  funnelStageHistory FunnelStageHistory[]
 
-  customer         Customer?
-  WhatsAppInstance WhatsAppInstance[]
+  customer             Customer?
+  WhatsAppInstance     WhatsAppInstance[]
+  WarmupStats          WarmupStats[]
+  MediaStats           MediaStats[]
+  MediaReceived        MediaReceived[]
+  WarmupContent        WarmupContent[]
+  WarmupExternalNumber WarmupExternalNumber[]
 
   @@unique([slug])
   @@map("organization")
@@ -362,6 +378,8 @@ model WhatsAppInstance {
   createdById String
   createdBy   User   @relation("UserWhatsAppInstances", fields: [createdById], references: [id], onDelete: Cascade)
 
+  conversations Conversation[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -369,4 +387,372 @@ model WhatsAppInstance {
   @@index([organizationId, userId])
   @@index([status])
   @@map("whatsapp_instance")
+}
+
+enum ContactStatus {
+  LEAD
+  PROSPECT
+  CUSTOMER
+  INACTIVE
+}
+
+enum FunnelStage {
+  NEW_LEAD
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATING
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  STICKER
+  BUTTON_REPLY
+  LIST_REPLY
+  LOCATION
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+model Contact {
+  id             String  @id @default(uuid())
+  whatsappNumber String  @unique
+  name           String?
+  email          String?
+  profilePicUrl  String?
+
+  // CRM Fields
+  status      ContactStatus @default(LEAD)
+  funnelStage FunnelStage   @default(NEW_LEAD)
+  tags        String[]      @default([])
+  notes       String?
+
+  // Metadata
+  lastSeenAt DateTime?
+  isBlocked  Boolean   @default(false)
+  metadata   Json?
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?   @relation("ContactAssignedTo", fields: [assignedToId], references: [id])
+
+  conversations Conversation[]
+  messages      Message[]
+
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  FunnelStageHistory FunnelStageHistory[]
+
+  @@unique([organizationId, whatsappNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, funnelStage])
+  @@index([assignedToId])
+  @@map("contact")
+}
+
+model Conversation {
+  id             String  @id @default(uuid())
+  whatsappChatId String // ID do chat no WhatsApp (pode ser grupo ou individual)
+  title          String? // Título personalizado da conversa
+
+  // Status e controle
+  status      ConversationStatus @default(OPEN)
+  isGroup     Boolean            @default(false)
+  unreadCount Int                @default(0)
+
+  // Última mensagem (para otimização)
+  lastMessageAt   DateTime?
+  lastMessage     String? // Prévia da última mensagem
+  lastMessageType MessageType?
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  whatsappInstanceId String
+  whatsappInstance   WhatsAppInstance @relation(fields: [whatsappInstanceId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  assignedToId String?
+  assignedTo   User?   @relation("ConversationAssignedTo", fields: [assignedToId], references: [id])
+
+  messages Message[]
+
+  // Metadata
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, whatsappChatId, whatsappInstanceId])
+  @@index([organizationId, status])
+  @@index([organizationId, lastMessageAt])
+  @@index([assignedToId])
+  @@index([whatsappInstanceId])
+  @@map("conversation")
+}
+
+model Message {
+  id                String  @id @default(uuid())
+  whatsappMessageId String? @unique // ID da mensagem no WhatsApp
+
+  // Conteúdo da mensagem
+  content   String
+  type      MessageType      @default(TEXT)
+  direction MessageDirection
+  status    MessageStatus    @default(PENDING)
+
+  // Mídia (se aplicável)
+  mediaUrl  String?
+  mediaType String? // MIME type
+  fileName  String?
+  fileSize  Int?
+
+  // Mensagem citada
+  quotedMessageId String?
+  quotedMessage   Message?  @relation("MessageQuote", fields: [quotedMessageId], references: [id])
+  quotedBy        Message[] @relation("MessageQuote")
+
+  // Metadados do WhatsApp
+  timestamp  DateTime // Timestamp original da mensagem
+  fromMe     Boolean  @default(false)
+  fromName   String? // Nome do remetente
+  fromNumber String? // Número do remetente
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  userId String? // ID do usuário que enviou (se outbound)
+  user   User?   @relation("MessageSentBy", fields: [userId], references: [id])
+
+  // Metadata adicional
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId, timestamp])
+  @@index([organizationId, direction, status])
+  @@index([contactId])
+  @@index([type])
+  @@map("message")
+}
+
+model FunnelStageHistory {
+  id String @id @default(uuid())
+
+  fromStage FunnelStage?
+  toStage   FunnelStage
+  reason    String? // Motivo da mudança
+  notes     String? // Observações adicionais
+
+  // Relacionamentos
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  changedById String
+  changedBy   User   @relation("FunnelStageChangedBy", fields: [changedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([contactId, createdAt])
+  @@index([organizationId, toStage])
+  @@map("funnel_stage_history")
+}
+
+enum WarmupStatus {
+  INACTIVE
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ERROR
+}
+
+enum WarmupMessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  STICKER
+  REACTION
+}
+
+model WarmupStats {
+  id             String       @id @default(uuid())
+  instanceName   String       @unique // Nome da instância Evolution API
+  status         WarmupStatus @default(INACTIVE)
+  startTime      DateTime     @default(now())
+  pauseTime      DateTime?
+  warmupTime     Int?         @default(0) // Tempo total de aquecimento em segundos
+  progress       Float?       @default(0.0) // 0.0 a 1.0 (0% a 100%)
+  lastActive     DateTime?
+  targetDuration Int?         @default(2073600) // 24 dias em segundos (tempo padrão de aquecimento)
+
+  // Configurações específicas do aquecimento
+  config Json? // Configurações do aquecimento (percentuais, delays, etc.)
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Estatísticas relacionadas
+  mediaStatsId String     @unique
+  mediaStats   MediaStats @relation(fields: [mediaStatsId], references: [id], onDelete: Cascade)
+
+  mediaReceivedId String        @unique
+  mediaReceived   MediaReceived @relation(fields: [mediaReceivedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([userId, status])
+  @@index([instanceName, status])
+  @@map("warmup_stats")
+}
+
+model MediaStats {
+  id            String @id @default(uuid())
+  instanceName  String // Nome da instância
+  text          Int    @default(0)
+  image         Int    @default(0)
+  video         Int    @default(0)
+  audio         Int    @default(0)
+  sticker       Int    @default(0)
+  reaction      Int    @default(0)
+  totalDaily    Int    @default(0)
+  totalAllTime  Int    @default(0)
+  totalSent     Int    @default(0)
+  totalReceived Int    @default(0)
+
+  // Data de referência para as estatísticas
+  date DateTime @default(now())
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  warmupStats WarmupStats?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([instanceName, date, organizationId])
+  @@index([organizationId, instanceName])
+  @@index([date])
+  @@map("media_stats")
+}
+
+model MediaReceived {
+  id           String @id @default(uuid())
+  instanceName String // Nome da instância
+  text         Int    @default(0)
+  image        Int    @default(0)
+  video        Int    @default(0)
+  audio        Int    @default(0)
+  sticker      Int    @default(0)
+  reaction     Int    @default(0)
+  totalDaily   Int    @default(0)
+  totalAllTime Int    @default(0)
+
+  // Data de referência para as estatísticas
+  date DateTime @default(now())
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  warmupStats WarmupStats?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([instanceName, date, organizationId])
+  @@index([organizationId, instanceName])
+  @@index([date])
+  @@map("media_received")
+}
+
+model WarmupContent {
+  id       String            @id @default(uuid())
+  type     WarmupMessageType
+  content  String? // Texto ou base64 para mídia
+  caption  String? // Legenda para mídia
+  fileName String? // Nome do arquivo para documentos
+  mimeType String? // Tipo MIME para mídia
+  metadata Json? // Dados adicionais
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, type])
+  @@index([userId, type])
+  @@map("warmup_content")
+}
+
+model WarmupExternalNumber {
+  id          String  @id @default(uuid())
+  phoneNumber String // Número com código do país (ex: 559999999999)
+  name        String? // Nome/descrição do número
+  active      Boolean @default(true)
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, phoneNumber])
+  @@index([organizationId, active])
+  @@map("warmup_external_number")
 }

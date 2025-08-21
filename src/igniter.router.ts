@@ -12,8 +12,10 @@ import { igniter } from '@/igniter'
 import { BillingController } from './@saas-boilerplate/features/billing'
 import { IntegrationController } from './@saas-boilerplate/features/integration'
 import { AppConfig } from './boilerplate.config'
+import { ChatController } from './features/chat'
 import { LeadController } from './features/lead'
 import { SubmissionController } from './features/submission'
+import { warmupController } from './features/warmup'
 import { WhatsAppInstanceController } from './features/whatsapp-instance/controllers/whatsapp-instance.controller'
 import { createIgniterAppContext } from './igniter.context'
 
@@ -40,5 +42,7 @@ export const AppRouter = igniter.router({
     submission: SubmissionController,
     lead: LeadController,
     whatsAppInstances: WhatsAppInstanceController,
+    chat: ChatController,
+    warmup: warmupController,
   },
 })

@@ -4,7 +4,8 @@ import {
   SendIcon,
   SettingsIcon,
   Smartphone,
-  Users2Icon
+  TrendingUp,
+  Users2Icon,
 } from 'lucide-react'
 
 export const dashboardSidebarMenu = {
@@ -36,6 +37,24 @@ export const dashboardSidebarMenu = {
           title: 'WhatsApp',
           url: '/app/whatsapp-instances',
           icon: Smartphone,
+        },
+        {
+          id: 'sidebar_warmup',
+          title: 'Aquecimento',
+          url: '/app/warmup',
+          icon: TrendingUp,
+        },
+        {
+          id: 'sidebar_chat',
+          title: 'Chat',
+          url: '/app/chat',
+          icon: SendIcon,
+        },
+        {
+          id: 'sidebar_crm',
+          title: 'CRM',
+          url: '/app/crm',
+          icon: Users2Icon,
         },
         // {
         //   id: 'sidebar_integrations',

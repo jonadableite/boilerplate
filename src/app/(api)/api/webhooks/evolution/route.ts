@@ -1,136 +1,236 @@
-import { InstanceConnectionStatus } from '@/features/whatsapp-instance/whatsapp-instance.types'
-import { PrismaClient } from '@prisma/client'
-import { NextRequest, NextResponse } from 'next/server'
+import { warmupService } from '@/features/warmup'
+import { prisma } from '@/providers/prisma'
+import type { NextRequest } from 'next/server'
 
-const prisma = new PrismaClient()
-
-export async function POST(request: NextRequest) {
+export const POST = async (req: NextRequest) => {
   try {
-    // Validar content-type
-    if (!request.headers.get('content-type')?.includes('application/json')) {
-      return NextResponse.json(
-        { error: 'Content-Type deve ser application/json' },
-        { status: 400 },
-      )
-    }
+    const body = await req.json()
 
-    // Parse do payload
-    const payload = await request.json()
-    console.log('[Evolution Webhook] Evento recebido:', payload)
-
-    // Validar estrutura básica do evento
-    if (!payload.event || !payload.instance) {
-      return NextResponse.json(
-        { error: 'Estrutura de evento inválida' },
-        { status: 400 },
-      )
-    }
-
-    const { event, instance, data } = payload
-    const instanceName = instance.instanceName || instance.name
-
-    if (!instanceName) {
-      console.warn(
-        '[Evolution Webhook] Nome da instância não encontrado no payload',
-      )
-      return NextResponse.json({ status: 'ignored' }, { status: 200 })
-    }
-
-    // Mapear eventos para status
-    let newStatus: InstanceConnectionStatus | null = null
-
-    switch (event) {
-      case 'connection.update':
-        if (data?.state === 'open') {
-          newStatus = InstanceConnectionStatus.OPEN
-        } else if (data?.state === 'close') {
-          newStatus = InstanceConnectionStatus.CLOSE
-        } else if (data?.state === 'connecting') {
-          newStatus = InstanceConnectionStatus.CONNECTING
-        }
-        break
-
-      case 'qrcode.updated':
-        // QR Code foi atualizado, mantém como conectando
-        newStatus = InstanceConnectionStatus.CONNECTING
-        break
-
-      case 'instance.created':
-        newStatus = InstanceConnectionStatus.CONNECTING
-        break
-
-      case 'instance.deleted':
-        // Instância foi deletada na Evolution API
-        console.log('[Evolution Webhook] Instância deletada:', instanceName)
-        break
-
-      default:
-        console.log('[Evolution Webhook] Evento não tratado:', event)
-        return NextResponse.json({ status: 'ignored' }, { status: 200 })
-    }
-
-    // Se não há mudança de status, ignora
-    if (!newStatus) {
-      return NextResponse.json({ status: 'no_update' }, { status: 200 })
-    }
-
-    // Buscar instância pelo instanceName
-    const dbInstance = await prisma.whatsAppInstance.findFirst({
-      where: { instanceName },
+    console.log('[Evolution Webhook] Mensagem recebida:', {
+      event: body.event,
+      instance: body.instance,
+      data: body.data ? 'presente' : 'ausente'
     })
 
-    if (!dbInstance) {
-      console.warn(
-        '[Evolution Webhook] Instância não encontrada no banco:',
-        instanceName,
-      )
-      return NextResponse.json(
-        { error: 'Instância não encontrada' },
-        { status: 404 },
-      )
-    }
+    // Verificar se é um evento de mensagem
+    if (body.event === 'messages.upsert' && body.data) {
+      const messageData = body.data
+      const instanceName = body.instance
 
-    // Atualizar status da instância
-    await prisma.whatsAppInstance.update({
-      where: { id: dbInstance.id },
-      data: {
-        status: newStatus,
-        metadata: {
-          ...(typeof dbInstance.metadata === 'object' &&
-            dbInstance.metadata !== null
-            ? dbInstance.metadata
-            : {}),
-          lastWebhookEvent: {
-            event,
-            data,
-            timestamp: new Date().toISOString(),
-          },
+      // Verificar se a instância existe no sistema
+      const instance = await prisma.whatsAppInstance.findFirst({
+        where: {
+          instanceName: instanceName,
         },
-        // Atualizar informações do perfil se disponível
-        ...(data?.profileName && { profileName: data.profileName }),
-        ...(data?.profilePicUrl && { profilePicUrl: data.profilePicUrl }),
-        ...(data?.owner && { ownerJid: data.owner }),
+      })
+
+      if (instance) {
+        // Processar mensagem no sistema de aquecimento se não foi enviada por nós
+        if (!messageData.key?.fromMe) {
+          await warmupService.processReceivedMessage(
+            instanceName,
+            instance.organizationId,
+            {
+              key: messageData.key,
+              pushName: messageData.pushName || '',
+              status: 'received',
+              message: messageData.message || {},
+              messageType: messageData.messageType || 'text',
+              messageTimestamp: messageData.messageTimestamp || Date.now(),
+              instanceId: instanceName,
+              source: 'webhook',
+            }
+          )
+        }
+
+        // Salvar mensagem no banco de dados (CRM)
+        if (messageData.key && messageData.message) {
+          try {
+            // Determinar tipo de mensagem
+            let messageType = 'TEXT'
+            let content = ''
+            let mediaUrl = null
+            let mediaType = null
+            let fileName = null
+
+            if (messageData.message.conversation) {
+              messageType = 'TEXT'
+              content = messageData.message.conversation
+            } else if (messageData.message.imageMessage) {
+              messageType = 'IMAGE'
+              content = messageData.message.imageMessage.caption || '[Imagem]'
+              mediaType = 'image/jpeg'
+            } else if (messageData.message.videoMessage) {
+              messageType = 'VIDEO'
+              content = messageData.message.videoMessage.caption || '[Vídeo]'
+              mediaType = 'video/mp4'
+            } else if (messageData.message.audioMessage) {
+              messageType = 'AUDIO'
+              content = '[Áudio]'
+              mediaType = 'audio/ogg'
+            } else if (messageData.message.documentMessage) {
+              messageType = 'DOCUMENT'
+              content = messageData.message.documentMessage.title || '[Documento]'
+              fileName = messageData.message.documentMessage.fileName
+              mediaType = messageData.message.documentMessage.mimetype
+            } else if (messageData.message.stickerMessage) {
+              messageType = 'STICKER'
+              content = '[Figurinha]'
+              mediaType = 'image/webp'
+            }
+
+            // Extrair número do remetente
+            const fromNumber = messageData.key.remoteJid?.replace('@s.whatsapp.net', '')
+
+            if (fromNumber) {
+              // Buscar ou criar contato
+              let contact = await prisma.contact.findFirst({
+                where: {
+                  whatsappNumber: fromNumber,
+                  organizationId: instance.organizationId,
+                },
+              })
+
+              if (!contact) {
+                contact = await prisma.contact.create({
+                  data: {
+                    whatsappNumber: fromNumber,
+                    name: messageData.pushName || fromNumber,
+                    organizationId: instance.organizationId,
+                    status: 'LEAD',
+                    funnelStage: 'NEW_LEAD',
+                  },
+                })
+              }
+
+              // Buscar ou criar conversa
+              let conversation = await prisma.conversation.findFirst({
+                where: {
+                  whatsappChatId: messageData.key.remoteJid,
+                  whatsappInstanceId: instance.id,
+                  organizationId: instance.organizationId,
+                },
+              })
+
+              if (!conversation) {
+                conversation = await prisma.conversation.create({
+                  data: {
+                    whatsappChatId: messageData.key.remoteJid,
+                    title: contact.name || fromNumber,
+                    organizationId: instance.organizationId,
+                    whatsappInstanceId: instance.id,
+                    contactId: contact.id,
+                    status: 'OPEN',
+                    isGroup: messageData.key.remoteJid?.includes('@g.us') || false,
+                    lastMessageAt: new Date(messageData.messageTimestamp * 1000),
+                    lastMessage: content.substring(0, 100),
+                    lastMessageType: messageType as any,
+                  },
+                })
+              } else {
+                // Atualizar conversa com última mensagem
+                await prisma.conversation.update({
+                  where: { id: conversation.id },
+                  data: {
+                    lastMessageAt: new Date(messageData.messageTimestamp * 1000),
+                    lastMessage: content.substring(0, 100),
+                    lastMessageType: messageType as any,
+                    unreadCount: { increment: 1 },
+                  },
+                })
+              }
+
+              // Salvar mensagem
+              await prisma.message.create({
+                data: {
+                  whatsappMessageId: messageData.key.id,
+                  content,
+                  type: messageType as any,
+                  direction: 'INBOUND',
+                  status: 'DELIVERED',
+                  mediaUrl,
+                  mediaType,
+                  fileName,
+                  timestamp: new Date(messageData.messageTimestamp * 1000),
+                  fromMe: messageData.key.fromMe || false,
+                  fromName: messageData.pushName,
+                  fromNumber,
+                  organizationId: instance.organizationId,
+                  conversationId: conversation.id,
+                  contactId: contact.id,
+                },
+              })
+
+              console.log('[Evolution Webhook] Mensagem salva no CRM:', {
+                messageId: messageData.key.id,
+                type: messageType,
+                from: fromNumber,
+                content: content.substring(0, 50),
+              })
+            }
+          } catch (error) {
+            console.error('[Evolution Webhook] Erro ao salvar mensagem no CRM:', error)
+          }
+        }
+      } else {
+        console.warn(`[Evolution Webhook] Instância não encontrada: ${instanceName}`)
+      }
+    }
+
+    // Processar outros eventos conforme necessário
+    if (body.event === 'connection.update') {
+      const instanceName = body.instance
+      const connectionState = body.data?.state
+
+      if (instanceName && connectionState) {
+        await prisma.whatsAppInstance.updateMany({
+          where: {
+            instanceName: instanceName,
+          },
+          data: {
+            status: connectionState === 'open' ? 'open' : connectionState === 'close' ? 'close' : 'connecting',
+            lastSeen: new Date(),
+          },
+        })
+
+        console.log(`[Evolution Webhook] Status da instância ${instanceName} atualizado para: ${connectionState}`)
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
       },
     })
-
-    console.log(
-      `[Evolution Webhook] Status atualizado para ${newStatus}:`,
-      instanceName,
-    )
-
-    return NextResponse.json(
-      {
-        status: 'updated',
-        instanceName,
-        newStatus,
-      },
-      { status: 200 },
-    )
   } catch (error) {
     console.error('[Evolution Webhook] Erro ao processar webhook:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 },
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro interno'
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     )
   }
+}
+
+// Método GET para verificar se o webhook está funcionando
+export async function GET() {
+  return new Response(JSON.stringify({
+    status: 'ok',
+    message: 'Evolution API Webhook is working',
+    timestamp: new Date().toISOString(),
+  }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 }
