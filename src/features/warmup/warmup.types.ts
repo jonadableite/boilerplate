@@ -462,3 +462,288 @@ export interface WarmupEvents {
     limit: number
   }
 }
+
+// Tipos para análise de saúde
+export type HealthRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export type HealthAlertType =
+  | 'SPAM_REPORTS'
+  | 'HIGH_BLOCK_RATE'
+  | 'LOW_RESPONSE_RATE'
+  | 'MESSAGE_VOLUME'
+  | 'DELIVERY_ISSUES'
+  | 'POLICY_VIOLATION'
+  | 'UNUSUAL_PATTERN'
+  | 'ACCOUNT_WARNING'
+  | 'ENGAGEMENT_DROP'
+  | 'COMPLIANCE_ISSUE'
+
+export type HealthAlertSeverity = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
+export type HealthPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+
+// Interfaces principais
+export interface HealthBenchmarks {
+  id: string
+  optimalResponseRate: number
+  maxDailyMessages: number
+  maxMessagesPerHour: number
+  minResponseTime: number
+  maxResponseTime: number
+  criticalSpamReports: number
+  criticalBlockRate: number
+  minDeliveryRate: number
+  maxInactivityHours: number
+  safeMessagingHours: number[]
+  safeDaysOfWeek: number[]
+  optimalMessageGap: number
+  maxBulkSize: number
+  humanBehaviorScore: number
+  version: string
+  isActive: boolean
+}
+
+export interface HealthMetrics {
+  id: string
+  instanceName: string
+  organizationId: string
+
+  // Métricas de atividade
+  messagesSent24h: number
+  messagesReceived24h: number
+  responseRate: number
+  averageResponseTime: number
+  deliveryRate: number
+  readRate: number
+
+  // Métricas de risco
+  spamReports: number
+  blockRate: number
+  policyViolations: number
+  warningsReceived: number
+  accountRestrictions: number
+
+  // Métricas de comportamento
+  messagingFrequency: number
+  peakHours: number[]
+  messagePatterns: Record<string, any>
+  humanBehaviorScore: number
+
+  // Métricas de engajamento
+  clickThroughRate: number
+  conversionRate: number
+  userEngagementScore: number
+
+  // Score geral
+  healthScore: number
+  riskLevel: HealthRiskLevel
+  riskFactors: string[]
+
+  // Compliance
+  benchmarkCompliance: number
+  deviationScore: number
+
+  // Metadata
+  dataQuality: number
+  confidenceLevel: number
+  samplingPeriod: number
+
+  analyzedAt: Date
+  nextAnalysisAt?: Date
+}
+
+export interface HealthAlert {
+  id: string
+  instanceName: string
+  organizationId: string
+  alertType: HealthAlertType
+  severity: HealthAlertSeverity
+  title: string
+  message: string
+  details: Record<string, any>
+  actionRequired?: string
+  isActive: boolean
+  isResolved: boolean
+  resolvedAt?: Date
+  threshold?: number
+  currentValue?: number
+  trendDirection?: 'UP' | 'DOWN' | 'STABLE'
+  createdAt: Date
+}
+
+export interface HealthRecommendation {
+  id: string
+  instanceName: string
+  organizationId: string
+  recommendationType: string
+  priority: HealthPriority
+  title: string
+  description: string
+  actions: string[]
+  expectedImpact?: string
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD'
+  estimatedTime?: string
+  isImplemented: boolean
+  implementedAt?: Date
+  effectiveness?: number
+  createdAt: Date
+}
+
+export interface HealthAnalysisResult {
+  healthMetrics: HealthMetrics
+  recommendations: HealthRecommendation[]
+  alerts: HealthAlert[]
+  trends: HealthTrend[]
+  compliance: ComplianceReport
+}
+
+export interface HealthTrend {
+  metric: string
+  direction: 'UP' | 'DOWN' | 'STABLE'
+  changePercent: number
+  significance: 'LOW' | 'MEDIUM' | 'HIGH'
+  prediction: {
+    nextValue: number
+    confidence: number
+    timeframe: string
+  }
+}
+
+export interface ComplianceReport {
+  overallScore: number
+  categories: {
+    messaging: number
+    engagement: number
+    behavior: number
+    policy: number
+  }
+  violations: {
+    count: number
+    severity: HealthAlertSeverity
+    description: string
+  }[]
+  recommendations: string[]
+}
+
+// Dados brutos para análise
+export interface RawInstanceData {
+  messagesSent24h: number
+  messagesReceived24h: number
+  responseRate: number
+  deliveryRate: number
+  blockRate: number
+  spamReports: number
+  policyViolations: number
+  warningsReceived: number
+  averageResponseTime: number
+  messagingFrequency: number
+  peakHours: number[]
+  messagePatterns: Record<string, any>
+  userInteractions: {
+    clicks: number
+    responses: number
+    blocks: number
+    reports: number
+  }
+  accountStatus: {
+    isVerified: boolean
+    hasRestrictions: boolean
+    warningCount: number
+    lastActivity: Date
+  }
+  behaviorMetrics: {
+    typingPatterns: number[]
+    responseDelays: number[]
+    messageVariability: number
+    humanLikeScore: number
+  }
+}
+
+// Configurações para análise
+export interface AnalysisConfig {
+  enableRealTimeAnalysis: boolean
+  alertThresholds: Record<HealthAlertType, number>
+  analysisFrequency: number // em horas
+  retentionPeriod: number // em dias
+  confidenceThreshold: number
+  enablePredictiveAnalysis: boolean
+  benchmarkVersion: string
+}
+
+// Constantes de benchmarks WhatsApp Business
+export const WHATSAPP_BUSINESS_BENCHMARKS = {
+  // Taxas de resposta ideais por categoria
+  RESPONSE_RATES: {
+    CUSTOMER_SERVICE: 0.85,
+    MARKETING: 0.25,
+    TRANSACTIONAL: 0.6,
+    SUPPORT: 0.75,
+  },
+
+  // Limites de volume baseados no tipo de conta
+  VOLUME_LIMITS: {
+    UNVERIFIED: {
+      daily: 250,
+      hourly: 50,
+    },
+    VERIFIED: {
+      daily: 1000,
+      hourly: 100,
+    },
+    BUSINESS: {
+      daily: 10000,
+      hourly: 1000,
+    },
+  },
+
+  // Métricas de qualidade do WhatsApp
+  QUALITY_METRICS: {
+    MIN_DELIVERY_RATE: 0.95,
+    MAX_BLOCK_RATE: 0.02,
+    MAX_SPAM_RATE: 0.01,
+    MIN_ENGAGEMENT_RATE: 0.1,
+  },
+
+  // Padrões de comportamento humano
+  HUMAN_BEHAVIOR: {
+    MIN_RESPONSE_DELAY: 5, // segundos
+    MAX_RESPONSE_DELAY: 300, // 5 minutos
+    TYPING_SPEED_RANGE: [20, 60], // caracteres por minuto
+    MESSAGE_VARIABILITY: 0.7, // variação no conteúdo
+    ACTIVITY_HOURS: [7, 22], // horário ativo típico
+  },
+
+  // Horários seguros (evitar spam detection)
+  SAFE_MESSAGING: {
+    HOURS: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    DAYS: [1, 2, 3, 4, 5], // Segunda a sexta
+    AVOID_HOLIDAYS: true,
+    RESPECT_TIMEZONE: true,
+  },
+} as const
+
+// Algoritmos de scoring
+export interface ScoringWeights {
+  responseRate: number
+  deliveryRate: number
+  spamReports: number
+  blockRate: number
+  humanBehavior: number
+  policyCompliance: number
+  engagement: number
+  messageVolume: number
+  timing: number
+  variability: number
+}
+
+export const DEFAULT_SCORING_WEIGHTS: ScoringWeights = {
+  responseRate: 0.2, // 20% - Muito importante
+  deliveryRate: 0.15, // 15% - Crítico para deliverabilidade
+  spamReports: 0.25, // 25% - Maior peso, mais impacto
+  blockRate: 0.15, // 15% - Indicador direto de problemas
+  humanBehavior: 0.1, // 10% - Comportamento natural
+  policyCompliance: 0.05, // 5% - Compliance básico
+  engagement: 0.05, // 5% - Qualidade da interação
+  messageVolume: 0.03, // 3% - Volume dentro dos limites
+  timing: 0.01, // 1% - Horários apropriados
+  variability: 0.01, // 1% - Variação no conteúdo
+}

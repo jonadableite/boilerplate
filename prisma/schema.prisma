@@ -177,6 +177,11 @@ model Organization {
   WarmupContent        WarmupContent[]
   WarmupExternalNumber WarmupExternalNumber[]
 
+  healthMetrics         HealthMetrics[]
+  healthAlerts          HealthAlerts[]
+  healthRecommendations HealthRecommendations[]
+  accountHealthHistory  AccountHealthHistory[]
+
   @@unique([slug])
   @@map("organization")
 }
@@ -755,4 +760,203 @@ model WarmupExternalNumber {
   @@unique([organizationId, phoneNumber])
   @@index([organizationId, active])
   @@map("warmup_external_number")
+}
+
+// Modelos para análise de saúde do sistema
+model HealthBenchmarks {
+  id                  String   @id @default(uuid())
+  optimalResponseRate Float    @default(0.75) // 75% de taxa de resposta ideal
+  maxDailyMessages    Int      @default(1000) // Máximo de mensagens por dia
+  maxMessagesPerHour  Int      @default(100) // Máximo de mensagens por hora
+  minResponseTime     Int      @default(300) // Tempo mínimo de resposta em segundos (5 min)
+  maxResponseTime     Int      @default(3600) // Tempo máximo de resposta em segundos (1 hora)
+  criticalSpamReports Int      @default(5) // Número crítico de relatórios de spam
+  criticalBlockRate   Float    @default(0.05) // Taxa crítica de bloqueios (5%)
+  minDeliveryRate     Float    @default(0.95) // Taxa mínima de entrega (95%)
+  maxInactivityHours  Int      @default(72) // Máximo de horas inativo
+  safeMessagingHours  Json     @default("[9,10,11,12,13,14,15,16,17,18]") // Horários seguros
+  safeDaysOfWeek      Json     @default("[1,2,3,4,5]") // Dias seguros da semana
+  optimalMessageGap   Int      @default(30) // Gap ideal entre mensagens em segundos
+  maxBulkSize         Int      @default(50) // Tamanho máximo de lote
+  humanBehaviorScore  Float    @default(0.8) // Score mínimo de comportamento humano
+  version             String   @default("1.0")
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("health_benchmarks")
+}
+
+model HealthMetrics {
+  id             String       @id @default(uuid())
+  instanceName   String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Métricas de atividade
+  messagesSent24h     Int   @default(0)
+  messagesReceived24h Int   @default(0)
+  responseRate        Float @default(0.0)
+  averageResponseTime Int   @default(0) // Em segundos
+  deliveryRate        Float @default(1.0)
+  readRate            Float @default(0.0)
+
+  // Métricas de risco
+  spamReports         Int   @default(0)
+  blockRate           Float @default(0.0)
+  policyViolations    Int   @default(0)
+  warningsReceived    Int   @default(0)
+  accountRestrictions Int   @default(0)
+
+  // Métricas de comportamento
+  messagingFrequency Float @default(0.0) // Mensagens por hora
+  peakHours          Json  @default("[]") // Horários de pico
+  messagePatterns    Json  @default("{}") // Padrões de mensagem
+  humanBehaviorScore Float @default(1.0) // Score de comportamento humano
+
+  // Métricas de engajamento
+  clickThroughRate    Float @default(0.0)
+  conversionRate      Float @default(0.0)
+  userEngagementScore Float @default(0.0)
+
+  // Score geral e nível de risco
+  healthScore Float           @default(100.0)
+  riskLevel   HealthRiskLevel @default(LOW)
+  riskFactors Json            @default("[]") // Fatores de risco identificados
+
+  // Comparação com benchmarks
+  benchmarkCompliance Float @default(1.0) // Percentual de compliance
+  deviationScore      Float @default(0.0) // Score de desvio dos padrões
+
+  // Metadata de análise
+  dataQuality     Float @default(1.0) // Qualidade dos dados analisados
+  confidenceLevel Float @default(0.95) // Nível de confiança da análise
+  samplingPeriod  Int   @default(24) // Período de amostragem em horas
+
+  analyzedAt     DateTime  @default(now())
+  nextAnalysisAt DateTime?
+
+  @@unique([instanceName, organizationId, analyzedAt])
+  @@index([organizationId, riskLevel])
+  @@index([instanceName, analyzedAt])
+  @@map("health_metrics")
+}
+
+model HealthAlerts {
+  id             String       @id @default(uuid())
+  instanceName   String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  alertType      HealthAlertType
+  severity       HealthAlertSeverity
+  title          String
+  message        String
+  details        Json                @default("{}")
+  actionRequired String?
+
+  isActive   Boolean   @default(true)
+  isResolved Boolean   @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  // Configurações de alerta
+  threshold      Float?
+  currentValue   Float?
+  trendDirection String? // UP, DOWN, STABLE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, isActive])
+  @@index([instanceName, severity])
+  @@map("health_alerts")
+}
+
+model HealthRecommendations {
+  id             String       @id @default(uuid())
+  instanceName   String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  recommendationType String
+  priority           HealthPriority
+  title              String
+  description        String
+  actions            Json           @default("[]") // Array de ações recomendadas
+  expectedImpact     String? // Impacto esperado
+  difficulty         String? // EASY, MEDIUM, HARD
+  estimatedTime      String? // Tempo estimado para implementação
+
+  isImplemented Boolean   @default(false)
+  implementedAt DateTime?
+  effectiveness Float? // Score de efetividade após implementação
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, priority])
+  @@index([instanceName, isImplemented])
+  @@map("health_recommendations")
+}
+
+model AccountHealthHistory {
+  id             String       @id @default(uuid())
+  instanceName   String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Snapshot histórico
+  healthScore Float
+  riskLevel   HealthRiskLevel
+  mainMetrics Json // Snapshot das principais métricas
+  keyChanges  Json            @default("[]") // Mudanças importantes
+
+  // Comparação temporal
+  scoreChange   Float @default(0.0) // Mudança no score
+  trendAnalysis Json  @default("{}") // Análise de tendências
+  seasonality   Json  @default("{}") // Análise de sazonalidade
+
+  // Eventos correlacionados
+  eventsDetected Json @default("[]") // Eventos que afetaram a saúde
+
+  recordedAt DateTime @default(now())
+
+  @@index([organizationId, recordedAt])
+  @@index([instanceName, healthScore])
+  @@map("account_health_history")
+}
+
+enum HealthRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum HealthAlertType {
+  SPAM_REPORTS
+  HIGH_BLOCK_RATE
+  LOW_RESPONSE_RATE
+  MESSAGE_VOLUME
+  DELIVERY_ISSUES
+  POLICY_VIOLATION
+  UNUSUAL_PATTERN
+  ACCOUNT_WARNING
+  ENGAGEMENT_DROP
+  COMPLIANCE_ISSUE
+}
+
+enum HealthAlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum HealthPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
