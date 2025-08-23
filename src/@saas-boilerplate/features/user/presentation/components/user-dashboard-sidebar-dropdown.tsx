@@ -2,7 +2,7 @@
 
 import { AppConfig } from '@/boilerplate.config'
 import { ArrowUpRightIcon } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { UserAvatar } from '@/components/ui/user-avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,6 @@ import { api } from '@/igniter.client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '@/@saas-boilerplate/features/auth/presentation/contexts/auth.context'
-import { String } from '@/@saas-boilerplate/utils'
 
 export function UserDashboardSidebarDropdown() {
   const auth = useAuth()
@@ -28,12 +27,10 @@ export function UserDashboardSidebarDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="size-8 rounded-full border mr-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground ">
-          <AvatarImage src={user.image ?? ''} alt={user.name} />
-          <AvatarFallback className="rounded-lg text-xs">
-            {String.getInitials(user.name)}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          user={user}
+          className="size-8 rounded-full border mr-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"

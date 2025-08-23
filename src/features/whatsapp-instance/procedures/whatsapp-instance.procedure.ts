@@ -258,6 +258,50 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
           console.log('[WhatsApp Instance Procedure] Iniciando criação:', data);
 
           try {
+            // Verificar limite do plano antes de criar
+            const existingInstances = await context.providers.database.whatsAppInstance.count({
+              where: { organizationId: data.organizationId },
+            });
+
+            // Buscar informações do plano atual da organização
+            const organization = await context.providers.database.organization.findUnique({
+              where: { id: data.organizationId },
+              include: {
+                customer: {
+                  include: {
+                    subscriptions: {
+                      where: {
+                        status: {
+                          in: ['active', 'trialing'],
+                        },
+                      },
+                      include: {
+                        price: {
+                          include: {
+                            plan: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            // Determinar limite baseado no plano (fallback para free se não houver subscription)
+            let planLimit = 2; // Plano free padrão
+            if (organization?.customer?.subscriptions?.[0]?.price?.plan?.metadata) {
+              const metadata = organization.customer.subscriptions[0].price.plan.metadata as any;
+              const whatsappFeature = metadata.features?.find((f: any) => f.slug === 'whatsapp-instances');
+              if (whatsappFeature?.limit) {
+                planLimit = whatsappFeature.limit;
+              }
+            }
+
+            if (existingInstances >= planLimit) {
+              throw new Error(`Limite de instâncias excedido para o seu plano. Máximo permitido: ${planLimit}`);
+            }
+
             // Criação na Evolution API
             console.log('[WhatsApp Instance Procedure] Chamando Evolution API...');
 

@@ -17,10 +17,10 @@ export const freePlan = PaymentProvider.plan({
       {
         slug: 'whatsapp-instances',
         name: 'WhatsApp Instances',
-        description: 'Create and manage up to 1 WhatsApp instance',
+        description: 'Create and manage up to 2 WhatsApp instances',
         table: 'whatsapp_instance',
         enabled: true,
-        limit: 1,
+        limit: 2,
       },
       {
         slug: 'leads',

@@ -124,6 +124,17 @@ export const AuthFeatureProcedure = igniter.procedure({
 
           const user = await context.providers.database.user.findUnique({
             where: { id: session.user.id },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              emailVerified: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true,
+              metadata: true,
+            },
           })
 
           if (!user) {
