@@ -45,6 +45,12 @@ export const dashboardSidebarMenu = {
           icon: TrendingUp,
         },
         {
+          id: 'sidebar_campaigns',
+          title: 'Campanhas',
+          url: '/app/campaigns',
+          icon: SendIcon,
+        },
+        {
           id: 'sidebar_chat',
           title: 'Chat',
           url: '/app/chat',

@@ -12,6 +12,7 @@ import { igniter } from '@/igniter'
 import { BillingController } from './@saas-boilerplate/features/billing'
 import { IntegrationController } from './@saas-boilerplate/features/integration'
 import { AppConfig } from './boilerplate.config'
+import { CampaignController } from './features/campaign'
 import { ChatController } from './features/chat'
 import { LeadController } from './features/lead'
 import { SubmissionController } from './features/submission'
@@ -44,5 +45,6 @@ export const AppRouter = igniter.router({
     whatsAppInstances: WhatsAppInstanceController,
     chat: ChatController,
     warmup: warmupController,
+    campaign: CampaignController,
   },
 })

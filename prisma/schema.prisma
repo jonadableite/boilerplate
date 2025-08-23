@@ -99,6 +99,8 @@ model User {
   WarmupStats           WarmupStats[]
   WarmupContent         WarmupContent[]
 
+  createdCampaigns Campaign[] @relation("CampaignCreatedBy")
+
   @@unique([email])
   @@map("user")
 }
@@ -181,6 +183,8 @@ model Organization {
   healthAlerts          HealthAlerts[]
   healthRecommendations HealthRecommendations[]
   accountHealthHistory  AccountHealthHistory[]
+
+  campaigns Campaign[]
 
   @@unique([slug])
   @@map("organization")
@@ -959,4 +963,190 @@ enum HealthPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+// Modelos para Campanhas de Disparo em Massa
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ERROR
+}
+
+enum CampaignType {
+  IMMEDIATE
+  SCHEDULED
+  RECURRING
+}
+
+enum LeadStatus {
+  PENDING
+  PROCESSING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  BLOCKED
+}
+
+model Campaign {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  // Configurações da campanha
+  message      String // Mensagem obrigatória
+  mediaType    String? // image, video, audio, sticker
+  mediaUrl     String? // URL da mídia
+  mediaCaption String? // Legenda da mídia
+  mediaBase64  String? // Mídia em base64
+
+  // Configurações de tempo
+  minDelay Int @default(30) // Delay mínimo em segundos
+  maxDelay Int @default(120) // Delay máximo em segundos
+
+  // Configurações de instâncias
+  useInstanceRotation Boolean  @default(true) // Usar rotação de instâncias
+  selectedInstances   String[] @default([]) // Instâncias selecionadas
+
+  // Agendamento
+  scheduledAt DateTime? // Data/hora agendada
+  timezone    String    @default("America/Sao_Paulo")
+  recurring   Json? // Configuração de recorrência
+
+  // Status e controle
+  status   CampaignStatus @default(DRAFT)
+  type     CampaignType   @default(IMMEDIATE)
+  progress Float          @default(0.0)
+
+  // Estatísticas
+  totalLeads     Int @default(0)
+  sentCount      Int @default(0)
+  deliveredCount Int @default(0)
+  readCount      Int @default(0)
+  failedCount    Int @default(0)
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("CampaignCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  leads       CampaignLead[]
+  statistics  CampaignStatistics?
+  messageLogs MessageLog[]
+
+  // Metadados
+  metadata Json?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([organizationId, status])
+  @@index([organizationId, type])
+  @@index([scheduledAt])
+  @@map("campaign")
+}
+
+model CampaignLead {
+  id String @id @default(uuid())
+
+  // Dados do lead
+  name  String?
+  phone String // Número do telefone
+  email String?
+
+  // Status do envio
+  status LeadStatus @default(PENDING)
+
+  // Timestamps de status
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+
+  // Informações de erro
+  failureReason String?
+  retryCount    Int     @default(0)
+
+  // ID da mensagem no WhatsApp
+  messageId String?
+
+  // Relacionamentos
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Metadados
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId, status])
+  @@index([phone])
+  @@map("campaign_lead")
+}
+
+model CampaignStatistics {
+  id         String   @id @default(uuid())
+  campaignId String   @unique
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Contadores
+  totalLeads     Int @default(0)
+  sentCount      Int @default(0)
+  deliveredCount Int @default(0)
+  readCount      Int @default(0)
+  failedCount    Int @default(0)
+  blockedCount   Int @default(0)
+
+  // Métricas de tempo
+  averageDeliveryTime Float? // Tempo médio de entrega em segundos
+  averageReadTime     Float? // Tempo médio de leitura em segundos
+
+  // Taxas
+  deliveryRate Float @default(0.0) // Taxa de entrega
+  readRate     Float @default(0.0) // Taxa de leitura
+
+  // Metadados
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campaign_statistics")
+}
+
+model MessageLog {
+  id String @id @default(uuid())
+
+  // Identificadores
+  messageId  String   @unique // ID da mensagem no WhatsApp
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  campaignLeadId String?
+
+  // Conteúdo e tipo
+  messageType String // text, image, video, audio, sticker
+  content     String? // Conteúdo da mensagem
+
+  // Status e histórico
+  status        String @default("PENDING")
+  statusHistory Json   @default("[]") // Array de mudanças de status
+
+  // Timestamps
+  messageDate DateTime // Data da mensagem no WhatsApp
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaignId, status])
+  @@index([messageDate])
+  @@map("message_log")
 }
