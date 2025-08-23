@@ -6,6 +6,7 @@ import {
   Smartphone,
   TrendingUp,
   Users2Icon,
+  Bot,
 } from 'lucide-react'
 
 export const dashboardSidebarMenu = {
@@ -49,6 +50,12 @@ export const dashboardSidebarMenu = {
           title: 'Campanhas',
           url: '/app/campaigns',
           icon: SendIcon,
+        },
+        {
+          id: 'sidebar_ai_agents',
+          title: 'Agentes IA',
+          url: '/app/ai-agents',
+          icon: Bot,
         },
         {
           id: 'sidebar_chat',

@@ -18,6 +18,7 @@ import { LeadController } from './features/lead'
 import { SubmissionController } from './features/submission'
 import { warmupController } from './features/warmup'
 import { WhatsAppInstanceController } from './features/whatsapp-instance/controllers/whatsapp-instance.controller'
+import { AIAgentController } from './features/ai-agent/controllers/ai-agent.controller'
 import { createIgniterAppContext } from './igniter.context'
 
 export const AppRouter = igniter.router({
@@ -46,5 +47,6 @@ export const AppRouter = igniter.router({
     chat: ChatController,
     warmup: warmupController,
     campaign: CampaignController,
+    aiAgents: AIAgentController,
   },
 })

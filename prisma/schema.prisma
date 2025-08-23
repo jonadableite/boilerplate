@@ -100,6 +100,7 @@ model User {
   WarmupContent         WarmupContent[]
 
   createdCampaigns Campaign[] @relation("CampaignCreatedBy")
+  createdAIAgents AIAgent[] @relation("AIAgentCreatedBy")
 
   @@unique([email])
   @@map("user")
@@ -185,6 +186,8 @@ model Organization {
   accountHealthHistory  AccountHealthHistory[]
 
   campaigns Campaign[]
+  aiAgents AIAgent[]
+  openaiCreds OpenAICreds[]
 
   @@unique([slug])
   @@map("organization")
@@ -1052,6 +1055,122 @@ model Campaign {
   @@index([organizationId, type])
   @@index([scheduledAt])
   @@map("campaign")
+}
+
+// AI Agent Models
+model AIAgent {
+  id          String @id @default(uuid())
+  name        String
+  description String?
+  instanceName String
+  evolutionBotId String? @unique
+  openaiCredsId String
+  botType     String // 'assistant' ou 'chatCompletion'
+  assistantId String?
+  functionUrl String?
+  model       String?
+  systemMessages Json? // Array de strings
+  assistantMessages Json? // Array de strings
+  userMessages Json? // Array de strings
+  maxTokens   Int?
+  triggerType String // 'all' ou 'keyword'
+  triggerOperator String // 'contains', 'equals', 'startsWith', 'endsWith', 'regex', 'none'
+  triggerValue String?
+  expire      Int? // minutos
+  keywordFinish String?
+  delayMessage Int? // ms
+  unknownMessage String?
+  listeningFromMe Boolean?
+  stopBotFromMe Boolean?
+  keepOpen    Boolean?
+  debounceTime Int? // ms
+  ignoreJids  Json? // Array de strings
+  persona     Json? // Configuração da persona
+  knowledgeBase Json? // Configuração da base de conhecimento
+  status      String @default("ACTIVE") // ACTIVE, INACTIVE, TRAINING, ERROR
+
+  // Relacionamentos
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("AIAgentCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  sessions    AIAgentSession[]
+  memories    AIAgentMemory[]
+  knowledgeChunks KnowledgeChunk[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([instanceName])
+  @@map("ai_agent")
+}
+
+model OpenAICreds {
+  id       String @id @default(uuid())
+  name     String
+  apiKey   String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@map("openai_creds")
+}
+
+model AIAgentSession {
+  id           String @id @default(uuid())
+  agentId      String
+  agent        AIAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  openaiBotId  String
+  remoteJid    String
+  status       String // 'opened', 'paused', 'closed'
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId, remoteJid])
+  @@index([status])
+  @@map("ai_agent_session")
+}
+
+model AIAgentMemory {
+  id        String @id @default(uuid())
+  agentId   String
+  agent     AIAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  remoteJid String
+  type      String // 'short_term', 'long_term', 'knowledge_base'
+  role      String // 'user', 'assistant', 'system'
+  content   String
+  summary   String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([agentId, remoteJid, type])
+  @@index([createdAt])
+  @@map("ai_agent_memory")
+}
+
+model KnowledgeChunk {
+  id        String @id @default(uuid())
+  agentId   String
+  agent     AIAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  sourceId  String
+  content   String
+  embedding Json? // Array de números (embeddings)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([agentId, sourceId])
+  @@index([createdAt])
+  @@map("knowledge_chunk")
 }
 
 model CampaignLead {
