@@ -2,7 +2,13 @@ import { useAuth } from '@/@saas-boilerplate/features/auth/presentation/contexts
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { api } from '@/igniter.client'
-import { ChevronRightIcon, RocketIcon, Smartphone } from 'lucide-react'
+import {
+  ChevronRightIcon,
+  RocketIcon,
+  Send,
+  Smartphone,
+  Users,
+} from 'lucide-react'
 import { Link } from 'next-view-transitions'
 import { useEffect, useState } from 'react'
 import { BillingUpgradeModal } from './billing-upgrade-modal'
@@ -10,6 +16,17 @@ import { BillingUpgradeModal } from './billing-upgrade-modal'
 interface UsageCounts {
   whatsappInstances: number
   leads: number
+  submissions: number
+}
+
+interface FeatureUsage {
+  slug: string
+  name: string
+  current: number
+  limit: number
+  percentage: number
+  isOverLimit: boolean
+  isNearLimit: boolean
 }
 
 export function BillingDashboardSidebarUpgradeCard() {
@@ -21,23 +38,35 @@ export function BillingDashboardSidebarUpgradeCard() {
   const [usageCounts, setUsageCounts] = useState<UsageCounts>({
     whatsappInstances: 0,
     leads: 0,
+    submissions: 0,
   })
 
   // Buscar contadores de uso
-  const { data: whatsappInstancesData } = api.whatsAppInstances.list.useQuery({
-    params: {
-      query: { limit: 1000 }, // Buscar todas as instâncias para contar
-      params: undefined,
-    },
-  })
+  const { data: whatsappInstancesData, isLoading: isLoadingWhatsApp } =
+    api.whatsAppInstances.list.useQuery({
+      params: {
+        query: { limit: 1000 }, // Buscar todas as instâncias para contar
+        params: undefined,
+      },
+    })
 
   // Buscar contadores de leads
-  const { data: leadsData } = api.lead.findMany.useQuery({
-    params: {
-      query: { limit: 1000 },
-      params: undefined,
-    },
-  })
+  const { data: leadsData, isLoading: isLoadingLeads } =
+    api.lead.findMany.useQuery({
+      params: {
+        query: { limit: 1000 },
+        params: undefined,
+      },
+    })
+
+  // Buscar contadores de submissions
+  const { data: submissionsData, isLoading: isLoadingSubmissions } =
+    api.submission.findMany.useQuery({
+      params: {
+        query: { limit: 1000 },
+        params: undefined,
+      },
+    })
 
   useEffect(() => {
     if (whatsappInstancesData?.data) {
@@ -57,15 +86,73 @@ export function BillingDashboardSidebarUpgradeCard() {
     }
   }, [leadsData])
 
+  useEffect(() => {
+    if (submissionsData) {
+      setUsageCounts((prev) => ({
+        ...prev,
+        submissions: submissionsData.length,
+      }))
+    }
+  }, [submissionsData])
+
   if (!billing) return null
 
   // Função para encontrar o limite de uma feature específica
-  const getFeatureLimit = (slug: string) => {
+  const getFeatureLimit = (slug: string): number => {
     const feature = subscription?.plan?.metadata?.features?.find(
       (f) => f.slug === slug,
     )
     return feature?.limit || 0
   }
+
+  // Função para calcular o uso de uma feature
+  const calculateFeatureUsage = (slug: string): FeatureUsage => {
+    const limit = getFeatureLimit(slug)
+    let current = 0
+
+    switch (slug) {
+      case 'whatsapp-instances':
+        current = usageCounts.whatsappInstances
+        break
+      case 'leads':
+        current = usageCounts.leads
+        break
+      case 'submissions':
+        current = usageCounts.submissions
+        break
+      default:
+        current = 0
+    }
+
+    const percentage = limit > 0 ? (current / limit) * 100 : 0
+    const isOverLimit = current > limit
+    const isNearLimit = percentage >= 80 && percentage < 100
+
+    return {
+      slug,
+      name: getFeatureName(slug),
+      current,
+      limit,
+      percentage: Math.min(percentage, 100),
+      isOverLimit,
+      isNearLimit,
+    }
+  }
+
+  // Função para obter o nome amigável da feature
+  const getFeatureName = (slug: string): string => {
+    const feature = subscription?.plan?.metadata?.features?.find(
+      (f) => f.slug === slug,
+    )
+    return feature?.name || slug
+  }
+
+  // Features principais para mostrar na sidebar
+  const mainFeatures = ['whatsapp-instances', 'leads', 'submissions']
+  const featureUsages = mainFeatures.map(calculateFeatureUsage)
+
+  // Verificar se há loading
+  const isLoading = isLoadingWhatsApp || isLoadingLeads || isLoadingSubmissions
 
   return (
     <section className="space-y-6">
@@ -83,56 +170,100 @@ export function BillingDashboardSidebarUpgradeCard() {
           </span>
         )}
       </header>
-      <main className="space-y-4">
-        {/* Uso do plano atual - filtrar apenas leads e submissions */}
-        {auth.session.organization?.billing.subscription?.usage
-          .filter(
-            (item) =>
-              item.slug === 'leads' || item.slug === 'submissions',
-          )
-          .map((item) => (
-            <div key={item.slug} className="space-y-2 border-b last:border-b-0">
-              <div className="flex items-center justify-between text-xs">
-                <span>{item.name}</span>
-                <span className="text-muted-foreground">
-                  {item.usage} / {item.limit} used
-                </span>
-              </div>
-              <Progress
-                value={(item.usage / item.limit) * 100}
-                className="h-1"
-              />
-            </div>
-          ))}
 
-        {/* Contador de instâncias WhatsApp - SEMPRE mostrar */}
-        <div className="space-y-2 border-b last:border-b-0 pb-3">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-3 h-3 text-blue-600" />
-              <span>WhatsApp Instances</span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {usageCounts.whatsappInstances} / {getFeatureLimit('whatsapp-instances')} used
-            </span>
+      <main className="space-y-4">
+        {/* Loading state */}
+        {isLoading && (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="h-1 bg-muted animate-pulse rounded" />
+              </div>
+            ))}
           </div>
-          <Progress
-            value={
-              getFeatureLimit('whatsapp-instances') > 0
-                ? (usageCounts.whatsappInstances /
-                  getFeatureLimit('whatsapp-instances')) *
-                100
-                : 0
-            }
-            className="h-1"
-          />
-          {getFeatureLimit('whatsapp-instances') > 0 &&
-            usageCounts.whatsappInstances >= getFeatureLimit('whatsapp-instances') && (
+        )}
+
+        {/* Features de uso */}
+        {!isLoading && featureUsages.map((feature) => (
+          <div key={feature.slug} className="space-y-2 border-b last:border-b-0 pb-3">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                {feature.slug === 'whatsapp-instances' && (
+                  <Smartphone className="w-3 h-3 text-blue-600" />
+                )}
+                {feature.slug === 'leads' && (
+                  <Users className="w-3 h-3 text-green-600" />
+                )}
+                {feature.slug === 'submissions' && (
+                  <Send className="w-3 h-3 text-purple-600" />
+                )}
+                <span>{feature.name}</span>
+              </div>
+              <span className={`text-xs ${feature.isOverLimit
+                ? 'text-red-600 font-medium'
+                : feature.isNearLimit
+                  ? 'text-orange-600 font-medium'
+                  : 'text-muted-foreground'
+                }`}>
+                {feature.current} / {feature.limit > 0 ? feature.limit : '∞'}
+              </span>
+            </div>
+
+            <Progress
+              value={feature.percentage}
+              className={`h-1 ${feature.isOverLimit
+                ? 'bg-red-200'
+                : feature.isNearLimit
+                  ? 'bg-orange-200'
+                  : ''
+                }`}
+            />
+
+            {/* Alertas de limite */}
+            {feature.isOverLimit && (
               <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
-                Limite de instâncias atingido! Upgrade necessário.
+                Limite de {feature.name.toLowerCase()} atingido! Upgrade necessário.
               </div>
             )}
-        </div>
+            {feature.isNearLimit && !feature.isOverLimit && (
+              <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                Você está próximo do limite de {feature.name.toLowerCase()}.
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Uso do plano atual - mostrar outras features se existirem */}
+        {subscription?.usage && subscription.usage.length > 0 && (
+          <>
+            <div className="text-xs text-muted-foreground font-medium pt-2">
+              Outros recursos
+            </div>
+            {subscription.usage
+              .filter(
+                (item) =>
+                  !mainFeatures.includes(item.slug),
+              )
+              .map((item) => (
+                <div key={item.slug} className="space-y-2 border-b last:border-b-0 pb-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>{item.name}</span>
+                    <span className="text-muted-foreground">
+                      {item.usage} / {item.limit} used
+                    </span>
+                  </div>
+                  <Progress
+                    value={(item.usage / item.limit) * 100}
+                    className="h-1"
+                  />
+                </div>
+              ))}
+          </>
+        )}
 
         <BillingUpgradeModal>
           <Button className="w-full justify-between" variant="secondary">
