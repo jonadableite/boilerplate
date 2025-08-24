@@ -1,278 +1,220 @@
-# AI Agent Feature - WhatsApp com Evolution API
+# Sistema de Agentes IA para WhatsApp
 
-Esta feature implementa um sistema completo de Agentes de IA para WhatsApp usando a Evolution API, com suporte a base de conhecimento, memórias, persona e processamento de áudio.
+Este sistema permite criar e gerenciar agentes de IA inteligentes que podem conversar automaticamente com clientes via WhatsApp, integrando com a OpenAI e Evolution API.
 
 ## 🚀 Funcionalidades
 
-### ✅ Implementado
-- **Gestão de Agentes**: Criar, editar e deletar agentes de IA
-- **Integração Evolution API**: Conexão completa com WhatsApp via Evolution
-- **OpenAI Integration**: Suporte a GPT-4, GPT-3.5 e Assistants
-- **Base de Conhecimento**: Sistema de embeddings para documentos
-- **Memórias**: Sistema de memória de curto e longo prazo
-- **Persona**: Configuração personalizada de comportamento
-- **Webhooks**: Recebimento e processamento de mensagens
-- **Suporte a Áudio**: STT (Speech-to-Text) e TTS (Text-to-Speech)
+- **Criação de Agentes**: Configure agentes com personas personalizadas
+- **Integração OpenAI**: Suporte a GPT-4o, GPT-4o-mini e GPT-3.5-turbo
+- **Base de Conhecimento**: Carregue documentos para respostas contextualizadas
+- **Gestão de Memória**: Sistema de memória de curto e longo prazo
+- **Integração WhatsApp**: Via Evolution API
+- **Interface Web**: Dashboard completo para gerenciamento
 
-### 🔄 Em Desenvolvimento
-- Interface de usuário (Next.js)
-- Sistema de filas para processamento
-- Monitoramento e analytics
-- Integração com vector database
+## 📋 Pré-requisitos
+
+1. **OpenAI API Key**: Obtenha em [platform.openai.com](https://platform.openai.com)
+2. **Evolution API**: Instância configurada para WhatsApp
+3. **Banco de Dados**: PostgreSQL com Prisma configurado
+4. **Node.js**: Versão 18+ recomendada
+
+## ⚙️ Configuração
+
+### 1. Variáveis de Ambiente
+
+Crie um arquivo `.env.local` na raiz do projeto:
+
+```bash
+# OpenAI
+OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# Evolution API
+EVOLUTION_API_URL=http://localhost:8080
+EVOLUTION_API_KEY=your-evolution-api-key
+
+# Banco de Dados
+DATABASE_URL="postgresql://user:password@localhost:5432/database"
+```
+
+### 2. Instalação de Dependências
+
+```bash
+npm install openai @openai/agents zod
+```
+
+### 3. Configuração do Banco
+
+Execute as migrações do Prisma:
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+```
 
 ## 🏗️ Arquitetura
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   WhatsApp      │    │  Evolution API   │    │  SaaS Backend   │
-│   (Cliente)     │◄──►│  (Baileys)       │◄──►│  (Igniter.js)   │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                        │
-                                │                        │
-                       ┌──────────────────┐    ┌─────────────────┐
-                       │   OpenAI API     │    │  Vector DB      │
-                       │  (GPT + STT)     │    │  (Embeddings)   │
-                       └──────────────────┘    └─────────────────┘
-```
-
-## 📁 Estrutura de Arquivos
-
-```
 src/features/ai-agent/
-├── ai-agent.types.ts          # Tipos TypeScript e schemas Zod
-├── controllers/
-│   └── ai-agent.controller.ts # Controller Igniter.js
-├── services/
-│   ├── ai-agent.service.ts    # Serviço principal
-│   ├── evolution-api.client.ts # Cliente Evolution API
-│   └── knowledge-base.service.ts # Serviço de base de conhecimento
-├── webhooks/
-│   └── evolution-webhook.handler.ts # Handler de webhooks
-├── index.ts                   # Exports
-└── README.md                  # Esta documentação
+├── controllers/           # Controllers da API
+├── services/             # Lógica de negócio
+│   ├── ai-agent.service.ts      # Serviço principal
+│   ├── openai.service.ts        # Integração OpenAI
+│   ├── evolution-api.client.ts  # Cliente Evolution API
+│   └── knowledge-base.service.ts # Base de conhecimento
+├── presentation/         # Interface React
+│   ├── components/       # Componentes UI
+│   └── hooks/           # Hooks React
+├── config/              # Configurações
+└── ai-agent.types.ts    # Tipos TypeScript
 ```
 
-## 🔧 Configuração
+## 🔧 Uso
 
-### Variáveis de Ambiente
-
-```bash
-# Evolution API
-EVOLUTION_API_URL=https://sub.domain.com
-EVOLUTION_API_KEY=your_evolution_api_key
-
-# OpenAI
-OPENAI_API_KEY=sk-proj-...
-```
-
-### Instalação de Dependências
-
-```bash
-npm install openai axios
-```
-
-## 📖 Uso
-
-### 1. Criar Credenciais OpenAI
+### 1. Criar um Agente
 
 ```typescript
-import { AIAgentController } from '@/features/ai-agent'
+import { useAIAgents } from '@/features/ai-agent/presentation/hooks/use-ai-agents'
 
-// Criar credenciais
-const creds = await AIAgentController.createOpenAICreds({
-  name: 'Minha API Key',
-  apiKey: 'sk-proj-...'
-})
-```
+const { createAgent } = useAIAgents()
 
-### 2. Criar um Agente
-
-```typescript
-const agent = await AIAgentController.createAgent({
-  name: 'Assistente de Vendas',
+const newAgent = await createAgent({
+  name: 'Alex - Assistente de Vendas',
   description: 'Agente especializado em vendas',
-  instanceName: 'minha-instancia',
-  openaiCredsId: 'creds_id',
+  instanceName: 'vendas-instance',
+  openaiCredsId: 'default',
   botType: 'chatCompletion',
   model: 'gpt-4o',
-  systemMessages: [
-    'Você é um assistente de vendas especializado em produtos SaaS.',
-    'Seja sempre prestativo e profissional.'
-  ],
-  triggerType: 'all',
-  triggerOperator: 'none',
   persona: {
     name: 'Alex',
     role: 'Assistente de Vendas',
     tone: 'Profissional e amigável',
-    expertise: ['Vendas SaaS', 'Produtos digitais', 'Atendimento ao cliente'],
-    limitations: ['Não pode fazer promessas sobre preços', 'Não pode acessar sistemas internos'],
-    greeting: 'Olá! Sou o Alex, seu assistente de vendas. Como posso ajudar?',
-    fallback: 'Desculpe, não entendi. Pode reformular sua pergunta?'
+    expertise: ['Vendas', 'Produtos'],
+    limitations: ['Não pode fazer promessas'],
+    greeting: 'Olá! Como posso ajudar?',
+    fallback: 'Desculpe, não entendi. Pode reformular?'
   }
 })
 ```
 
-### 3. Configurar Base de Conhecimento
+### 2. Processar Mensagem
 
 ```typescript
-// Upload de documento
-const result = await AIAgentController.uploadKnowledge({
-  agentId: agent.id,
-  type: 'pdf',
-  content: 'Conteúdo do documento...',
-  metadata: {
-    title: 'Manual do Produto',
-    category: 'Documentação'
-  }
-})
-```
+import { AIAgentService } from '@/features/ai-agent/services/ai-agent.service'
 
-### 4. Processar Mensagens
+const service = new AIAgentService(
+  evolutionBaseURL,
+  evolutionApiKey,
+  instanceName,
+  openaiApiKey
+)
 
-```typescript
-// Processar mensagem recebida
-const response = await AIAgentController.processMessage({
-  agentId: agent.id,
+const response = await service.processMessage(agentId, {
   remoteJid: '5511999999999@s.whatsapp.net',
-  message: 'Olá, preciso de ajuda com o produto',
+  message: 'Olá, preciso de ajuda com vendas',
   type: 'text'
 })
 ```
 
-## 🔌 Endpoints da API
+### 3. Gerenciar Base de Conhecimento
 
-### OpenAI Credentials
-- `POST /api/v1/ai-agents/openai-creds` - Criar credenciais
-- `GET /api/v1/ai-agents/openai-creds` - Listar credenciais
-- `DELETE /api/v1/ai-agents/openai-creds/:id` - Deletar credenciais
+```typescript
+import { KnowledgeBaseService } from '@/features/ai-agent/services/knowledge-base.service'
 
-### AI Agents
-- `POST /api/v1/ai-agents/` - Criar agente
-- `PUT /api/v1/ai-agents/:id` - Atualizar agente
-- `DELETE /api/v1/ai-agents/:id` - Deletar agente
+const kbService = new KnowledgeBaseService(openaiApiKey)
 
-### Sessões
-- `POST /api/v1/ai-agents/sessions/status` - Alterar status da sessão
-- `GET /api/v1/ai-agents/sessions/:botId` - Buscar sessões
+// Processar documento
+const chunks = await kbService.processDocument(
+  'Conteúdo do documento...',
+  { agentId: 'agent_123', sourceId: 'doc_456' }
+)
 
-### Configurações
-- `POST /api/v1/ai-agents/settings` - Configurar settings padrão
-- `GET /api/v1/ai-agents/settings` - Buscar settings padrão
+// Buscar chunks relevantes
+const relevantChunks = await kbService.searchSimilarChunks(
+  'Pergunta do usuário',
+  chunks,
+  5
+)
+```
 
-### Processamento
-- `POST /api/v1/ai-agents/process-message` - Processar mensagem
-- `POST /api/v1/ai-agents/knowledge/upload` - Upload de base de conhecimento
+## 🎯 Tipos de Agentes
 
-### Utilitários
-- `GET /api/v1/ai-agents/test-connection` - Testar conexão
+### 1. Chat Completion
+- Usa modelos GPT diretamente
+- Mais flexível para personalização
+- Melhor para respostas rápidas
 
-## 🎯 Casos de Uso
+### 2. OpenAI Assistant
+- Usa a API de Assistants da OpenAI
+- Suporte a threads de conversa
+- Melhor para conversas longas
 
-### 1. Atendimento ao Cliente
-- Agente com base de conhecimento sobre produtos
-- Respostas automáticas para perguntas frequentes
-- Escalação para humano quando necessário
+## 🔐 Segurança
 
-### 2. Vendas e Qualificação
-- Qualificação de leads via WhatsApp
-- Apresentação de produtos
-- Agendamento de demonstrações
-
-### 3. Suporte Técnico
-- Resolução de problemas comuns
-- Guias passo-a-passo
-- Coleta de informações para tickets
-
-### 4. Treinamento e Onboarding
-- Tutoriais interativos
-- FAQ dinâmico
-- Acompanhamento de progresso
-
-## 🔒 Segurança
-
-- **Autenticação**: Via Igniter.js context
-- **Autorização**: Por organização
-- **Isolamento**: Dados separados por tenant
-- **Criptografia**: API keys em variáveis de ambiente
-- **Auditoria**: Logs de todas as operações
+- API Keys são armazenadas de forma segura
+- Isolamento por organização
+- Validação de entrada com Zod
+- Rate limiting configurável
 
 ## 📊 Monitoramento
 
-### Métricas Importantes
-- Taxa de resposta dos agentes
-- Tempo de processamento
-- Qualidade das respostas
-- Uso da base de conhecimento
-- Status das sessões
-
-### Logs
-- Todas as mensagens processadas
-- Erros e exceções
-- Performance dos embeddings
-- Status da Evolution API
+- Logs detalhados de todas as operações
+- Métricas de uso e performance
+- Rastreamento de erros
+- Dashboard de status
 
 ## 🚨 Troubleshooting
 
-### Problemas Comuns
+### Erro: "Configurações da Evolution API não encontradas"
+- Verifique se `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` estão configurados
+- Confirme se a Evolution API está rodando
 
-1. **Evolution API não responde**
-   - Verificar URL e API key
-   - Testar conexão via endpoint `/test-connection`
-   - Verificar logs da Evolution API
+### Erro: "API Key da OpenAI inválida"
+- Verifique se `OPENAI_API_KEY` está correto
+- Confirme se a chave tem créditos disponíveis
 
-2. **OpenAI não funciona**
-   - Verificar API key
-   - Verificar limites de uso
-   - Testar com curl direto
+### Erro: "Falha ao criar bot na Evolution API"
+- Verifique se a Evolution API está acessível
+- Confirme se as credenciais estão corretas
+- Verifique os logs da Evolution API
 
-3. **Webhooks não chegam**
-   - Verificar URL configurada na Evolution
-   - Verificar firewall/SSL
-   - Testar com webhook de teste
+## 🔄 Atualizações
 
-4. **Áudio não é processado**
-   - Verificar formato do arquivo
-   - Verificar tamanho do arquivo
-   - Verificar permissões de STT
+### Migração de Versões
+1. Execute `npx prisma migrate dev`
+2. Atualize as dependências: `npm update`
+3. Verifique a compatibilidade das APIs
 
-## 🔮 Roadmap
-
-### Próximas Versões
-- [ ] Interface de usuário completa
-- [ ] Sistema de filas com BullMQ
-- [ ] Integração com Pinecone/Milvus
-- [ ] Analytics avançados
-- [ ] Multi-idioma
-- [ ] Integração com CRM
-- [ ] Chat em tempo real
-- [ ] Backup e restore
-
-### Melhorias Técnicas
-- [ ] Cache Redis para memórias
-- [ ] Rate limiting inteligente
-- [ ] Fallback para múltiplos LLMs
-- [ ] Compressão de embeddings
-- [ ] Otimização de prompts
+### Backup de Dados
+- Faça backup do banco antes de atualizações
+- Exporte configurações de agentes importantes
+- Teste em ambiente de desenvolvimento
 
 ## 📚 Recursos Adicionais
 
-- [Documentação Evolution API](https://doc.evolution-api.com/v2/)
-- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
-- [Igniter.js Documentation](https://igniterjs.com/)
-- [Prisma Documentation](https://www.prisma.io/docs/)
+- [Documentação OpenAI](https://platform.openai.com/docs)
+- [Evolution API Docs](https://doc.evolution-api.com/)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [Next.js Documentation](https://nextjs.org/docs)
 
 ## 🤝 Contribuição
 
-Para contribuir com esta feature:
-
-1. Fork o repositório
+1. Fork o projeto
 2. Crie uma branch para sua feature
-3. Implemente as mudanças
-4. Adicione testes
-5. Documente as mudanças
-6. Abra um Pull Request
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
 
 ## 📄 Licença
 
-Esta feature está sob a mesma licença do projeto principal.
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para detalhes.
+
+## 🆘 Suporte
+
+Para suporte técnico:
+- Abra uma issue no GitHub
+- Consulte a documentação
+- Entre em contato com a equipe de desenvolvimento
+
+---
+
+**Nota**: Este sistema está em desenvolvimento ativo. Funcionalidades podem ser adicionadas ou modificadas.

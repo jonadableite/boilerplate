@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -18,17 +18,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
   Bot,
   Brain,
-  BookOpen,
-  ArrowRight,
-  ArrowLeft,
   Check,
   Sparkles,
 } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { CreateAgentInput } from '../../ai-agent.types'
+import { useAIAgents } from '../hooks/use-ai-agents'
 
 interface CreateAgentModalProps {
   open: boolean
@@ -73,15 +76,16 @@ const personaTemplates = [
 ]
 
 export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) {
+  const { createAgent, loading } = useAIAgents()
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic')
   const [formData, setFormData] = useState({
     // Dados básicos
     name: '',
     description: '',
     instanceName: '',
-    botType: 'chatCompletion',
+    botType: 'chatCompletion' as 'chatCompletion' | 'assistant',
     model: 'gpt-4o',
-    
+
     // Persona
     personaName: '',
     personaRole: '',
@@ -90,7 +94,7 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
     personaLimitations: [] as string[],
     personaGreeting: '',
     personaFallback: '',
-    
+
     // Base de conhecimento
     knowledgeEnabled: true,
     knowledgeSources: [] as any[]
@@ -142,44 +146,76 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
 
   const handleSubmit = async () => {
     try {
-      // Aqui você faria a chamada para a API
-      console.log('Dados do agente:', formData)
-      
-      // Fechar modal e resetar
-      onOpenChange(false)
-      setCurrentStep('basic')
-      setFormData({
-        name: '',
-        description: '',
-        instanceName: '',
-        botType: 'chatCompletion',
-        model: 'gpt-4o',
-        personaName: '',
-        personaRole: '',
-        personaTone: '',
-        personaExpertise: [],
-        personaLimitations: [],
-        personaGreeting: '',
-        personaFallback: '',
-        knowledgeEnabled: true,
-        knowledgeSources: []
-      })
+      // Preparar dados para a API
+      const agentData: CreateAgentInput = {
+        name: formData.name,
+        description: formData.description,
+        instanceName: formData.instanceName,
+        openaiCredsId: 'default', // Você precisaria implementar seleção de credenciais
+        botType: formData.botType,
+        model: formData.model,
+        triggerType: 'all',
+        triggerOperator: 'none',
+        persona: {
+          name: formData.personaName,
+          role: formData.personaRole,
+          tone: formData.personaTone,
+          expertise: formData.personaExpertise,
+          limitations: formData.personaLimitations,
+          greeting: formData.personaGreeting,
+          fallback: formData.personaFallback
+        },
+        knowledgeBase: {
+          enabled: formData.knowledgeEnabled
+        }
+      }
+
+      const newAgent = await createAgent(agentData)
+
+      if (newAgent) {
+        toast.success('Agente criado com sucesso!')
+        onOpenChange(false)
+        resetForm()
+      } else {
+        toast.error('Erro ao criar agente')
+      }
     } catch (error) {
       console.error('Erro ao criar agente:', error)
+      toast.error('Erro ao criar agente')
     }
+  }
+
+  const resetForm = () => {
+    setCurrentStep('basic')
+    setFormData({
+      name: '',
+      description: '',
+      instanceName: '',
+      botType: 'chatCompletion',
+      model: 'gpt-4o',
+      personaName: '',
+      personaRole: '',
+      personaTone: '',
+      personaExpertise: [],
+      personaLimitations: [],
+      personaGreeting: '',
+      personaFallback: '',
+      knowledgeEnabled: true,
+      knowledgeSources: []
+    })
+    setSelectedTemplate('')
   }
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
       {['basic', 'persona', 'knowledge', 'review'].map((step, index) => (
         <div key={step} className="flex items-center">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-            currentStep === step 
-              ? 'bg-blue-600 text-white' 
-              : index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep)
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === step
+            ? 'bg-blue-600 text-white'
+            : index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep)
               ? 'bg-green-600 text-white'
               : 'bg-gray-200 text-gray-600'
-          }`}>
+            }`}>
             {index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep) ? (
               <Check className="w-4 h-4" />
             ) : (
@@ -187,11 +223,10 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
             )}
           </div>
           {index < 3 && (
-            <div className={`w-16 h-1 mx-2 ${
-              index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep)
-                ? 'bg-green-600'
-                : 'bg-gray-200'
-            }`} />
+            <div className={`w-16 h-1 mx-2 ${index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep)
+              ? 'bg-green-600'
+              : 'bg-gray-200'
+              }`} />
           )}
         </div>
       ))}
@@ -275,23 +310,20 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
         <Label className="text-base font-medium mb-4 block">Escolha um Template (Opcional)</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {personaTemplates.map((template) => (
-            <Card 
+            <Card
               key={template.id}
-              className={`cursor-pointer transition-all ${
-                selectedTemplate === template.id 
-                  ? 'ring-2 ring-primary border-primary' 
-                  : 'hover:shadow-md'
-              }`}
+              className={`cursor-pointer transition-all ${selectedTemplate === template.id
+                ? 'ring-2 ring-primary border-primary'
+                : 'hover:shadow-md'
+                }`}
               onClick={() => applyTemplate(template)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    selectedTemplate === template.id ? 'bg-primary/10' : 'bg-muted'
-                  }`}>
-                    <Bot className={`w-5 h-5 ${
-                      selectedTemplate === template.id ? 'text-primary' : 'text-muted-foreground'
-                    }`} />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedTemplate === template.id ? 'bg-primary/10' : 'bg-muted'
+                    }`}>
+                    <Bot className={`w-5 h-5 ${selectedTemplate === template.id ? 'text-primary' : 'text-muted-foreground'
+                      }`} />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-foreground mb-1">{template.name}</h4>
@@ -414,7 +446,7 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
                 </ul>
               </div>
 
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" disabled>
                 <BookOpen className="w-4 h-4 mr-2" />
                 Carregar Documentos (Após Criação)
               </Button>
@@ -439,67 +471,65 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
 
       <div className="space-y-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Bot className="w-5 h-5" />
               Informações Básicas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Nome:</span>
-              <span className="font-medium">{formData.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Descrição:</span>
-              <span className="font-medium">{formData.description}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Instância:</span>
-              <span className="font-medium">{formData.instanceName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Tipo:</span>
-              <span className="font-medium">{formData.botType}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Modelo:</span>
-              <span className="font-medium">{formData.model}</span>
+            </h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Nome:</span>
+                <span className="font-medium">{formData.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Descrição:</span>
+                <span className="font-medium">{formData.description}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Instância:</span>
+                <span className="font-medium">{formData.instanceName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tipo:</span>
+                <span className="font-medium">{formData.botType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Modelo:</span>
+                <span className="font-medium">{formData.model}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Brain className="w-5 h-5" />
               Persona
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Nome:</span>
-              <span className="font-medium">{formData.personaName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Função:</span>
-              <span className="font-medium">{formData.personaRole}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Tom:</span>
-              <span className="font-medium">{formData.personaTone}</span>
+            </h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Nome:</span>
+                <span className="font-medium">{formData.personaName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Função:</span>
+                <span className="font-medium">{formData.personaRole}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tom:</span>
+                <span className="font-medium">{formData.personaTone}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <BookOpen className="w-5 h-5" />
               Base de Conhecimento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h4>
             <div className="flex justify-between">
               <span className="text-gray-600">Status:</span>
               <Badge variant={formData.knowledgeEnabled ? 'default' : 'secondary'}>
@@ -573,10 +603,15 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
             {currentStep === 'review' ? (
               <Button
                 onClick={handleSubmit}
+                disabled={loading}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Criar Agente
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                {loading ? 'Criando...' : 'Criar Agente'}
               </Button>
             ) : (
               <Button

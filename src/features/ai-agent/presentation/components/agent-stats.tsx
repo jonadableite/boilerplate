@@ -1,18 +1,18 @@
 import {
   StatCard,
-  StatCardMain,
   StatCardHeader,
+  StatCardMain,
   StatCardTitle,
   StatCardValue,
 } from '@/components/ui/stat-card'
-import { Bot, MessageSquare, Users, Activity } from 'lucide-react'
+import { Activity, Bot, MessageSquare, Users } from 'lucide-react'
 
 interface AgentStatsProps {
   stats: {
     total: number
     active: number
-    totalConversations: number
-    totalMessages: number
+    totalConversations?: number
+    totalMessages?: number
   }
 }
 
@@ -20,28 +20,28 @@ export function AgentStats({ stats }: AgentStatsProps) {
   const statCards = [
     {
       title: 'Total de Agentes',
-      value: stats.total,
+      value: stats.total || 0,
       icon: Bot,
-      description: 'Agentes criados'
+      description: 'Agentes criados',
     },
     {
       title: 'Agentes Ativos',
-      value: stats.active,
+      value: stats.active || 0,
       icon: Activity,
-      description: 'Em operação'
+      description: 'Em operação',
     },
     {
       title: 'Conversas',
-      value: stats.totalConversations,
+      value: stats.totalConversations || 0,
       icon: Users,
-      description: 'Total de conversas'
+      description: 'Total de conversas',
     },
     {
       title: 'Mensagens',
-      value: stats.totalMessages,
+      value: stats.totalMessages || 0,
       icon: MessageSquare,
-      description: 'Mensagens processadas'
-    }
+      description: 'Mensagens processadas',
+    },
   ]
 
   return (
@@ -65,7 +65,7 @@ export function AgentStats({ stats }: AgentStatsProps) {
             <p className="text-xs text-muted-foreground mt-1">
               {stat.description}
             </p>
-                      </StatCardMain>
+          </StatCardMain>
         </StatCard>
       ))}
     </div>

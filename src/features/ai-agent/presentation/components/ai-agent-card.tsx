@@ -1,48 +1,31 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
+import { Card, CardContent } from '@/components/ui/card'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  MoreVertical, 
-  Play, 
-  Pause, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Settings,
-  MessageSquare,
-  Users,
-  Activity,
-  Bot,
-  Clock
-} from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-
-interface AIAgent {
-  id: string
-  name: string
-  description: string
-  status: string
-  instanceName: string
-  botType: string
-  model: string
-  conversations: number
-  messages: number
-  lastActive: string
-  persona: {
-    name: string
-    role: string
-  }
-}
+import {
+  Activity,
+  Bot,
+  Clock,
+  Edit,
+  Eye,
+  MessageSquare,
+  MoreVertical,
+  Pause,
+  Play,
+  Settings,
+  Trash2,
+  Users,
+} from 'lucide-react'
+import type { AIAgent } from '../../ai-agent.types'
 
 interface AIAgentCardProps {
   agent: AIAgent
@@ -51,9 +34,12 @@ interface AIAgentCardProps {
   loading: boolean
 }
 
-export function AIAgentCard({ agent, onStatusChange, onDelete, loading }: AIAgentCardProps) {
-  const [showActions, setShowActions] = useState(false)
-
+export function AIAgentCard({
+  agent,
+  onStatusChange,
+  onDelete,
+  loading,
+}: AIAgentCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -97,12 +83,12 @@ export function AIAgentCard({ agent, onStatusChange, onDelete, loading }: AIAgen
 
   const formatLastActive = (dateString: string) => {
     try {
-      return formatDistanceToNow(new Date(dateString), { 
-        addSuffix: true, 
-        locale: ptBR 
+      return formatDistanceToNow(new Date(dateString), {
+        addSuffix: true,
+        locale: ptBR,
       })
     } catch {
-      return 'Desconhecido'
+      return 'Nunca'
     }
   }
 
@@ -113,58 +99,77 @@ export function AIAgentCard({ agent, onStatusChange, onDelete, loading }: AIAgen
           {/* Informações principais */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-semibold text-foreground">
-              {agent.name}
-            </h3>
+              <h3 className="text-xl font-semibold text-foreground">
+                {agent.name}
+              </h3>
               <Badge className={getStatusColor(agent.status)}>
                 <span className="flex items-center gap-1">
                   {getStatusIcon(agent.status)}
-                  {agent.status === 'ACTIVE' ? 'Ativo' : 
-                   agent.status === 'INACTIVE' ? 'Inativo' :
-                   agent.status === 'TRAINING' ? 'Treinando' :
-                   agent.status === 'ERROR' ? 'Erro' : agent.status}
+                  {agent.status === 'ACTIVE'
+                    ? 'Ativo'
+                    : agent.status === 'INACTIVE'
+                      ? 'Inativo'
+                      : agent.status === 'TRAINING'
+                        ? 'Treinando'
+                        : agent.status === 'ERROR'
+                          ? 'Erro'
+                          : agent.status}
                 </span>
               </Badge>
             </div>
-            
+
             <p className="text-muted-foreground mb-3">
-              {agent.description}
+              {agent.description || 'Sem descrição'}
             </p>
 
             {/* Metadados do agente */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Bot className="w-4 h-4" />
-                <span className="font-medium">{getBotTypeLabel(agent.botType)}</span>
+                <span className="font-medium">
+                  {getBotTypeLabel(agent.botType)}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Activity className="w-4 h-4" />
-                <span className="font-medium">{agent.model}</span>
+                <span className="font-medium">
+                  {agent.model || 'N/A'}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MessageSquare className="w-4 h-4" />
-                <span className="font-medium">{agent.conversations} conversas</span>
+                <span className="font-medium">
+                  {agent.instanceName}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="w-4 h-4" />
-                <span className="font-medium">{agent.messages} mensagens</span>
+                <span className="font-medium">
+                  {agent.triggerType}
+                </span>
               </div>
             </div>
 
             {/* Persona */}
-            <div className="bg-muted/50 rounded-lg p-3 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium text-foreground">Persona:</span>
-                <Badge variant="outline" className="text-xs">
-                  {agent.persona.name} - {agent.persona.role}
-                </Badge>
+            {agent.persona && (
+              <div className="bg-muted/50 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium text-foreground">
+                    Persona:
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {agent.persona.name} - {agent.persona.role}
+                  </Badge>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Última atividade */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="w-4 h-4" />
-              <span>Última atividade: {formatLastActive(agent.lastActive)}</span>
+              <span>
+                Criado: {formatLastActive(agent.createdAt.toISOString())}
+              </span>
             </div>
           </div>
 
@@ -176,20 +181,31 @@ export function AIAgentCard({ agent, onStatusChange, onDelete, loading }: AIAgen
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => window.open(`/ai-agents/${agent.id}`, '_blank')}>
+              <DropdownMenuItem
+                onClick={() => window.open(`/ai-agents/${agent.id}`, '_blank')}
+              >
                 <Eye className="w-4 h-4 mr-2" />
                 Visualizar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.open(`/ai-agents/${agent.id}/edit`, '_blank')}>
+              <DropdownMenuItem
+                onClick={() => window.open(`/ai-agents/${agent.id}/edit`, '_blank')}
+              >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.open(`/ai-agents/${agent.id}/settings`, '_blank')}>
+              <DropdownMenuItem
+                onClick={() => window.open(`/ai-agents/${agent.id}/settings`, '_blank')}
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 Configurações
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => onStatusChange(agent.id, agent.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+              <DropdownMenuItem
+                onClick={() =>
+                  onStatusChange(
+                    agent.id,
+                    agent.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
+                  )
+                }
                 disabled={loading}
               >
                 {agent.status === 'ACTIVE' ? (
@@ -204,7 +220,7 @@ export function AIAgentCard({ agent, onStatusChange, onDelete, loading }: AIAgen
                   </>
                 )}
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => onDelete(agent.id)}
                 disabled={loading}
                 className="text-red-600 focus:text-red-600"
@@ -227,7 +243,7 @@ export function AIAgentCard({ agent, onStatusChange, onDelete, loading }: AIAgen
             <MessageSquare className="w-4 h-4 mr-2" />
             Testar Chat
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"

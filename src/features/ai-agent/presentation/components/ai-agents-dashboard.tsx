@@ -1,135 +1,106 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { 
-  Search, 
-  Filter, 
-  MessageSquare, 
-  Users, 
-  Activity,
-  Play,
-  Pause,
-  Edit,
-  Trash2,
-  Eye,
-  Settings
-} from 'lucide-react'
+import { AlertCircle, Search } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useAIAgents } from '../hooks/use-ai-agents'
+import { AgentStats } from './agent-stats'
 import { AIAgentCard } from './ai-agent-card'
 import { EmptyState } from './empty-state'
-import { AgentStats } from './agent-stats'
-
-// Mock data - substituir por dados reais da API
-const mockAgents = [
-  {
-    id: '1',
-    name: 'Alex - Assistente de Vendas',
-    description: 'Agente especializado em vendas de produtos SaaS',
-    status: 'ACTIVE',
-    instanceName: 'vendas-instance',
-    botType: 'chatCompletion',
-    model: 'gpt-4o',
-    conversations: 156,
-    messages: 1247,
-    lastActive: '2024-01-15T10:30:00Z',
-    persona: {
-      name: 'Alex',
-      role: 'Assistente de Vendas'
-    }
-  },
-  {
-    id: '2',
-    name: 'Sofia - Suporte Técnico',
-    description: 'Agente para resolução de problemas técnicos',
-    status: 'ACTIVE',
-    instanceName: 'suporte-instance',
-    botType: 'assistant',
-    model: 'gpt-4o',
-    conversations: 89,
-    messages: 567,
-    lastActive: '2024-01-15T09:15:00Z',
-    persona: {
-      name: 'Sofia',
-      role: 'Suporte Técnico'
-    }
-  },
-  {
-    id: '3',
-    name: 'Carlos - Onboarding',
-    description: 'Agente para orientar novos usuários',
-    status: 'INACTIVE',
-    instanceName: 'onboarding-instance',
-    botType: 'chatCompletion',
-    model: 'gpt-3.5-turbo',
-    conversations: 23,
-    messages: 89,
-    lastActive: '2024-01-14T16:45:00Z',
-    persona: {
-      name: 'Carlos',
-      role: 'Especialista em Onboarding'
-    }
-  }
-]
 
 export function AIAgentsDashboard() {
-  const [agents, setAgents] = useState(mockAgents)
+  const { agents, loading, error, deleteAgent, refreshAgents } = useAIAgents()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [loading, setLoading] = useState(false)
 
   // Filtrar agentes
-  const filteredAgents = agents.filter(agent => {
-    const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         agent.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || agent.status === statusFilter
+  const filteredAgents = agents.filter((agent) => {
+    const matchesSearch =
+      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (agent.description?.toLowerCase() || '').includes(
+        searchTerm.toLowerCase(),
+      )
+    const matchesStatus =
+      statusFilter === 'all' || agent.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
   // Estatísticas
   const stats = {
     total: agents.length,
-    active: agents.filter(a => a.status === 'ACTIVE').length,
-    totalConversations: agents.reduce((sum, a) => sum + a.conversations, 0),
-    totalMessages: agents.reduce((sum, a) => sum + a.messages, 0)
+    active: agents.filter((a) => a.status === 'ACTIVE').length,
+    inactive: agents.filter((a) => a.status === 'INACTIVE').length,
+    training: agents.filter((a) => a.status === 'TRAINING').length,
+    error: agents.filter((a) => a.status === 'ERROR').length,
   }
 
   const handleStatusChange = async (agentId: string, newStatus: string) => {
-    setLoading(true)
     try {
-      // Aqui você faria a chamada para a API
-      setAgents(prev => prev.map(agent => 
-        agent.id === agentId 
-          ? { ...agent, status: newStatus }
-          : agent
-      ))
+      // TODO: Implementar chamada para a API para atualizar o status
+      console.log('Alterando status do agente:', agentId, 'para:', newStatus)
+      toast.success('Status do agente atualizado com sucesso')
+      await refreshAgents()
     } catch (error) {
       console.error('Erro ao alterar status:', error)
-    } finally {
-      setLoading(false)
+      toast.error('Erro ao alterar status do agente')
     }
   }
 
   const handleDeleteAgent = async (agentId: string) => {
-    if (confirm('Tem certeza que deseja excluir este agente? Esta ação não pode ser desfeita.')) {
-      setLoading(true)
+    if (
+      confirm(
+        'Tem certeza que deseja excluir este agente? Esta ação não pode ser desfeita.',
+      )
+    ) {
       try {
-        // Aqui você faria a chamada para a API
-        setAgents(prev => prev.filter(agent => agent.id !== agentId))
+        const success = await deleteAgent(agentId)
+        if (success) {
+          toast.success('Agente excluído com sucesso')
+        } else {
+          toast.error('Erro ao excluir agente')
+        }
       } catch (error) {
         console.error('Erro ao excluir agente:', error)
-      } finally {
-        setLoading(false)
+        toast.error('Erro ao excluir agente')
       }
     }
+  }
+
+  // Mostrar erro se houver
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Erro ao carregar agentes
+            </h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={refreshAgents} variant="outline">
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       {/* Estatísticas */}
-      <AgentStats stats={stats} />
+      <AgentStats
+        stats={{
+          total: stats.total,
+          active: stats.active,
+          totalConversations: 0, // TODO: Implementar contagem de conversas
+          totalMessages: 0, // TODO: Implementar contagem de mensagens
+        }}
+      />
 
       {/* Filtros e Busca */}
       <Card>
@@ -167,7 +138,7 @@ export function AIAgentsDashboard() {
                 onClick={() => setStatusFilter('INACTIVE')}
                 size="sm"
               >
-                Inativos ({agents.length - stats.active})
+                Inativos ({stats.inactive})
               </Button>
             </div>
           </div>
@@ -175,8 +146,15 @@ export function AIAgentsDashboard() {
       </Card>
 
       {/* Lista de Agentes */}
-      {filteredAgents.length === 0 ? (
-        <EmptyState 
+      {loading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando agentes...</p>
+          </div>
+        </div>
+      ) : filteredAgents.length === 0 ? (
+        <EmptyState
           searchTerm={searchTerm}
           onReset={() => {
             setSearchTerm('')

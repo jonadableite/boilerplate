@@ -1,17 +1,17 @@
+import {
+  AgentMemory,
+  AgentPersona,
+  AgentSettingsInput,
+  AIAgent,
+  CreateAgentInput,
+  CreateOpenAICredsInput,
+  MemoryType,
+  UpdateAgentInput,
+  UpdateSessionStatusInput
+} from '../ai-agent.types'
 import { EvolutionAPIClient } from './evolution-api.client'
 import { KnowledgeBaseService } from './knowledge-base.service'
-import { 
-  AIAgent, 
-  CreateAgentInput, 
-  UpdateAgentInput,
-  CreateOpenAICredsInput,
-  UpdateSessionStatusInput,
-  AgentSettingsInput,
-  AgentMemory,
-  MemoryType,
-  SessionStatus,
-  AgentPersona
-} from '../ai-agent.types'
+import { OpenAIService } from './openai.service'
 
 export interface MessageContext {
   remoteJid: string
@@ -31,6 +31,7 @@ export interface AgentResponse {
 export class AIAgentService {
   private evolutionClient: EvolutionAPIClient
   private knowledgeBaseService: KnowledgeBaseService
+  private openaiService: OpenAIService
 
   constructor(
     evolutionBaseURL: string,
@@ -40,12 +41,23 @@ export class AIAgentService {
   ) {
     this.evolutionClient = new EvolutionAPIClient(evolutionBaseURL, evolutionApiKey, instanceName)
     this.knowledgeBaseService = new KnowledgeBaseService(openaiApiKey)
+    this.openaiService = new OpenAIService(openaiApiKey)
   }
 
   // OpenAI Credentials
   async createOpenAICreds(input: CreateOpenAICredsInput) {
     try {
+      // Primeiro, validar a API Key
+      const isValid = await this.openaiService.validateAPIKey()
+      if (!isValid) {
+        throw new Error('API Key da OpenAI inválida')
+      }
+
+      // Configurar credenciais na Evolution API
       const result = await this.evolutionClient.setOpenAICreds(input)
+
+      // Aqui você salvaria as credenciais no banco de dados
+      // Por enquanto, retornamos o resultado da Evolution API
       return result
     } catch (error) {
       console.error('[AI Agent Service] Erro ao criar credenciais OpenAI:', error)
@@ -78,9 +90,25 @@ export class AIAgentService {
     try {
       // Criar bot na Evolution API
       const evolutionResult = await this.evolutionClient.createBot(input)
-      
+
       if (!evolutionResult.success) {
         throw new Error(`Falha ao criar bot na Evolution API: ${evolutionResult.message}`)
+      }
+
+      // Se for um assistant, criar na OpenAI
+      let assistantId: string | undefined
+      if (input.botType === 'assistant') {
+        try {
+          const systemPrompt = this.buildSystemPrompt(input)
+          assistantId = await this.openaiService.createAssistant(
+            input.name,
+            systemPrompt,
+            input.model || 'gpt-4o'
+          )
+        } catch (error) {
+          console.warn('[AI Agent Service] Falha ao criar assistant na OpenAI:', error)
+          // Continuar sem assistant ID se falhar
+        }
       }
 
       // Aqui você salvaria o agente no banco de dados
@@ -93,7 +121,7 @@ export class AIAgentService {
         evolutionBotId: evolutionResult.data?.id,
         openaiCredsId: input.openaiCredsId,
         botType: input.botType,
-        assistantId: input.assistantId,
+        assistantId,
         functionUrl: input.functionUrl,
         model: input.model,
         systemMessages: input.systemMessages,
@@ -139,9 +167,25 @@ export class AIAgentService {
       // Atualizar bot na Evolution API
       if (agent.evolutionBotId) {
         const evolutionResult = await this.evolutionClient.updateBot(agent.evolutionBotId, input)
-        
+
         if (!evolutionResult.success) {
           throw new Error(`Falha ao atualizar bot na Evolution API: ${evolutionResult.message}`)
+        }
+      }
+
+      // Se for um assistant e tiver mudanças relevantes, atualizar na OpenAI
+      if (input.botType === 'assistant' && agent.assistantId) {
+        try {
+          if (input.name || input.description || input.model) {
+            const systemPrompt = this.buildSystemPrompt({ ...agent, ...input })
+            await this.openaiService.updateAssistant(agent.assistantId, {
+              name: input.name || agent.name,
+              instructions: systemPrompt,
+              model: input.model || agent.model || 'gpt-4o'
+            })
+          }
+        } catch (error) {
+          console.warn('[AI Agent Service] Falha ao atualizar assistant na OpenAI:', error)
         }
       }
 
@@ -171,9 +215,18 @@ export class AIAgentService {
       // Deletar bot na Evolution API
       if (agent.evolutionBotId) {
         const evolutionResult = await this.evolutionClient.deleteBot(agent.evolutionBotId)
-        
+
         if (!evolutionResult.success) {
           throw new Error(`Falha ao deletar bot na Evolution API: ${evolutionResult.message}`)
+        }
+      }
+
+      // Deletar assistant na OpenAI se existir
+      if (agent.assistantId) {
+        try {
+          await this.openaiService.deleteAssistant(agent.assistantId)
+        } catch (error) {
+          console.warn('[AI Agent Service] Falha ao deletar assistant na OpenAI:', error)
         }
       }
 
@@ -261,21 +314,20 @@ export class AIAgentService {
         relevantChunks = []
       }
 
-      // Construir prompt com contexto
-      let prompt = ''
-      if (agent.persona) {
-        prompt = this.knowledgeBaseService.buildContextPrompt(
-          agent.persona,
-          relevantChunks,
-          userMessage
-        )
-      } else {
-        prompt = `Mensagem do usuário: ${userMessage}\n\nResponda de forma útil e amigável.`
-      }
+      // Buscar memórias recentes da conversa
+      const recentMemories = await this.getRecentMemories(agentId, context.remoteJid, 5)
+      const contextMessages = recentMemories.map(memory => ({
+        role: memory.role as 'user' | 'assistant',
+        content: memory.content
+      }))
 
-      // Aqui você chamaria o LLM para gerar a resposta
-      // Por enquanto, retornamos uma resposta mock
-      const response = await this.generateLLMResponse(prompt, agent)
+      // Gerar resposta usando o OpenAI Service
+      const response = await this.openaiService.generateContextualResponse(
+        agent,
+        userMessage,
+        contextMessages,
+        relevantChunks
+      )
 
       // Salvar memória da conversa
       await this.saveMemory(agentId, context.remoteJid, 'user', userMessage)
@@ -315,9 +367,9 @@ export class AIAgentService {
 
   // Memórias
   async saveMemory(
-    agentId: string, 
-    remoteJid: string, 
-    role: 'user' | 'assistant' | 'system', 
+    agentId: string,
+    remoteJid: string,
+    role: 'user' | 'assistant' | 'system',
     content: string,
     type: MemoryType = MemoryType.SHORT_TERM
   ): Promise<AgentMemory> {
@@ -347,8 +399,8 @@ export class AIAgentService {
   }
 
   async getRecentMemories(
-    agentId: string, 
-    remoteJid: string, 
+    agentId: string,
+    remoteJid: string,
     limit: number = 10
   ): Promise<AgentMemory[]> {
     try {
@@ -374,16 +426,33 @@ export class AIAgentService {
     return 'Transcrição do áudio (implementar STT)'
   }
 
-  private async generateLLMResponse(prompt: string, agent: AIAgent): Promise<string> {
-    // Aqui você implementaria a chamada para o LLM
-    // Por enquanto, retornamos uma resposta mock
-    return 'Esta é uma resposta gerada pelo LLM (implementar integração)'
-  }
-
   private async generateAudioResponse(text: string): Promise<string> {
     // Aqui você implementaria TTS para gerar áudio
     // Por enquanto, retornamos uma URL mock
     return 'audio_response_url'
+  }
+
+  // Construir prompt do sistema baseado na persona
+  private buildSystemPrompt(input: CreateAgentInput | AIAgent): string {
+    if (input.persona) {
+      const persona = input.persona as AgentPersona
+      let prompt = `Você é ${persona.name}, ${persona.role}.\n\n`
+      prompt += `Tom de comunicação: ${persona.tone}\n`
+      prompt += `Expertise: ${persona.expertise?.join(', ') || 'Assistente geral'}\n`
+
+      if (persona.limitations && persona.limitations.length > 0) {
+        prompt += `Limitações: ${persona.limitations.join(', ')}\n`
+      }
+
+      if (persona.greeting) {
+        prompt += `Saudação: ${persona.greeting}\n`
+      }
+
+      prompt += '\nResponda sempre de acordo com sua persona e expertise.'
+      return prompt
+    }
+
+    return 'Você é um assistente de IA útil e amigável. Responda de forma clara e precisa.'
   }
 
   // Teste de conexão
