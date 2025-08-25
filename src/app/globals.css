@@ -81,6 +81,36 @@
   html {
     @apply antialiased scroll-smooth;
   }
+
+  /* Fix for dropdown menu z-index issues */
+  [data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+  }
+
+  /* Ensure dropdown content is visible */
+  [data-radix-dropdown-menu-content] {
+    z-index: 9999 !important;
+    position: relative !important;
+  }
+
+  /* Additional fixes for Radix UI dropdowns */
+  [data-radix-dropdown-menu-content] {
+    z-index: 9999 !important;
+    position: relative !important;
+    transform: none !important;
+  }
+
+  /* Force dropdown to be above all other elements */
+  .radix-dropdown-menu-content {
+    z-index: 9999 !important;
+    position: relative !important;
+  }
+
+  /* Ensure proper stacking context */
+  [role="menu"] {
+    z-index: 9999 !important;
+  }
+
   ::selection {
     @apply bg-primary/30;
   }

@@ -24,92 +24,108 @@ export function UserDashboardSidebarDropdown() {
 
   const user = auth.session.user
 
+  if (!user) {
+    return null
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await api.auth.signOut.mutate()
+      router.push('/auth')
+      toast.success('You have signed out')
+    } catch (err) {
+      console.error('Sign out error:', err)
+      toast.error('Failed to sign out')
+    }
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <UserAvatar
-          user={user}
-          className="size-8 rounded-full border mr-2 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-        side="bottom"
-        align="start"
-        sideOffset={4}
-      >
-        <DropdownMenuLabel className="p-0 font-normal">
-          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <div className="grid flex-1 text-left text-xs leading-tight space-y-1">
-              <span className="truncate font-semibold">{user.name}</span>
-              <span className="truncate text-muted-foreground">
-                {user.email}
-              </span>
+    <div className="relative">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            style={{ zIndex: 9999 }}
+          >
+            <UserAvatar
+              user={user}
+              className="size-8 rounded-full border mr-2 cursor-pointer hover:opacity-80 transition-opacity"
+            />
+          </button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          className="min-w-56 rounded-lg"
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          style={{ zIndex: 9999 }}
+        >
+          <DropdownMenuLabel className="p-0 font-normal">
+            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <div className="grid flex-1 text-left text-xs leading-tight space-y-1">
+                <span className="truncate font-semibold">{user.name}</span>
+                <span className="truncate text-muted-foreground">
+                  {user.email}
+                </span>
+              </div>
             </div>
-          </div>
-        </DropdownMenuLabel>
+          </DropdownMenuLabel>
 
-        <DropdownMenuSeparator />
+          <DropdownMenuSeparator />
 
-        <DropdownMenuGroup>
-          <DropdownMenuItem>My profile</DropdownMenuItem>
-        </DropdownMenuGroup>
+          <DropdownMenuGroup>
+            <DropdownMenuItem>My profile</DropdownMenuItem>
+          </DropdownMenuGroup>
 
-        <DropdownMenuSeparator />
+          <DropdownMenuSeparator />
 
-        <DropdownMenuGroup>
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              onClick={() => router.push(AppConfig.links.updates)}
+            >
+              Changelog{' '}
+              <ArrowUpRightIcon className="size-2 ml-auto text-muted-foreground" />
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => router.push(AppConfig.links.blog)}>
+              Blog{' '}
+              <ArrowUpRightIcon className="size-2 ml-auto text-muted-foreground" />
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              onClick={() => window.open(`mailto:${AppConfig.links.mail}`)}
+            >
+              Send feedback{' '}
+              <ArrowUpRightIcon className="size-2 ml-auto text-muted-foreground" />
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem className="justify-between hover:bg-transparent cursor-default">
+              Theme
+              <ThemeToggle />
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+
+          <DropdownMenuSeparator />
+
           <DropdownMenuItem
-            onClick={() => router.push(AppConfig.links.updates)}
+            onClick={() => {
+              router.push(AppConfig.links.site)
+            }}
           >
-            Changelog{' '}
-            <ArrowUpRightIcon className="size-2 ml-auto text-muted-foreground" />
+            View homepage
           </DropdownMenuItem>
-        </DropdownMenuGroup>
 
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push(AppConfig.links.blog)}>
-            Blog{' '}
-            <ArrowUpRightIcon className="size-2 ml-auto text-muted-foreground" />
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={() => window.open(`mailto:${AppConfig.links.mail}`)}
-          >
-            Send feedback{' '}
-            <ArrowUpRightIcon className="size-2 ml-auto text-muted-foreground" />
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem className="justify-between hover:bg-transparent cursor-default">
-            Theme
-            <ThemeToggle />
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={() => {
-            router.push(AppConfig.links.site)
-          }}
-        >
-          View homepage
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={() => {
-            api.auth.signOut.mutate()
-            router.push('/auth')
-            toast.success('You have signed out')
-          }}
-        >
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
