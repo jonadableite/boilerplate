@@ -1,13 +1,13 @@
+import { AuthFeatureProcedure } from '@/@saas-boilerplate/features/auth'
 import { igniter } from '@/igniter'
 import { z } from 'zod'
 import { 
   CreateAgentSchema, 
   UpdateAgentSchema, 
   CreateOpenAICredsSchema,
-  UpdateSessionStatusSchema,
   AgentSettingsSchema
 } from '../ai-agent.types'
-import { AIAgentService } from '../services/ai-agent.service'
+import { AIAgentFeatureProcedure } from '../procedures/ai-agent.procedure'
 
 // Schema para processamento de mensagens
 const ProcessMessageSchema = z.object({
@@ -28,474 +28,462 @@ const UploadKnowledgeSchema = z.object({
 })
 
 export const AIAgentController = igniter.controller({
+  name: 'ai-agent',
   path: '/ai-agents',
   actions: {
     // OpenAI Credentials
-    createOpenAICreds: {
+    createOpenAICreds: igniter.mutation({
       method: 'POST',
       path: '/openai-creds',
-      schema: CreateOpenAICredsSchema,
-      handler: async ({ input, context }) => {
-        try {
-          // Aqui você obteria as configurações da Evolution API do contexto ou env
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = context.organization?.slug || 'default'
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: CreateOpenAICredsSchema,
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
 
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.createOpenAICreds(input)
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao criar credenciais OpenAI:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
         }
-      }
-    },
 
-    getOpenAICreds: {
-      method: 'GET',
-      path: '/openai-creds',
-      handler: async ({ context }) => {
         try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = context.organization?.slug || 'default'
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.getOpenAICreds()
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao buscar credenciais OpenAI:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    deleteOpenAICreds: {
-      method: 'DELETE',
-      path: '/openai-creds/:openaiCredsId',
-      schema: z.object({
-        openaiCredsId: z.string().min(1, 'ID das credenciais é obrigatório')
-      }),
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = context.organization?.slug || 'default'
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.deleteOpenAICreds(input.openaiCredsId)
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao deletar credenciais OpenAI:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    // AI Agents
-    createAgent: {
-      method: 'POST',
-      path: '/',
-      schema: CreateAgentSchema,
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = input.instanceName
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const agent = await service.createAgent(input)
-          return { success: true, data: agent }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao criar agente:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    updateAgent: {
-      method: 'PUT',
-      path: '/:agentId',
-      schema: z.object({
-        agentId: z.string().min(1, 'ID do agente é obrigatório'),
-        ...UpdateAgentSchema.shape
-      }),
-      handler: async ({ input, context }) => {
-        try {
-          const { agentId, ...updateData } = input
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = updateData.instanceName || 'default'
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const agent = await service.updateAgent(agentId, updateData)
-          return { success: true, data: agent }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao atualizar agente:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    deleteAgent: {
-      method: 'DELETE',
-      path: '/:agentId',
-      schema: z.object({
-        agentId: z.string().min(1, 'ID do agente é obrigatório')
-      }),
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default' // Você precisaria buscar a instância do agente
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.deleteAgent(input.agentId)
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao deletar agente:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    // Sessões
-    changeSessionStatus: {
-      method: 'POST',
-      path: '/sessions/status',
-      schema: UpdateSessionStatusSchema,
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default' // Você precisaria buscar a instância do agente
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.changeSessionStatus(input)
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao alterar status da sessão:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    fetchSessions: {
-      method: 'GET',
-      path: '/sessions/:openaiBotId',
-      schema: z.object({
-        openaiBotId: z.string().min(1, 'ID do bot é obrigatório')
-      }),
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default' // Você precisaria buscar a instância do agente
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.fetchSessions(input.openaiBotId)
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao buscar sessões:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    // Configurações
-    setDefaultSettings: {
-      method: 'POST',
-      path: '/settings',
-      schema: AgentSettingsSchema,
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default' // Você precisaria buscar a instância do agente
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.setDefaultSettings(input)
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao configurar settings padrão:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    fetchDefaultSettings: {
-      method: 'GET',
-      path: '/settings',
-      handler: async ({ context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default' // Você precisaria buscar a instância do agente
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.fetchDefaultSettings()
-          return { success: true, data: result }
-        } catch (error) {
-          console.error('[AI Agent Controller] Erro ao buscar settings padrão:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
-        }
-      }
-    },
-
-    // Processamento de mensagens
-    processMessage: {
-      method: 'POST',
-      path: '/process-message',
-      schema: ProcessMessageSchema,
-      handler: async ({ input, context }) => {
-        try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default' // Você precisaria buscar a instância do agente
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const result = await service.processMessage(input.agentId, {
-            remoteJid: input.remoteJid,
-            message: input.message,
-            type: input.type,
-            audioUrl: input.audioUrl,
-            metadata: input.metadata
+          const result = await context.aiAgent.createOpenAICreds({
+            ...request.body,
+            organizationId: session.organization.id,
+            createdById: session.user.id,
           })
 
-          return { success: true, data: result }
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao criar credenciais OpenAI:', error)
+          return response.error({
+            code: 'OPENAI_CREDS_CREATION_FAILED',
+            message: 'Erro ao criar credenciais OpenAI',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    getOpenAICreds: igniter.query({
+      method: 'GET',
+      path: '/openai-creds',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.getOpenAICreds({
+            organizationId: session.organization.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao buscar credenciais OpenAI:', error)
+          return response.error({
+            code: 'OPENAI_CREDS_FETCH_FAILED',
+            message: 'Erro ao buscar credenciais OpenAI',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    deleteOpenAICreds: igniter.mutation({
+      method: 'DELETE',
+      path: '/openai-creds/:openaiCredsId',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      params: z.object({
+        openaiCredsId: z.string().min(1, 'ID das credenciais é obrigatório'),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.deleteOpenAICreds({
+            id: request.params.openaiCredsId,
+            organizationId: session.organization.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao deletar credenciais OpenAI:', error)
+          return response.error({
+            code: 'OPENAI_CREDS_DELETE_FAILED',
+            message: 'Erro ao deletar credenciais OpenAI',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    // AI Agents
+    createAgent: igniter.mutation({
+      method: 'POST',
+      path: '/',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: CreateAgentSchema,
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const agent = await context.aiAgent.createAgent({
+            ...request.body,
+            organizationId: session.organization.id,
+            createdById: session.user.id,
+          })
+
+          return response.created(agent)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao criar agente:', error)
+          return response.error({
+            code: 'AGENT_CREATION_FAILED',
+            message: 'Erro ao criar agente',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    updateAgent: igniter.mutation({
+      method: 'PUT',
+      path: '/:agentId',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      params: z.object({
+        agentId: z.string().min(1, 'ID do agente é obrigatório'),
+      }),
+      body: UpdateAgentSchema,
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const agent = await context.aiAgent.updateAgent({
+            id: request.params.agentId,
+            ...request.body,
+            organizationId: session.organization.id,
+            updatedById: session.user.id,
+          })
+
+          return response.success(agent)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao atualizar agente:', error)
+          return response.error({
+            code: 'AGENT_UPDATE_FAILED',
+            message: 'Erro ao atualizar agente',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    deleteAgent: igniter.mutation({
+      method: 'DELETE',
+      path: '/:agentId',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      params: z.object({
+        agentId: z.string().min(1, 'ID do agente é obrigatório'),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          await context.aiAgent.deleteAgent({
+            id: request.params.agentId,
+            organizationId: session.organization.id,
+          })
+
+          return response.success({ message: 'Agente deletado com sucesso' })
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao deletar agente:', error)
+          return response.error({
+            code: 'AGENT_DELETION_FAILED',
+            message: 'Erro ao deletar agente',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    // Sessões
+    changeSessionStatus: igniter.mutation({
+      method: 'PUT',
+      path: '/sessions/:sessionId/status',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      params: z.object({
+        sessionId: z.string().min(1, 'ID da sessão é obrigatório'),
+      }),
+      body: z.object({
+        status: z.enum(['active', 'inactive', 'paused']),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.changeSessionStatus({
+            sessionId: request.params.sessionId,
+            status: request.body.status,
+            organizationId: session.organization.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao alterar status da sessão:', error)
+          return response.error({
+            code: 'SESSION_STATUS_UPDATE_FAILED',
+            message: 'Erro ao alterar status da sessão',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    fetchSessions: igniter.query({
+      method: 'GET',
+      path: '/sessions',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      query: z.object({
+        agentId: z.string().optional(),
+        status: z.enum(['active', 'inactive', 'paused']).optional(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(10),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.fetchSessions({
+            ...request.query,
+            organizationId: session.organization.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao buscar sessões:', error)
+          return response.error({
+            code: 'SESSIONS_FETCH_FAILED',
+            message: 'Erro ao buscar sessões',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    // Configurações
+    setDefaultSettings: igniter.mutation({
+      method: 'POST',
+      path: '/settings/default',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: AgentSettingsSchema,
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.setDefaultSettings({
+            ...request.body,
+            organizationId: session.organization.id,
+            updatedById: session.user.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao configurar settings padrão:', error)
+          return response.error({
+            code: 'DEFAULT_SETTINGS_UPDATE_FAILED',
+            message: 'Erro ao configurar settings padrão',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    fetchDefaultSettings: igniter.query({
+      method: 'GET',
+      path: '/settings',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.fetchDefaultSettings({
+            organizationId: session.organization.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao buscar settings padrão:', error)
+          return response.error({
+            code: 'DEFAULT_SETTINGS_FETCH_FAILED',
+            message: 'Erro ao buscar settings padrão',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    // Processamento de mensagens
+    processMessage: igniter.mutation({
+      method: 'POST',
+      path: '/process-message',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: ProcessMessageSchema,
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.processMessage({
+            ...request.body,
+            organizationId: session.organization.id,
+            userId: session.user.id,
+          })
+
+          return response.success(result)
         } catch (error) {
           console.error('[AI Agent Controller] Erro ao processar mensagem:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
+          return response.error({
+            code: 'MESSAGE_PROCESSING_FAILED',
+            message: 'Erro ao processar mensagem',
+            status: 500,
+          })
         }
-      }
-    },
+      },
+    }),
 
     // Upload de base de conhecimento
-    uploadKnowledge: {
+    uploadKnowledge: igniter.mutation({
       method: 'POST',
       path: '/knowledge/upload',
-      schema: UploadKnowledgeSchema,
-      handler: async ({ input, context }) => {
-        try {
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
-          if (!openaiApiKey) {
-            throw new Error('API Key da OpenAI não encontrada')
-          }
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: UploadKnowledgeSchema,
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
 
-          // Aqui você implementaria o processamento da base de conhecimento
-          // Por enquanto, retornamos um mock
-          return { 
-            success: true, 
-            data: {
-              message: 'Base de conhecimento processada com sucesso',
-              chunks: 5,
-              agentId: input.agentId
-            }
-          }
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.uploadKnowledge({
+            ...request.body,
+            organizationId: session.organization.id,
+            uploadedById: session.user.id,
+          })
+
+          return response.success(result)
         } catch (error) {
           console.error('[AI Agent Controller] Erro ao fazer upload da base de conhecimento:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
+          return response.error({
+            code: 'KNOWLEDGE_UPLOAD_FAILED',
+            message: 'Erro ao fazer upload da base de conhecimento',
+            status: 500,
+          })
         }
-      }
-    },
+      },
+    }),
 
     // Teste de conexão
-    testConnection: {
+    testConnection: igniter.query({
       method: 'GET',
       path: '/test-connection',
-      handler: async ({ context }) => {
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
         try {
-          const evolutionBaseURL = process.env.EVOLUTION_API_URL || ''
-          const evolutionApiKey = process.env.EVOLUTION_API_KEY || ''
-          const instanceName = 'default'
-          const openaiApiKey = process.env.OPENAI_API_KEY || ''
+          const result = await context.aiAgent.testConnection({
+            organizationId: session.organization.id,
+          })
 
-          if (!evolutionBaseURL || !evolutionApiKey) {
-            throw new Error('Configurações da Evolution API não encontradas')
-          }
-
-          const service = new AIAgentService(
-            evolutionBaseURL,
-            evolutionApiKey,
-            instanceName,
-            openaiApiKey
-          )
-
-          const isConnected = await service.testConnection()
-          return { 
-            success: true, 
-            data: { 
-              connected: isConnected,
-              evolutionAPI: !!evolutionBaseURL && !!evolutionApiKey,
-              openai: !!openaiApiKey
-            }
-          }
+          return response.success(result)
         } catch (error) {
           console.error('[AI Agent Controller] Erro ao testar conexão:', error)
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : 'Erro desconhecido' 
-          }
+          return response.error({
+            code: 'CONNECTION_TEST_FAILED',
+            message: 'Erro ao testar conexão',
+            status: 500,
+          })
         }
-      }
-    }
+      },
+    })
   }
 })

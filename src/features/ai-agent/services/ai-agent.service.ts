@@ -6,12 +6,16 @@ import {
   CreateAgentInput,
   CreateOpenAICredsInput,
   MemoryType,
+  SpeechModel,
+  TTSModel,
+  TTSVoice,
   UpdateAgentInput,
   UpdateSessionStatusInput
 } from '../ai-agent.types'
 import { EvolutionAPIClient } from './evolution-api.client'
 import { KnowledgeBaseService } from './knowledge-base.service'
 import { OpenAIService } from './openai.service'
+import { VoiceProcessingService } from './voice-processing.service'
 
 export interface MessageContext {
   remoteJid: string
@@ -32,6 +36,7 @@ export class AIAgentService {
   private evolutionClient: EvolutionAPIClient
   private knowledgeBaseService: KnowledgeBaseService
   private openaiService: OpenAIService
+  private voiceProcessingService: VoiceProcessingService
 
   constructor(
     evolutionBaseURL: string,
@@ -42,6 +47,7 @@ export class AIAgentService {
     this.evolutionClient = new EvolutionAPIClient(evolutionBaseURL, evolutionApiKey, instanceName)
     this.knowledgeBaseService = new KnowledgeBaseService(openaiApiKey)
     this.openaiService = new OpenAIService(openaiApiKey)
+    this.voiceProcessingService = new VoiceProcessingService(this.openaiService, this.evolutionClient)
   }
 
   // OpenAI Credentials
@@ -294,9 +300,21 @@ export class AIAgentService {
       // Processar áudio se necessário
       if (context.type === 'audio' && context.audioUrl) {
         try {
-          // Aqui você implementaria o download do áudio e STT
-          // Por enquanto, assumimos que já temos a transcrição
-          userMessage = await this.transcribeAudio(context.audioUrl)
+          // Usar o serviço de processamento de voz para transcrever o áudio
+          const transcriptionResult = await this.voiceProcessingService.transcribeFromUrl(
+            context.audioUrl,
+            {
+              model: agent.speechConfig?.transcriptionModel || SpeechModel.WHISPER_1,
+              language: agent.speechConfig?.language,
+              temperature: 0.3
+            }
+          )
+
+          if (transcriptionResult.success && transcriptionResult.data) {
+            userMessage = transcriptionResult.data
+          } else {
+            throw new Error(transcriptionResult.error || 'Falha na transcrição')
+          }
         } catch (error) {
           console.error('[AI Agent Service] Erro ao transcrever áudio:', error)
           return {
@@ -337,7 +355,21 @@ export class AIAgentService {
       let audioUrl: string | undefined
       if (context.metadata?.generateAudio) {
         try {
-          audioUrl = await this.generateAudioResponse(response)
+          // Usar o serviço de processamento de voz para gerar áudio
+          const speechResult = await this.voiceProcessingService.textToSpeech({
+            text: response,
+            model: agent.speechConfig?.ttsModel || TTSModel.TTS_1,
+            voice: agent.speechConfig?.voice || TTSVoice.ALLOY,
+            speed: 1.0
+          })
+
+          if (speechResult.success && speechResult.data) {
+            // Aqui você implementaria o upload do áudio para um serviço de armazenamento
+            // e retornaria a URL pública. Por enquanto, simulamos uma URL
+            audioUrl = await this.storeAudioFile(speechResult.data)
+          } else {
+            throw new Error(speechResult.error || 'Falha na geração de áudio')
+          }
         } catch (error) {
           console.error('[AI Agent Service] Erro ao gerar áudio:', error)
         }
@@ -420,16 +452,33 @@ export class AIAgentService {
     return null
   }
 
-  private async transcribeAudio(audioUrl: string): Promise<string> {
-    // Aqui você implementaria o download do áudio e STT
-    // Por enquanto, retornamos uma mensagem mock
-    return 'Transcrição do áudio (implementar STT)'
-  }
-
-  private async generateAudioResponse(text: string): Promise<string> {
-    // Aqui você implementaria TTS para gerar áudio
-    // Por enquanto, retornamos uma URL mock
-    return 'audio_response_url'
+  /**
+   * Armazena um arquivo de áudio e retorna a URL pública
+   * @param audioBuffer Buffer contendo o áudio
+   * @returns URL pública do arquivo de áudio
+   */
+  private async storeAudioFile(audioBuffer: Buffer): Promise<string> {
+    try {
+      // Aqui você implementaria o upload do áudio para um serviço de armazenamento
+      // como Amazon S3, Google Cloud Storage, etc.
+      // Por enquanto, simulamos uma URL
+      
+      // Exemplo de implementação:
+      // 1. Gerar nome de arquivo único
+      const fileName = `audio_${Date.now()}.mp3`
+      
+      // 2. Fazer upload para serviço de armazenamento
+      // const uploadResult = await storageService.uploadFile(fileName, audioBuffer, 'audio/mpeg')
+      
+      // 3. Retornar URL pública
+      // return uploadResult.publicUrl
+      
+      // Simulação de URL
+      return `https://storage.example.com/audio/${fileName}`
+    } catch (error) {
+      console.error('[AI Agent Service] Erro ao armazenar arquivo de áudio:', error)
+      throw error
+    }
   }
 
   // Construir prompt do sistema baseado na persona
