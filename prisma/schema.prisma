@@ -348,6 +348,10 @@ model Lead {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId, createdAt])
+  @@index([organizationId, email])
+  @@index([organizationId, name])
+  @@index([organizationId, phone])
   @@map("lead")
 }
 
@@ -365,6 +369,8 @@ model Submission {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([organizationId, createdAt])
+  @@index([leadId])
   @@map("submissions")
 }
 

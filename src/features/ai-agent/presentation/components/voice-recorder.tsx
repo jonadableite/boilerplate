@@ -32,7 +32,12 @@ export const VoiceRecorder = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Hook de reconhecimento de fala para transcrição em tempo real
-  const { transcript, start: startSpeechRecognition, stop: stopSpeechRecognition, isListening } = useSpeechToText({
+  const {
+    transcript,
+    start: startSpeechRecognition,
+    stop: stopSpeechRecognition,
+    isListening,
+  } = useSpeechToText({
     lang: language,
     continuous: true,
     interimResults: true,
@@ -54,37 +59,39 @@ export const VoiceRecorder = ({
 
       // Solicitar permissão para acessar o microfone
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      
+
       // Configurar o MediaRecorder
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
-      
+
       // Configurar evento para capturar dados
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data)
         }
       }
-      
+
       // Configurar evento para quando a gravação terminar
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: 'audio/webm',
+        })
         setAudioBlob(audioBlob)
         onAudioCapture?.(audioBlob)
-        
+
         // Parar todos os tracks do stream
-        stream.getTracks().forEach(track => track.stop())
+        stream.getTracks().forEach((track) => track.stop())
       }
-      
+
       // Iniciar gravação
       mediaRecorder.start()
-      
+
       // Iniciar reconhecimento de fala para transcrição em tempo real
       startSpeechRecognition()
-      
+
       // Iniciar timer
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => {
+        setRecordingTime((prev) => {
           const newTime = prev + 1
           // Parar automaticamente se atingir o tempo máximo
           if (newTime >= maxDuration) {
@@ -101,29 +108,35 @@ export const VoiceRecorder = ({
 
   // Parar gravação
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== 'inactive'
+    ) {
       mediaRecorderRef.current.stop()
     }
-    
+
     // Parar reconhecimento de fala
     stopSpeechRecognition()
-    
+
     // Limpar timer
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    
+
     setIsRecording(false)
   }
 
   // Limpar recursos quando o componente for desmontado
   useEffect(() => {
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== 'inactive'
+      ) {
         mediaRecorderRef.current.stop()
       }
-      
+
       if (timerRef.current) {
         clearInterval(timerRef.current)
       }
@@ -149,7 +162,9 @@ export const VoiceRecorder = ({
           >
             <Square className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium">{formatTime(recordingTime)}</span>
+          <span className="text-sm font-medium">
+            {formatTime(recordingTime)}
+          </span>
           <div className="animate-pulse">
             <div className="h-2 w-2 rounded-full bg-red-500"></div>
           </div>

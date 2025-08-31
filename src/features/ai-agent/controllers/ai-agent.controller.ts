@@ -1,11 +1,11 @@
 import { AuthFeatureProcedure } from '@/@saas-boilerplate/features/auth'
 import { igniter } from '@/igniter'
 import { z } from 'zod'
-import { 
-  CreateAgentSchema, 
-  UpdateAgentSchema, 
+import {
+  CreateAgentSchema,
+  UpdateAgentSchema,
   CreateOpenAICredsSchema,
-  AgentSettingsSchema
+  AgentSettingsSchema,
 } from '../ai-agent.types'
 import { AIAgentFeatureProcedure } from '../procedures/ai-agent.procedure'
 
@@ -16,7 +16,7 @@ const ProcessMessageSchema = z.object({
   message: z.string().min(1, 'Mensagem é obrigatória'),
   type: z.enum(['text', 'audio', 'image', 'video']).default('text'),
   audioUrl: z.string().url().optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 })
 
 // Schema para upload de base de conhecimento
@@ -24,7 +24,7 @@ const UploadKnowledgeSchema = z.object({
   agentId: z.string().min(1, 'ID do agente é obrigatório'),
   type: z.enum(['pdf', 'docx', 'txt', 'url', 'text']),
   content: z.string().min(1, 'Conteúdo é obrigatório'),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 })
 
 export const AIAgentController = igniter.controller({
@@ -240,6 +240,84 @@ export const AIAgentController = igniter.controller({
       },
     }),
 
+    fetchAgents: igniter.query({
+      method: 'GET',
+      path: '/',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      query: z.object({
+        page: z.coerce.number().min(1).default(1),
+        limit: z.coerce.number().min(1).max(100).default(10),
+        search: z.string().optional(),
+        status: z.enum(['active', 'inactive', 'paused']).optional(),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const result = await context.aiAgent.fetchAgents({
+            ...request.query,
+            organizationId: session.organization.id,
+          })
+
+          return response.success(result)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao buscar agentes:', error)
+          return response.error({
+            code: 'AGENTS_FETCH_FAILED',
+            message: 'Erro ao buscar agentes',
+            status: 500,
+          })
+        }
+      },
+    }),
+
+    getAgentById: igniter.query({
+      method: 'GET',
+      path: '/:agentId',
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      params: z.object({
+        agentId: z.string().min(1, 'ID do agente é obrigatório'),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member'],
+        })
+
+        if (!session?.organization) {
+          return response.unauthorized('Organização não selecionada')
+        }
+
+        try {
+          const agent = await context.aiAgent.getAgentById(request.params.agentId)
+
+          if (!agent) {
+            return response.error({
+              code: 'AGENT_NOT_FOUND',
+              message: 'Agente não encontrado',
+              status: 404,
+            })
+          }
+
+          return response.success(agent)
+        } catch (error) {
+          console.error('[AI Agent Controller] Erro ao buscar agente:', error)
+          return response.error({
+            code: 'AGENT_FETCH_FAILED',
+            message: 'Erro ao buscar agente',
+            status: 500,
+          })
+        }
+      },
+    }),
+
     // Sessões
     changeSessionStatus: igniter.mutation({
       method: 'PUT',
@@ -287,8 +365,8 @@ export const AIAgentController = igniter.controller({
       query: z.object({
         agentId: z.string().optional(),
         status: z.enum(['active', 'inactive', 'paused']).optional(),
-        page: z.number().min(1).default(1),
-        limit: z.number().min(1).max(100).default(10),
+        page: z.coerce.number().min(1).default(1),
+        limit: z.coerce.number().min(1).max(100).default(10),
       }),
       handler: async ({ request, response, context }) => {
         const session = await context.auth.getSession({
@@ -484,6 +562,6 @@ export const AIAgentController = igniter.controller({
           })
         }
       },
-    })
-  }
+    }),
+  },
 })

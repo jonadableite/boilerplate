@@ -25,9 +25,9 @@ export const SubmissionFeatureProcedure = igniter.procedure({
               organization: true,
             },
             skip: query.page
-              ? (query.page - 1) * (query.limit || 10)
+              ? (Number(query.page) - 1) * (Number(query.limit) || 10)
               : undefined,
-            take: query.limit,
+            take: query.limit ? Number(query.limit) : undefined,
             orderBy: query.sortBy
               ? { [query.sortBy]: query.sortOrder || 'asc' }
               : undefined,

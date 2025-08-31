@@ -210,6 +210,8 @@ const VerticalStepForm = <
 
   // Handle keyboard navigation
   React.useEffect(() => {
+    if (typeof window === 'undefined') return
+
     const handleKeyboard = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goToNextStep()
       if (e.key === 'ArrowLeft') goToPrevStep()
@@ -461,7 +463,7 @@ VerticalStepPreviousButton.displayName = 'VerticalStepPreviousButton'
 const VerticalStepSubmitButton = React.forwardRef<
   HTMLButtonElement,
   VerticalStepButtonProps
->(({ className, onCustomClick, children, ...props }) => {
+>(({ className, onCustomClick, children, ...props }, ref) => {
   const { goToNextStep, isLastStep, currentStep, form } = useFormSteps()
 
   // Business Rule: Handle form submission on last step or navigate to next step
@@ -472,6 +474,7 @@ const VerticalStepSubmitButton = React.forwardRef<
 
   return (
     <Button
+      ref={ref}
       type={isLastStep ? 'submit' : 'button'}
       onClick={isLastStep ? undefined : handleClick}
       disabled={

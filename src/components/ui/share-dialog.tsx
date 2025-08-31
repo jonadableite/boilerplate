@@ -110,7 +110,9 @@ function ShareDialogProvider({
           return
       }
 
-      window.open(shareUrl, '_blank')
+      if (typeof window !== 'undefined') {
+        window.open(shareUrl, '_blank')
+      }
     },
     [url, title],
   )
@@ -192,7 +194,11 @@ const ShareDialogInput = React.forwardRef<
       </Button>
       <Button
         type="button"
-        onClick={() => window.open(copy.value, '_blank')}
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.open(copy.value, '_blank')
+          }
+        }}
         size="icon"
         variant="outline"
       >

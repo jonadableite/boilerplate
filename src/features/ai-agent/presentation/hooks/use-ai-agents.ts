@@ -1,178 +1,102 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { AIAgent, CreateAgentInput, UpdateAgentInput } from '../../ai-agent.types'
+import { useCallback } from 'react'
+import { api } from '@/igniter.client'
 
-interface UseAIAgentsReturn {
-  agents: AIAgent[]
+export interface UseAIAgentsReturn {
+  agents: any[]
   loading: boolean
   error: string | null
-  createAgent: (input: CreateAgentInput) => Promise<AIAgent | null>
-  updateAgent: (id: string, input: UpdateAgentInput) => Promise<AIAgent | null>
-  deleteAgent: (id: string) => Promise<boolean>
-  refreshAgents: () => Promise<void>
-  getAgentById: (id: string) => AIAgent | undefined
+  fetchAgents: () => void
+  createAgent: (data: any) => Promise<void>
+  updateAgent: (id: string, data: any) => Promise<void>
+  deleteAgent: (id: string) => Promise<void>
+  getAgentById: (id: string) => any | undefined
+  refreshAgents: () => void
 }
 
 export function useAIAgents(): UseAIAgentsReturn {
-  const [agents, setAgents] = useState<AIAgent[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Use IgniterJS useQuery hook for fetching agents
+  const agentsQuery = api.aiAgents.fetchAgents.useQuery()
 
-  // Buscar agentes
-  const fetchAgents = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const agents = agentsQuery.data?.agents || []
+  const loading = agentsQuery.loading
+  const error = agentsQuery.error ? 'Erro ao buscar agentes' : null
 
-    try {
-      const response = await fetch('/api/v1/ai-agents')
-      if (!response.ok) {
-        throw new Error('Falha ao buscar agentes')
+  // Fetch agents function (triggers refetch)
+  const fetchAgents = useCallback(() => {
+    agentsQuery.refetch()
+  }, [agentsQuery])
+
+  // Create agent function
+  const createAgent = useCallback(
+    async (data: any) => {
+      try {
+        await api.aiAgents.createAgent.mutate({
+          body: data,
+        })
+        agentsQuery.refetch() // Refresh the list after creation
+      } catch (err) {
+        console.error('[useAIAgents] Erro ao criar agente:', err)
+        throw err
       }
+    },
+    [agentsQuery],
+  )
 
-      const data = await response.json()
-      if (data.success) {
-        setAgents(data.data || [])
-      } else {
-        throw new Error(data.error || 'Erro desconhecido')
+  // Update agent function
+  const updateAgent = useCallback(
+    async (id: string, data: any) => {
+      try {
+        await api.aiAgents.updateAgent.mutate({
+          params: { agentId: id },
+          body: data,
+        })
+        agentsQuery.refetch() // Refresh the list after update
+      } catch (err) {
+        console.error('[useAIAgents] Erro ao atualizar agente:', err)
+        throw err
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      setError(errorMessage)
-      console.error('[useAIAgents] Erro ao buscar agentes:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    },
+    [refetch],
+  )
 
-  // Criar agente
-  const createAgent = useCallback(async (input: CreateAgentInput): Promise<AIAgent | null> => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/v1/ai-agents', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(input),
-      })
-
-      if (!response.ok) {
-        throw new Error('Falha ao criar agente')
+  // Delete agent function
+  const deleteAgent = useCallback(
+    async (id: string) => {
+      try {
+        await api.aiAgents.deleteAgent.mutate({ params: { agentId: id } })
+        agentsQuery.refetch() // Refresh the list after deletion
+      } catch (err) {
+        console.error('[useAIAgents] Erro ao deletar agente:', err)
+        throw err
       }
+    },
+    [refetch],
+  )
 
-      const data = await response.json()
-      if (data.success) {
-        const newAgent = data.data
-        setAgents(prev => [...prev, newAgent])
-        return newAgent
-      } else {
-        throw new Error(data.error || 'Erro desconhecido')
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      setError(errorMessage)
-      console.error('[useAIAgents] Erro ao criar agente:', err)
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // Get agent by ID
+  const getAgentById = useCallback(
+    (id: string) => {
+      return agents.find((agent: any) => agent.id === id)
+    },
+    [agents],
+  )
 
-  // Atualizar agente
-  const updateAgent = useCallback(async (id: string, input: UpdateAgentInput): Promise<AIAgent | null> => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`/api/v1/ai-agents/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(input),
-      })
-
-      if (!response.ok) {
-        throw new Error('Falha ao atualizar agente')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        const updatedAgent = data.data
-        setAgents(prev => prev.map(agent =>
-          agent.id === id ? updatedAgent : agent
-        ))
-        return updatedAgent
-      } else {
-        throw new Error(data.error || 'Erro desconhecido')
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      setError(errorMessage)
-      console.error('[useAIAgents] Erro ao atualizar agente:', err)
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Deletar agente
-  const deleteAgent = useCallback(async (id: string): Promise<boolean> => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`/api/v1/ai-agents/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Falha ao deletar agente')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        setAgents(prev => prev.filter(agent => agent.id !== id))
-        return true
-      } else {
-        throw new Error(data.error || 'Erro desconhecido')
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
-      setError(errorMessage)
-      console.error('[useAIAgents] Erro ao deletar agente:', err)
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Buscar agente por ID
-  const getAgentById = useCallback((id: string): AIAgent | undefined => {
-    return agents.find(agent => agent.id === id)
-  }, [agents])
-
-  // Refresh agentes
-  const refreshAgents = useCallback(async () => {
-    await fetchAgents()
-  }, [fetchAgents])
-
-  // Carregar agentes na inicialização
-  useEffect(() => {
-    fetchAgents()
-  }, [fetchAgents])
+  // Refresh agents (alias for fetchAgents)
+  const refreshAgents = useCallback(() => {
+    agentsQuery.refetch()
+  }, [agentsQuery])
 
   return {
     agents,
     loading,
     error,
+    fetchAgents,
     createAgent,
     updateAgent,
     deleteAgent,
-    refreshAgents,
     getAgentById,
+    refreshAgents,
   }
 }

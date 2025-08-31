@@ -10,12 +10,13 @@ import {
   TTSModel,
   TTSVoice,
   UpdateAgentInput,
-  UpdateSessionStatusInput
+  UpdateSessionStatusInput,
 } from '../ai-agent.types'
 import { EvolutionAPIClient } from './evolution-api.client'
 import { KnowledgeBaseService } from './knowledge-base.service'
 import { OpenAIService } from './openai.service'
 import { VoiceProcessingService } from './voice-processing.service'
+import type { IgniterAppContext } from '@/igniter.context'
 
 export interface MessageContext {
   remoteJid: string
@@ -37,17 +38,27 @@ export class AIAgentService {
   private knowledgeBaseService: KnowledgeBaseService
   private openaiService: OpenAIService
   private voiceProcessingService: VoiceProcessingService
+  private context: IgniterAppContext
 
   constructor(
     evolutionBaseURL: string,
     evolutionApiKey: string,
     instanceName: string,
-    openaiApiKey: string
+    openaiApiKey: string,
+    context: IgniterAppContext,
   ) {
-    this.evolutionClient = new EvolutionAPIClient(evolutionBaseURL, evolutionApiKey, instanceName)
+    this.context = context
+    this.evolutionClient = new EvolutionAPIClient(
+      evolutionBaseURL,
+      evolutionApiKey,
+      instanceName,
+    )
     this.knowledgeBaseService = new KnowledgeBaseService(openaiApiKey)
     this.openaiService = new OpenAIService(openaiApiKey)
-    this.voiceProcessingService = new VoiceProcessingService(this.openaiService, this.evolutionClient)
+    this.voiceProcessingService = new VoiceProcessingService(
+      this.openaiService,
+      this.evolutionClient,
+    )
   }
 
   // OpenAI Credentials
@@ -66,7 +77,10 @@ export class AIAgentService {
       // Por enquanto, retornamos o resultado da Evolution API
       return result
     } catch (error) {
-      console.error('[AI Agent Service] Erro ao criar credenciais OpenAI:', error)
+      console.error(
+        '[AI Agent Service] Erro ao criar credenciais OpenAI:',
+        error,
+      )
       throw error
     }
   }
@@ -76,7 +90,10 @@ export class AIAgentService {
       const result = await this.evolutionClient.getOpenAICreds()
       return result
     } catch (error) {
-      console.error('[AI Agent Service] Erro ao buscar credenciais OpenAI:', error)
+      console.error(
+        '[AI Agent Service] Erro ao buscar credenciais OpenAI:',
+        error,
+      )
       throw error
     }
   }
@@ -86,7 +103,10 @@ export class AIAgentService {
       const result = await this.evolutionClient.deleteOpenAICreds(openaiCredsId)
       return result
     } catch (error) {
-      console.error('[AI Agent Service] Erro ao deletar credenciais OpenAI:', error)
+      console.error(
+        '[AI Agent Service] Erro ao deletar credenciais OpenAI:',
+        error,
+      )
       throw error
     }
   }
@@ -98,7 +118,9 @@ export class AIAgentService {
       const evolutionResult = await this.evolutionClient.createBot(input)
 
       if (!evolutionResult.success) {
-        throw new Error(`Falha ao criar bot na Evolution API: ${evolutionResult.message}`)
+        throw new Error(
+          `Falha ao criar bot na Evolution API: ${evolutionResult.message}`,
+        )
       }
 
       // Se for um assistant, criar na OpenAI
@@ -109,10 +131,13 @@ export class AIAgentService {
           assistantId = await this.openaiService.createAssistant(
             input.name,
             systemPrompt,
-            input.model || 'gpt-4o'
+            input.model || 'gpt-4o',
           )
         } catch (error) {
-          console.warn('[AI Agent Service] Falha ao criar assistant na OpenAI:', error)
+          console.warn(
+            '[AI Agent Service] Falha ao criar assistant na OpenAI:',
+            error,
+          )
           // Continuar sem assistant ID se falhar
         }
       }
@@ -152,7 +177,7 @@ export class AIAgentService {
         organizationId: 'org_id', // Deve vir do contexto
         createdById: 'user_id', // Deve vir do contexto
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
 
       return agent
@@ -162,7 +187,10 @@ export class AIAgentService {
     }
   }
 
-  async updateAgent(agentId: string, input: UpdateAgentInput): Promise<AIAgent> {
+  async updateAgent(
+    agentId: string,
+    input: UpdateAgentInput,
+  ): Promise<AIAgent> {
     try {
       // Buscar agente no banco
       const agent = await this.getAgentById(agentId)
@@ -172,10 +200,15 @@ export class AIAgentService {
 
       // Atualizar bot na Evolution API
       if (agent.evolutionBotId) {
-        const evolutionResult = await this.evolutionClient.updateBot(agent.evolutionBotId, input)
+        const evolutionResult = await this.evolutionClient.updateBot(
+          agent.evolutionBotId,
+          input,
+        )
 
         if (!evolutionResult.success) {
-          throw new Error(`Falha ao atualizar bot na Evolution API: ${evolutionResult.message}`)
+          throw new Error(
+            `Falha ao atualizar bot na Evolution API: ${evolutionResult.message}`,
+          )
         }
       }
 
@@ -187,11 +220,14 @@ export class AIAgentService {
             await this.openaiService.updateAssistant(agent.assistantId, {
               name: input.name || agent.name,
               instructions: systemPrompt,
-              model: input.model || agent.model || 'gpt-4o'
+              model: input.model || agent.model || 'gpt-4o',
             })
           }
         } catch (error) {
-          console.warn('[AI Agent Service] Falha ao atualizar assistant na OpenAI:', error)
+          console.warn(
+            '[AI Agent Service] Falha ao atualizar assistant na OpenAI:',
+            error,
+          )
         }
       }
 
@@ -200,7 +236,7 @@ export class AIAgentService {
       const updatedAgent: AIAgent = {
         ...agent,
         ...input,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
 
       return updatedAgent
@@ -220,10 +256,14 @@ export class AIAgentService {
 
       // Deletar bot na Evolution API
       if (agent.evolutionBotId) {
-        const evolutionResult = await this.evolutionClient.deleteBot(agent.evolutionBotId)
+        const evolutionResult = await this.evolutionClient.deleteBot(
+          agent.evolutionBotId,
+        )
 
         if (!evolutionResult.success) {
-          throw new Error(`Falha ao deletar bot na Evolution API: ${evolutionResult.message}`)
+          throw new Error(
+            `Falha ao deletar bot na Evolution API: ${evolutionResult.message}`,
+          )
         }
       }
 
@@ -232,7 +272,10 @@ export class AIAgentService {
         try {
           await this.openaiService.deleteAssistant(agent.assistantId)
         } catch (error) {
-          console.warn('[AI Agent Service] Falha ao deletar assistant na OpenAI:', error)
+          console.warn(
+            '[AI Agent Service] Falha ao deletar assistant na OpenAI:',
+            error,
+          )
         }
       }
 
@@ -250,7 +293,10 @@ export class AIAgentService {
       const result = await this.evolutionClient.changeSessionStatus(input)
       return result.success
     } catch (error) {
-      console.error('[AI Agent Service] Erro ao alterar status da sessão:', error)
+      console.error(
+        '[AI Agent Service] Erro ao alterar status da sessão:',
+        error,
+      )
       throw error
     }
   }
@@ -271,7 +317,10 @@ export class AIAgentService {
       const result = await this.evolutionClient.setDefaultSettings(input)
       return result.success
     } catch (error) {
-      console.error('[AI Agent Service] Erro ao configurar settings padrão:', error)
+      console.error(
+        '[AI Agent Service] Erro ao configurar settings padrão:',
+        error,
+      )
       throw error
     }
   }
@@ -287,7 +336,10 @@ export class AIAgentService {
   }
 
   // Processamento de mensagens
-  async processMessage(agentId: string, context: MessageContext): Promise<AgentResponse> {
+  async processMessage(
+    agentId: string,
+    context: MessageContext,
+  ): Promise<AgentResponse> {
     try {
       // Buscar agente
       const agent = await this.getAgentById(agentId)
@@ -301,14 +353,17 @@ export class AIAgentService {
       if (context.type === 'audio' && context.audioUrl) {
         try {
           // Usar o serviço de processamento de voz para transcrever o áudio
-          const transcriptionResult = await this.voiceProcessingService.transcribeFromUrl(
-            context.audioUrl,
-            {
-              model: agent.speechConfig?.transcriptionModel || SpeechModel.WHISPER_1,
-              language: agent.speechConfig?.language,
-              temperature: 0.3
-            }
-          )
+          const transcriptionResult =
+            await this.voiceProcessingService.transcribeFromUrl(
+              context.audioUrl,
+              {
+                model:
+                  agent.speechConfig?.transcriptionModel ||
+                  SpeechModel.WHISPER_1,
+                language: agent.speechConfig?.language,
+                temperature: 0.3,
+              },
+            )
 
           if (transcriptionResult.success && transcriptionResult.data) {
             userMessage = transcriptionResult.data
@@ -319,7 +374,8 @@ export class AIAgentService {
           console.error('[AI Agent Service] Erro ao transcrever áudio:', error)
           return {
             success: false,
-            message: 'Desculpe, não consegui entender o áudio. Pode enviar como texto?'
+            message:
+              'Desculpe, não consegui entender o áudio. Pode enviar como texto?',
           }
         }
       }
@@ -333,10 +389,14 @@ export class AIAgentService {
       }
 
       // Buscar memórias recentes da conversa
-      const recentMemories = await this.getRecentMemories(agentId, context.remoteJid, 5)
-      const contextMessages = recentMemories.map(memory => ({
+      const recentMemories = await this.getRecentMemories(
+        agentId,
+        context.remoteJid,
+        5,
+      )
+      const contextMessages = recentMemories.map((memory) => ({
         role: memory.role as 'user' | 'assistant',
-        content: memory.content
+        content: memory.content,
       }))
 
       // Gerar resposta usando o OpenAI Service
@@ -344,7 +404,7 @@ export class AIAgentService {
         agent,
         userMessage,
         contextMessages,
-        relevantChunks
+        relevantChunks,
       )
 
       // Salvar memória da conversa
@@ -360,7 +420,7 @@ export class AIAgentService {
             text: response,
             model: agent.speechConfig?.ttsModel || TTSModel.TTS_1,
             voice: agent.speechConfig?.voice || TTSVoice.ALLOY,
-            speed: 1.0
+            speed: 1.0,
           })
 
           if (speechResult.success && speechResult.data) {
@@ -382,8 +442,8 @@ export class AIAgentService {
         metadata: {
           agentId,
           remoteJid: context.remoteJid,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       }
     } catch (error) {
       console.error('[AI Agent Service] Erro ao processar mensagem:', error)
@@ -391,8 +451,8 @@ export class AIAgentService {
         success: false,
         message: 'Desculpe, ocorreu um erro ao processar sua mensagem.',
         metadata: {
-          error: error instanceof Error ? error.message : 'Erro desconhecido'
-        }
+          error: error instanceof Error ? error.message : 'Erro desconhecido',
+        },
       }
     }
   }
@@ -403,7 +463,7 @@ export class AIAgentService {
     remoteJid: string,
     role: 'user' | 'assistant' | 'system',
     content: string,
-    type: MemoryType = MemoryType.SHORT_TERM
+    type: MemoryType = MemoryType.SHORT_TERM,
   ): Promise<AgentMemory> {
     try {
       // Aqui você salvaria a memória no banco de dados
@@ -414,7 +474,7 @@ export class AIAgentService {
         type,
         role,
         content,
-        createdAt: new Date()
+        createdAt: new Date(),
       }
 
       // Se for memória de longo prazo, criar resumo
@@ -433,7 +493,7 @@ export class AIAgentService {
   async getRecentMemories(
     agentId: string,
     remoteJid: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<AgentMemory[]> {
     try {
       // Aqui você buscaria as memórias recentes do banco de dados
@@ -462,21 +522,24 @@ export class AIAgentService {
       // Aqui você implementaria o upload do áudio para um serviço de armazenamento
       // como Amazon S3, Google Cloud Storage, etc.
       // Por enquanto, simulamos uma URL
-      
+
       // Exemplo de implementação:
       // 1. Gerar nome de arquivo único
       const fileName = `audio_${Date.now()}.mp3`
-      
+
       // 2. Fazer upload para serviço de armazenamento
       // const uploadResult = await storageService.uploadFile(fileName, audioBuffer, 'audio/mpeg')
-      
+
       // 3. Retornar URL pública
       // return uploadResult.publicUrl
-      
+
       // Simulação de URL
       return `https://storage.example.com/audio/${fileName}`
     } catch (error) {
-      console.error('[AI Agent Service] Erro ao armazenar arquivo de áudio:', error)
+      console.error(
+        '[AI Agent Service] Erro ao armazenar arquivo de áudio:',
+        error,
+      )
       throw error
     }
   }
@@ -504,11 +567,89 @@ export class AIAgentService {
     return 'Você é um assistente de IA útil e amigável. Responda de forma clara e precisa.'
   }
 
+  async fetchAgents(input: {
+    organizationId: string
+    page?: number
+    limit?: number
+    search?: string
+    status?: string
+  }): Promise<{
+    agents: AIAgent[]
+    total: number
+    page: number
+    limit: number
+  }> {
+    try {
+      console.log(
+        '[AIAgentService] Iniciando fetchAgents para organizationId:',
+        input.organizationId,
+      )
+
+      const { organizationId, page = 1, limit = 20, search, status } = input
+      const skip = (page - 1) * limit
+
+      // Construir filtros
+      const where: any = {
+        organizationId,
+      }
+
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ]
+      }
+
+      if (status) {
+        where.status = status
+      }
+
+      // Buscar agentes com paginação
+      const [agents, total] = await Promise.all([
+        this.context.providers.database.aIAgent.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }),
+        this.context.providers.database.aIAgent.count({ where }),
+      ])
+
+      console.log('[AIAgentService] fetchAgents executado com sucesso')
+
+      return {
+        agents,
+        total,
+        page: Number(page),
+        limit: Number(limit),
+      }
+    } catch (error) {
+      console.error('[AIAgentService] Erro em fetchAgents:', error)
+      throw error
+    }
+  }
+
   // Teste de conexão
   async testConnection(): Promise<boolean> {
     try {
-      return await this.evolutionClient.testConnection()
+      // Testa conexão com Evolution API
+      const evolutionStatus = await this.evolutionClient.getInstanceStatus()
+
+      // Testa conexão com OpenAI
+      const openaiStatus = await this.openaiService.testConnection()
+
+      return evolutionStatus && openaiStatus
     } catch (error) {
+      console.error('Erro ao testar conexões:', error)
       return false
     }
   }

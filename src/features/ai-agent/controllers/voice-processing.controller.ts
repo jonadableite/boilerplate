@@ -1,6 +1,6 @@
-import { igniter } from '@/igniter.server'
+import { igniter } from '@/igniter'
 import { z } from 'zod'
-import { AuthFeatureProcedure } from '@saas-boilerplate/features/auth/procedures/auth.procedure'
+import { AuthFeatureProcedure } from '@/@saas-boilerplate/features/auth'
 import { AIAgentFeatureProcedure } from '../procedures/ai-agent.procedure'
 import { SpeechModel, TTSModel, TTSVoice } from '../ai-agent.types'
 

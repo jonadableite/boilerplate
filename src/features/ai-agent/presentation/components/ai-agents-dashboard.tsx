@@ -10,12 +10,14 @@ import { useAIAgents } from '../hooks/use-ai-agents'
 import { AgentStats } from './agent-stats'
 import { AIAgentCard } from './ai-agent-card'
 import { EmptyState } from './empty-state'
+import { CreateAgentModal } from './create-agent-modal'
 
 export function AIAgentsDashboard() {
   const { agents, loading, error, deleteAgent, refreshAgents } = useAIAgents()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   // Filtrar agentes
   const filteredAgents = agents.filter((agent) => {
@@ -160,6 +162,7 @@ export function AIAgentsDashboard() {
             setSearchTerm('')
             setStatusFilter('all')
           }}
+          onCreateAgent={() => setShowCreateModal(true)}
         />
       ) : (
         <div className="grid gap-6">
@@ -189,6 +192,12 @@ export function AIAgentsDashboard() {
           </div>
         </div>
       )}
+
+      {/* Modal de Criação */}
+      <CreateAgentModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+      />
     </div>
   )
 }

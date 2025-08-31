@@ -12,8 +12,8 @@ export const LeadController = igniter.controller({
       path: '/',
       use: [LeadFeatureProcedure(), AuthFeatureProcedure()],
       query: z.object({
-        page: z.number().optional(),
-        limit: z.number().optional(),
+        page: z.coerce.number().min(1).default(1),
+        limit: z.coerce.number().min(1).max(1000).default(20),
         sortBy: z.string().optional(),
         sortOrder: z.enum(['asc', 'desc']).optional(),
         search: z.string().optional(),
@@ -23,6 +23,13 @@ export const LeadController = igniter.controller({
           requirements: 'authenticated',
           roles: ['admin', 'owner', 'member'],
         })
+
+        if (!auth || !auth.organization) {
+          return response.unauthorized(
+            'Authentication required or no active organization',
+          )
+        }
+
         const result = await context.lead.findMany({
           ...request.query,
           organizationId: auth.organization.id,
@@ -40,6 +47,12 @@ export const LeadController = igniter.controller({
           requirements: 'authenticated',
           roles: ['admin', 'owner', 'member'],
         })
+
+        if (!auth || !auth.organization) {
+          return response.unauthorized(
+            'Authentication required or no active organization',
+          )
+        }
 
         const result = await context.lead.findOne({
           ...request.params,

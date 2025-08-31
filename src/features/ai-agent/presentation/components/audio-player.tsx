@@ -152,11 +152,7 @@ export const AudioPlayer = ({
 
         {showControls && (
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMute}
-            >
+            <Button variant="ghost" size="icon" onClick={toggleMute}>
               {isMuted ? (
                 <VolumeX className="h-4 w-4" />
               ) : (

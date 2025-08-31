@@ -36,8 +36,10 @@ export const useClipboard = (defaultVal: string) => {
    * The flag is reset after a short delay.
    */
   const onCopy = useCallback(() => {
-    navigator.clipboard.writeText(value)
-    setIsCopied(true)
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(value)
+      setIsCopied(true)
+    }
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)

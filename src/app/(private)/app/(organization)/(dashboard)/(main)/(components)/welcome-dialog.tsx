@@ -26,12 +26,14 @@ export function WelcomeDialog() {
     const params = new URLSearchParams(searchParams.toString())
     params.delete('welcome')
 
-    let url = window.location.pathname
-    const query = params.toString()
+    if (typeof window !== 'undefined') {
+      let url = window.location.pathname
+      const query = params.toString()
 
-    if (query) url = `${window.location.pathname}?${query}`
+      if (query) url = `${window.location.pathname}?${query}`
 
-    router.replace(url)
+      router.replace(url)
+    }
   }
 
   function handleOnboarding() {

@@ -1,189 +1,209 @@
-import { igniter } from '@/igniter.server'
+import { igniter } from '@/igniter'
 import { AIAgentService } from '../services/ai-agent.service'
 import { VoiceProcessingService } from '../services/voice-processing.service'
+import { OpenAIService } from '../services/openai.service'
 import { getAIAgentConfig } from '../config/ai-agent.config'
 import { SpeechModel, TTSModel, TTSVoice } from '../ai-agent.types'
 
 export const AIAgentFeatureProcedure = igniter.procedure({
   name: 'AIAgentFeatureProcedure',
   handler: async (_, { context }) => {
-    const config = getAIAgentConfig()
+    try {
+      console.log('[AIAgentFeatureProcedure] Inicializando procedure')
+      const config = getAIAgentConfig()
 
-    // Inicializar serviços
-    const aiAgentService = new AIAgentService(
-      config.evolution.baseURL,
-      config.evolution.apiKey,
-      config.evolution.defaultInstance,
-      config.openai.apiKey,
-    )
+      console.log('[AIAgentFeatureProcedure] Configuração obtida:', {
+        hasOpenAIKey: !!config.openai.apiKey,
+        hasEvolutionURL: !!config.evolution.baseURL,
+        hasEvolutionKey: !!config.evolution.apiKey,
+      })
 
-    const voiceProcessingService = new VoiceProcessingService(
-      config.openai.apiKey,
-    )
+      // Inicializar serviços com contexto
+      const aiAgentService = new AIAgentService(
+        config.evolution.baseURL,
+        config.evolution.apiKey,
+        config.evolution.defaultInstance,
+        config.openai.apiKey,
+        context,
+      )
 
-    return {
-      aiAgent: {
-        // Métodos de gerenciamento de agentes
-        createAgent: async (input: any) => {
-          return aiAgentService.createAgent(input)
-        },
+      const openaiService = new OpenAIService(config.openai.apiKey)
+      const voiceProcessingService = new VoiceProcessingService(openaiService)
 
-        updateAgent: async (input: any) => {
-          return aiAgentService.updateAgent(input)
-        },
+      console.log(
+        '[AIAgentFeatureProcedure] Serviços inicializados com sucesso',
+      )
 
-        deleteAgent: async (input: any) => {
-          return aiAgentService.deleteAgent(input)
-        },
+      return {
+        aiAgent: {
+          // Métodos de gerenciamento de agentes
+          createAgent: async (input: any) => {
+            return aiAgentService.createAgent(input)
+          },
 
-        getAgentById: async (id: string) => {
-          return aiAgentService.getAgentById(id)
-        },
+          updateAgent: async (input: any) => {
+            return aiAgentService.updateAgent(input)
+          },
 
-        fetchAgents: async (input: any) => {
-          return aiAgentService.fetchAgents(input)
-        },
+          deleteAgent: async (input: any) => {
+            return aiAgentService.deleteAgent(input)
+          },
 
-        // Métodos de gerenciamento de sessões
-        changeSessionStatus: async (input: any) => {
-          return aiAgentService.changeSessionStatus(input)
-        },
+          getAgentById: async (id: string) => {
+            return aiAgentService.getAgentById(id)
+          },
 
-        fetchSessions: async (input: any) => {
-          return aiAgentService.fetchSessions(input)
-        },
+          fetchAgents: async (input: any) => {
+            return aiAgentService.fetchAgents(input)
+          },
 
-        // Métodos de configuração
-        createOpenAICreds: async (input: any) => {
-          return aiAgentService.createOpenAICreds(input)
-        },
+          // Métodos de gerenciamento de sessões
+          changeSessionStatus: async (input: any) => {
+            return aiAgentService.changeSessionStatus(input)
+          },
 
-        getOpenAICreds: async (input: any) => {
-          return aiAgentService.getOpenAICreds(input)
-        },
+          fetchSessions: async (input: any) => {
+            return aiAgentService.fetchSessions(input)
+          },
 
-        setDefaultSettings: async (input: any) => {
-          return aiAgentService.setDefaultSettings(input)
-        },
+          // Métodos de configuração
+          createOpenAICreds: async (input: any) => {
+            return aiAgentService.createOpenAICreds(input)
+          },
 
-        fetchDefaultSettings: async (input: any) => {
-          return aiAgentService.fetchDefaultSettings(input)
-        },
+          getOpenAICreds: async (input: any) => {
+            return aiAgentService.getOpenAICreds(input)
+          },
 
-        // Métodos de processamento de mensagens
-        processMessage: async (input: any) => {
-          return aiAgentService.processMessage(input.agentId, {
-            remoteJid: input.remoteJid,
-            message: input.message,
-            type: input.type,
-            audioUrl: input.audioUrl,
-            metadata: input.metadata,
-            organizationId: input.organizationId,
-            userId: input.userId,
-          })
-        },
+          setDefaultSettings: async (input: any) => {
+            return aiAgentService.setDefaultSettings(input)
+          },
 
-        // Métodos de base de conhecimento
-        uploadKnowledge: async (input: any) => {
-          return aiAgentService.uploadKnowledge(input)
-        },
+          fetchDefaultSettings: async (input: any) => {
+            return aiAgentService.fetchDefaultSettings(input)
+          },
 
-        // Métodos de processamento de voz
-        transcribeAudio: async (input: {
-          audioUrl: string
-          model?: SpeechModel
-          language?: string
-        }) => {
-          return voiceProcessingService.transcribeFromUrl(input.audioUrl, {
-            model: input.model,
-            language: input.language,
-          })
-        },
+          // Métodos de processamento de mensagens
+          processMessage: async (input: any) => {
+            return aiAgentService.processMessage(input.agentId, {
+              remoteJid: input.remoteJid,
+              message: input.message,
+              type: input.type,
+              audioUrl: input.audioUrl,
+              metadata: input.metadata,
+              organizationId: input.organizationId,
+              userId: input.userId,
+            })
+          },
 
-        transcribeAudioFile: async (
-          audioFile: File,
-          options?: {
-            agentId?: string
+          // Métodos de base de conhecimento
+          uploadKnowledge: async (input: any) => {
+            return aiAgentService.uploadKnowledge(input)
+          },
+
+          // Métodos de processamento de voz
+          transcribeAudio: async (input: {
+            audioUrl: string
             model?: SpeechModel
             language?: string
+          }) => {
+            return voiceProcessingService.transcribeFromUrl(input.audioUrl, {
+              model: input.model,
+              language: input.language,
+            })
           },
-        ) => {
-          const audioBlob = new Blob([await audioFile.arrayBuffer()], {
-            type: audioFile.type,
-          })
-          return voiceProcessingService.transcribeAudio(audioBlob, {
-            model: options?.model,
-            language: options?.language,
-          })
-        },
 
-        generateSpeech: async (input: {
-          text: string
-          agentId: string
-          model?: TTSModel
-          voice?: TTSVoice
-          language?: string
-        }) => {
-          return voiceProcessingService.textToSpeech(input.text, {
-            model: input.model,
-            voice: input.voice,
-            language: input.language,
-          })
-        },
+          transcribeAudioFile: async (
+            audioFile: File,
+            options?: {
+              agentId?: string
+              model?: SpeechModel
+              language?: string
+            },
+          ) => {
+            const audioBuffer = Buffer.from(await audioFile.arrayBuffer())
+            return voiceProcessingService.transcribeAudio({
+              file: audioBuffer,
+              model: options?.model,
+              language: options?.language,
+            })
+          },
 
-        processAudioMessage: async (
-          audioFile: File,
-          options?: {
+          generateSpeech: async (input: {
+            text: string
             agentId: string
+            model?: TTSModel
+            voice?: TTSVoice
             language?: string
+          }) => {
+            return voiceProcessingService.textToSpeech({
+              text: input.text,
+              model: input.model,
+              voice: input.voice,
+            })
           },
-        ) => {
-          if (!options?.agentId) {
-            throw new Error('ID do agente é obrigatório')
-          }
 
-          // Converter File para Blob
-          const audioBlob = new Blob([await audioFile.arrayBuffer()], {
-            type: audioFile.type,
-          })
-
-          // Transcrever áudio
-          const transcription = await voiceProcessingService.transcribeAudio(
-            audioBlob,
-            {
-              language: options.language,
+          processAudioMessage: async (
+            audioFile: File,
+            options?: {
+              agentId: string
+              language?: string
             },
-          )
+          ) => {
+            if (!options?.agentId) {
+              throw new Error('ID do agente é obrigatório')
+            }
 
-          // Processar mensagem com o texto transcrito
-          const response = await aiAgentService.processMessage(
-            options.agentId,
-            {
-              remoteJid: 'web-client',
-              message: transcription,
-              type: 'text',
-              metadata: { source: 'audio' },
-              organizationId: 'web-client',
-              userId: 'web-client',
-            },
-          )
+            // Converter File para Buffer
+            const audioBuffer = Buffer.from(await audioFile.arrayBuffer())
 
-          // Gerar áudio da resposta
-          const audioUrl = await voiceProcessingService.textToSpeech(
-            response.message,
-            {
-              language: options.language,
-            },
-          )
+            // Transcrever áudio
+            const transcriptionResult =
+              await voiceProcessingService.transcribeAudio({
+                file: audioBuffer,
+                language: options.language,
+              })
 
-          return {
-            success: true,
-            transcription,
-            message: response.message,
-            audioUrl,
-          }
+            if (!transcriptionResult.success || !transcriptionResult.data) {
+              throw new Error('Falha na transcrição do áudio')
+            }
+
+            const transcription = transcriptionResult.data
+
+            // Processar mensagem com o texto transcrito
+            const response = await aiAgentService.processMessage(
+              options.agentId,
+              {
+                remoteJid: 'web-client',
+                message: transcription,
+                type: 'text',
+                metadata: { source: 'audio' },
+                organizationId: 'web-client',
+                userId: 'web-client',
+              },
+            )
+
+            // Gerar áudio da resposta
+            const audioResult = await voiceProcessingService.textToSpeech({
+              text: response.message,
+            })
+
+            if (!audioResult.success || !audioResult.data) {
+              throw new Error('Falha na geração do áudio')
+            }
+
+            return {
+              success: true,
+              transcription,
+              message: response.message,
+              audioBuffer: audioResult.data,
+            }
+          },
         },
-      },
+      }
+    } catch (error) {
+      console.error('[AIAgentFeatureProcedure] Erro na inicialização:', error)
+      throw error
     }
   },
 })

@@ -19,23 +19,41 @@ export const LeadFeatureProcedure = igniter.procedure({
             where: {
               OR: query.search
                 ? [
-                    { email: { contains: query.search } },
-                    { name: { contains: query.search } },
-                    { phone: { contains: query.search } },
+                    { email: { contains: query.search, mode: 'insensitive' } },
+                    { name: { contains: query.search, mode: 'insensitive' } },
+                    { phone: { contains: query.search, mode: 'insensitive' } },
                   ]
                 : undefined,
               organizationId: query.organizationId,
             },
-            include: {
-              submissions: true,
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              phone: true,
+              metadata: true,
+              createdAt: true,
+              updatedAt: true,
+              organizationId: true,
+              submissions: {
+                select: {
+                  id: true,
+                  createdAt: true,
+                  metadata: true,
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+                take: 5, // Limitar a 5 submissions mais recentes
+              },
             },
             skip: query.page
-              ? (query.page - 1) * (query.limit || 10)
+              ? (Number(query.page) - 1) * (Number(query.limit) || 10)
               : undefined,
-            take: query.limit,
+            take: query.limit ? Number(query.limit) : undefined,
             orderBy: query.sortBy
               ? { [query.sortBy]: query.sortOrder || 'asc' }
-              : undefined,
+              : { createdAt: 'desc' },
           })
 
           return result as Lead[]

@@ -45,7 +45,7 @@ export function BillingDashboardSidebarUpgradeCard() {
   const { data: whatsappInstancesData, isLoading: isLoadingWhatsApp } =
     api.whatsAppInstances.list.useQuery({
       params: {
-        query: { limit: 1000 }, // Buscar todas as instâncias para contar
+        query: { limit: 100 }, // Limite máximo permitido
         params: undefined,
       },
     })
@@ -54,7 +54,7 @@ export function BillingDashboardSidebarUpgradeCard() {
   const { data: leadsData, isLoading: isLoadingLeads } =
     api.lead.findMany.useQuery({
       params: {
-        query: { limit: 1000 },
+        query: { limit: 100 },
         params: undefined,
       },
     })
@@ -63,7 +63,7 @@ export function BillingDashboardSidebarUpgradeCard() {
   const { data: submissionsData, isLoading: isLoadingSubmissions } =
     api.submission.findMany.useQuery({
       params: {
-        query: { limit: 1000 },
+        query: { limit: 100 },
         params: undefined,
       },
     })

@@ -164,12 +164,15 @@ export function DataTableProvider<TData>({
 
       // Cria Blob para download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(blob)
-      link.download = `export.${format}`
-      link.click()
 
-      URL.revokeObjectURL(link.href)
+      if (typeof document !== 'undefined') {
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `export.${format}`
+        link.click()
+
+        URL.revokeObjectURL(link.href)
+      }
 
       // Converte blob em File
       const file = new File([blob], `export.${format}`, {
