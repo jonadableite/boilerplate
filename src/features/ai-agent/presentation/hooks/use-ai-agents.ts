@@ -58,7 +58,7 @@ export function useAIAgents(): UseAIAgentsReturn {
         throw err
       }
     },
-    [refetch],
+    [agentsQuery.refetch],
   )
 
   // Delete agent function
@@ -72,7 +72,7 @@ export function useAIAgents(): UseAIAgentsReturn {
         throw err
       }
     },
-    [refetch],
+    [agentsQuery.refetch],
   )
 
   // Get agent by ID

@@ -20,8 +20,7 @@ export function EmptyState({
           Nenhum agente encontrado
         </h3>
         <p className="text-muted-foreground text-center max-w-md mx-auto mb-6">
-          Nenhum agente encontrado para "{searchTerm}". Tente
-          ajustar os filtros ou criar um novo agente.
+          Nenhum agente encontrado para "{searchTerm}". Tente ajustar os filtros ou criar um novo agente.
         </p>
         <Button onClick={onReset} variant="outline">
           Limpar Filtros
@@ -32,18 +31,18 @@ export function EmptyState({
 
   return (
     <div className="text-center py-16">
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-100 max-w-2xl mx-auto">
+      <div className="bg-gradient-to-br from-muted/50 to-muted/30 dark:from-muted/20 dark:to-muted/10 rounded-2xl p-8 border border-border max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <Bot className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <Bot className="w-10 h-10 text-primary-foreground" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+          <h2 className="text-2xl font-bold text-foreground mb-3">
             Crie seu primeiro agente de IA
           </h2>
-          <p className="text-gray-600 text-lg leading-relaxed">
-            Automatize conversas e atendimento
-            com seus clientes via WhatsApp. Configure a personalidade, carregue a
-            base de conhecimento e deixe a IA trabalhar para você.
+          <p className="text-muted-foreground text-lg leading-relaxed">
+            Automatize conversas e atendimento com seus clientes via WhatsApp.
+            Configure a personalidade, carregue a base de conhecimento e deixe a
+            IA trabalhar para você.
           </p>
         </div>
 
@@ -56,7 +55,8 @@ export function EmptyState({
               Configure o Agente
             </h4>
             <p className="text-sm text-muted-foreground">
-              Defina nome, descrição e tipo de bot (assistente ou chat completion)
+              Defina nome, descrição e tipo de bot (assistente ou chat
+              completion)
             </p>
           </div>
 
@@ -87,7 +87,7 @@ export function EmptyState({
 
         <Button
           size="lg"
-          className="bg-primary hover:bg-primary/90 text-white px-8 py-4 text-lg font-semibold"
+          className="px-8 py-4 text-lg font-semibold"
           onClick={onCreateAgent}
         >
           <Plus className="w-5 h-5 mr-2" />
