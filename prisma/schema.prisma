@@ -159,6 +159,12 @@ model Organization {
   logo      String?
   createdAt DateTime
   metadata  String?
+  
+  // Token usage tracking
+  currentMonthTokens Int @default(0) // Tokens usados no mês atual
+  currentDayTokens   Int @default(0) // Tokens usados no dia atual
+  lastTokenReset     DateTime? // Última vez que os contadores foram resetados
+  totalTokensUsed    Int @default(0) // Total histórico de tokens usados
 
   members            Member[]
   invitations        Invitation[]
@@ -188,6 +194,7 @@ model Organization {
   campaigns Campaign[]
   aiAgents AIAgent[]
   openaiCreds OpenAICreds[]
+  tokenUsageHistory TokenUsageHistory[]
 
   @@unique([slug])
   @@map("organization")
@@ -267,6 +274,10 @@ model Plan {
   name        String
   description String?
   metadata    Json?
+  
+  // Token limits
+  monthlyTokenLimit Int? // Limite mensal de tokens (null = ilimitado)
+  dailyTokenLimit   Int? // Limite diário de tokens (null = ilimitado)
 
   prices Price[]
 
@@ -1274,4 +1285,23 @@ model MessageLog {
   @@index([campaignId, status])
   @@index([messageDate])
   @@map("message_log")
+}
+
+model TokenUsageHistory {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  tokensUsed     Int      // Quantidade de tokens usados
+  operation      String   // Tipo de operação (ai_agent_message, completion, etc)
+  model          String?  // Modelo usado (gpt-3.5-turbo, gpt-4, etc)
+  agentId        String?  // ID do agente AI se aplicável
+  
+  metadata       Json?    // Dados adicionais sobre o uso
+  
+  createdAt      DateTime @default(now())
+  
+  @@index([organizationId, createdAt])
+  @@index([organizationId, operation])
+  @@map("token_usage_history")
 }

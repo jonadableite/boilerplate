@@ -16,24 +16,29 @@ export interface UseAIAgentsReturn {
 }
 
 export function useAIAgents(): UseAIAgentsReturn {
-  // Use IgniterJS useQuery hook for fetching agents
-  const agentsQuery = api.aiAgents.fetchAgents.useQuery()
+  // Use IgniterJS useQuery hook for fetching agents with disabled auto-refetch
+  const agentsQuery = api.aiAgents.fetchAgents.useQuery({
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+  })
 
   const agents = agentsQuery.data?.agents || []
-  const loading = agentsQuery.loading
-  const error = agentsQuery.error ? 'Erro ao buscar agentes' : null
+  const loading = agentsQuery.isLoading || false
+  const errorMessage = agentsQuery.error ? 'Erro ao buscar agentes' : null
 
   // Fetch agents function (triggers refetch)
   const fetchAgents = useCallback(() => {
     agentsQuery.refetch()
-  }, [agentsQuery])
+  }, [agentsQuery.refetch])
 
   // Create agent function
   const createAgent = useCallback(
-    async (data: any) => {
+    async (agentData: any) => {
       try {
         await api.aiAgents.createAgent.mutate({
-          body: data,
+          body: agentData,
         })
         agentsQuery.refetch() // Refresh the list after creation
       } catch (err) {
@@ -41,16 +46,16 @@ export function useAIAgents(): UseAIAgentsReturn {
         throw err
       }
     },
-    [agentsQuery],
+    [agentsQuery.refetch],
   )
 
   // Update agent function
   const updateAgent = useCallback(
-    async (id: string, data: any) => {
+    async (id: string, agentData: any) => {
       try {
         await api.aiAgents.updateAgent.mutate({
           params: { agentId: id },
-          body: data,
+          body: agentData,
         })
         agentsQuery.refetch() // Refresh the list after update
       } catch (err) {
@@ -86,12 +91,12 @@ export function useAIAgents(): UseAIAgentsReturn {
   // Refresh agents (alias for fetchAgents)
   const refreshAgents = useCallback(() => {
     agentsQuery.refetch()
-  }, [agentsQuery])
+  }, [agentsQuery.refetch])
 
   return {
     agents,
     loading,
-    error,
+    error: errorMessage,
     fetchAgents,
     createAgent,
     updateAgent,

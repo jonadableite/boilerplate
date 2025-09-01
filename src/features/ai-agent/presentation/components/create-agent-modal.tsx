@@ -30,15 +30,16 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { CreateAgentInput } from '../../ai-agent.types'
+import { CreateAgentInput, AgentType } from '../../ai-agent.types'
 import { useAIAgents } from '../hooks/use-ai-agents'
+import { useAvailableWhatsAppInstances } from '../../../whatsapp-instance/presentation/hooks/use-whatsapp-instances'
 
 interface CreateAgentModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-type WizardStep = 'basic' | 'persona' | 'knowledge' | 'review'
+type WizardStep = 'basic' | 'persona' | 'knowledge' | 'instance' | 'review'
 
 const personaTemplates = [
   {
@@ -47,7 +48,7 @@ const personaTemplates = [
     role: 'Assistente de Vendas',
     tone: 'Profissional e persuasivo',
     expertise: ['Vendas', 'Produtos', 'Atendimento ao cliente'],
-    description: 'Ideal para qualificar leads e apresentar produtos'
+    description: 'Ideal para qualificar leads e apresentar produtos',
   },
   {
     id: 'support',
@@ -55,7 +56,7 @@ const personaTemplates = [
     role: 'Suporte Técnico',
     tone: 'Prestativo e técnico',
     expertise: ['Suporte', 'Troubleshooting', 'Documentação'],
-    description: 'Perfeito para resolver problemas e dúvidas técnicas'
+    description: 'Perfeito para resolver problemas e dúvidas técnicas',
   },
   {
     id: 'onboarding',
@@ -63,7 +64,7 @@ const personaTemplates = [
     role: 'Especialista em Onboarding',
     tone: 'Acolhedor e didático',
     expertise: ['Onboarding', 'Treinamento', 'Documentação'],
-    description: 'Excelente para orientar novos usuários'
+    description: 'Excelente para orientar novos usuários',
   },
   {
     id: 'custom',
@@ -71,20 +72,28 @@ const personaTemplates = [
     role: 'Assistente Personalizado',
     tone: 'Personalizável',
     expertise: ['Personalizável'],
-    description: 'Configure do zero conforme sua necessidade'
-  }
+    description: 'Configure do zero conforme sua necessidade',
+  },
 ]
 
-export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) {
+export function CreateAgentModal({
+  open,
+  onOpenChange,
+}: CreateAgentModalProps) {
   const { createAgent, loading } = useAIAgents()
+  const { instances: whatsappInstances, isLoading: loadingInstances } =
+    useAvailableWhatsAppInstances()
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic')
   const [formData, setFormData] = useState({
     // Dados básicos
     name: '',
     description: '',
-    instanceName: '',
-    botType: 'chatCompletion' as 'chatCompletion' | 'assistant',
+    botType: AgentType.CHAT_COMPLETION,
     model: 'gpt-4o',
+    systemPrompt: '',
+
+    // Instância WhatsApp
+    selectedInstanceId: '',
 
     // Persona
     personaName: '',
@@ -97,36 +106,38 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
 
     // Base de conhecimento
     knowledgeEnabled: true,
-    knowledgeSources: [] as any[]
+    knowledgeSources: [] as any[],
   })
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
 
   const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   const nextStep = () => {
     if (currentStep === 'basic') setCurrentStep('persona')
     else if (currentStep === 'persona') setCurrentStep('knowledge')
-    else if (currentStep === 'knowledge') setCurrentStep('review')
+    else if (currentStep === 'knowledge') setCurrentStep('instance')
+    else if (currentStep === 'instance') setCurrentStep('review')
   }
 
   const prevStep = () => {
     if (currentStep === 'persona') setCurrentStep('basic')
     else if (currentStep === 'knowledge') setCurrentStep('persona')
-    else if (currentStep === 'review') setCurrentStep('knowledge')
+    else if (currentStep === 'instance') setCurrentStep('knowledge')
+    else if (currentStep === 'review') setCurrentStep('instance')
   }
 
   const applyTemplate = (template: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       personaName: template.name,
       personaRole: template.role,
       personaTone: template.tone,
       personaExpertise: template.expertise,
       personaGreeting: `Olá! Sou o ${template.name}, ${template.role.toLowerCase()}. Como posso ajudar você hoje?`,
-      personaFallback: 'Desculpe, não entendi sua pergunta. Pode reformular?'
+      personaFallback: 'Desculpe, não entendi sua pergunta. Pode reformular?',
     }))
     setSelectedTemplate(template.id)
   }
@@ -134,11 +145,15 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
   const canProceed = () => {
     switch (currentStep) {
       case 'basic':
-        return formData.name && formData.description && formData.instanceName
+        return formData.name && formData.description
       case 'persona':
-        return formData.personaName && formData.personaRole && formData.personaTone
+        return (
+          formData.personaName && formData.personaRole && formData.personaTone
+        )
       case 'knowledge':
         return true
+      case 'instance':
+        return formData.selectedInstanceId
       default:
         return true
     }
@@ -147,15 +162,26 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
   const handleSubmit = async () => {
     try {
       // Preparar dados para a API
+      const selectedInstance = whatsappInstances.find(
+        (i) => i.id === formData.selectedInstanceId,
+      )
+      if (!selectedInstance) {
+        toast.error('Por favor, selecione uma instância WhatsApp')
+        return
+      }
+
       const agentData: CreateAgentInput = {
         name: formData.name,
         description: formData.description,
-        instanceName: formData.instanceName,
+        instanceName: selectedInstance.instanceName,
         openaiCredsId: 'default', // Você precisaria implementar seleção de credenciais
         botType: formData.botType,
         model: formData.model,
         triggerType: 'all',
         triggerOperator: 'none',
+        systemMessages: formData.systemPrompt
+          ? [formData.systemPrompt]
+          : undefined,
         persona: {
           name: formData.personaName,
           role: formData.personaRole,
@@ -163,11 +189,11 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
           expertise: formData.personaExpertise,
           limitations: formData.personaLimitations,
           greeting: formData.personaGreeting,
-          fallback: formData.personaFallback
+          fallback: formData.personaFallback,
         },
         knowledgeBase: {
-          enabled: formData.knowledgeEnabled
-        }
+          enabled: formData.knowledgeEnabled,
+        },
       }
 
       const newAgent = await createAgent(agentData)
@@ -190,9 +216,10 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
     setFormData({
       name: '',
       description: '',
-      instanceName: '',
-      botType: 'chatCompletion',
+      botType: AgentType.CHAT_COMPLETION,
       model: 'gpt-4o',
+      systemPrompt: '',
+      selectedInstanceId: '',
       personaName: '',
       personaRole: '',
       personaTone: '',
@@ -201,35 +228,60 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
       personaGreeting: '',
       personaFallback: '',
       knowledgeEnabled: true,
-      knowledgeSources: []
+      knowledgeSources: [],
     })
     setSelectedTemplate('')
   }
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
-      {['basic', 'persona', 'knowledge', 'review'].map((step, index) => (
-        <div key={step} className="flex items-center">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === step
-            ? 'bg-blue-600 text-white'
-            : index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep)
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-200 text-gray-600'
-            }`}>
-            {index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep) ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              index + 1
+      {['basic', 'persona', 'knowledge', 'instance', 'review'].map(
+        (step, index) => (
+          <div key={step} className="flex items-center">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                currentStep === step
+                  ? 'bg-blue-600 text-white'
+                  : index <
+                      [
+                        'basic',
+                        'persona',
+                        'knowledge',
+                        'instance',
+                        'review',
+                      ].indexOf(currentStep)
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-600'
+              }`}
+            >
+              {index <
+              ['basic', 'persona', 'knowledge', 'review'].indexOf(
+                currentStep,
+              ) ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                index + 1
+              )}
+            </div>
+            {index < 4 && (
+              <div
+                className={`w-16 h-1 mx-2 ${
+                  index <
+                  [
+                    'basic',
+                    'persona',
+                    'knowledge',
+                    'instance',
+                    'review',
+                  ].indexOf(currentStep)
+                    ? 'bg-green-600'
+                    : 'bg-gray-200'
+                }`}
+              />
             )}
           </div>
-          {index < 3 && (
-            <div className={`w-16 h-1 mx-2 ${index < ['basic', 'persona', 'knowledge', 'review'].indexOf(currentStep)
-              ? 'bg-green-600'
-              : 'bg-gray-200'
-              }`} />
-          )}
-        </div>
-      ))}
+        ),
+      )}
     </div>
   )
 
@@ -258,37 +310,34 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
         />
       </div>
 
-      <div>
-        <Label htmlFor="instanceName">Nome da Instância *</Label>
-        <Input
-          id="instanceName"
-          placeholder="Ex: vendas-instance"
-          value={formData.instanceName}
-          onChange={(e) => updateFormData('instanceName', e.target.value)}
-          className="mt-2"
-        />
-        <p className="text-sm text-gray-500 mt-1">
-          Identificador único para sua instância do WhatsApp
-        </p>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="botType">Tipo de Bot</Label>
-          <Select value={formData.botType} onValueChange={(value) => updateFormData('botType', value)}>
+          <Select
+            value={formData.botType}
+            onValueChange={(value) => updateFormData('botType', value)}
+          >
             <SelectTrigger className="mt-2">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="chatCompletion">Chat Completion</SelectItem>
-              <SelectItem value="assistant">OpenAI Assistant</SelectItem>
+              <SelectItem value={AgentType.CHAT_COMPLETION}>
+                Chat Completion
+              </SelectItem>
+              <SelectItem value={AgentType.ASSISTANT}>
+                OpenAI Assistant
+              </SelectItem>
+              <SelectItem value={AgentType.EVOLUTION_BOT}>Agente IA</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
           <Label htmlFor="model">Modelo</Label>
-          <Select value={formData.model} onValueChange={(value) => updateFormData('model', value)}>
+          <Select
+            value={formData.model}
+            onValueChange={(value) => updateFormData('model', value)}
+          >
             <SelectTrigger className="mt-2">
               <SelectValue />
             </SelectTrigger>
@@ -300,6 +349,22 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
           </Select>
         </div>
       </div>
+
+      <div>
+        <Label htmlFor="systemPrompt">Prompt do Sistema (Opcional)</Label>
+        <Textarea
+          id="systemPrompt"
+          placeholder="Ex: Você é um assistente especializado em vendas. Seja sempre educado e profissional..."
+          value={formData.systemPrompt}
+          onChange={(e) => updateFormData('systemPrompt', e.target.value)}
+          className="mt-2"
+          rows={4}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Define o comportamento base do agente. Se não preenchido, será gerado
+          automaticamente baseado na persona.
+        </p>
+      </div>
     </div>
   )
 
@@ -307,30 +372,51 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
     <div className="space-y-6">
       {/* Templates de Persona */}
       <div>
-        <Label className="text-base font-medium mb-4 block">Escolha um Template (Opcional)</Label>
+        <Label className="text-base font-medium mb-4 block">
+          Escolha um Template (Opcional)
+        </Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {personaTemplates.map((template) => (
             <Card
               key={template.id}
-              className={`cursor-pointer transition-all ${selectedTemplate === template.id
-                ? 'ring-2 ring-primary border-primary'
-                : 'hover:shadow-md'
-                }`}
+              className={`cursor-pointer transition-all ${
+                selectedTemplate === template.id
+                  ? 'ring-2 ring-primary border-primary'
+                  : 'hover:shadow-md'
+              }`}
               onClick={() => applyTemplate(template)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedTemplate === template.id ? 'bg-primary/10' : 'bg-muted'
-                    }`}>
-                    <Bot className={`w-5 h-5 ${selectedTemplate === template.id ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
+                  <div
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      selectedTemplate === template.id
+                        ? 'bg-primary/10'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <Bot
+                      className={`w-5 h-5 ${
+                        selectedTemplate === template.id
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                      }`}
+                    />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-1">{template.name}</h4>
-                    <p className="text-sm text-muted-foreground mb-2">{template.description}</p>
+                    <h4 className="font-semibold text-foreground mb-1">
+                      {template.name}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {template.description}
+                    </p>
                     <div className="flex flex-wrap gap-1">
                       {template.expertise.slice(0, 2).map((exp, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="text-xs"
+                        >
                           {exp}
                         </Badge>
                       ))}
@@ -407,53 +493,104 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
 
   const renderKnowledgeStep = () => (
     <div className="space-y-6">
-      <div className="text-center">
-        <BookOpen className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+      <div className="text-center py-8">
+        <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           Base de Conhecimento
         </h3>
-        <p className="text-gray-600">
-          Configure como seu agente acessará informações para responder perguntas
+        <p className="text-muted-foreground mb-6">
+          Configure documentos e informações que seu agente deve conhecer
+        </p>
+        <div className="bg-muted/50 rounded-lg p-6 max-w-md mx-auto">
+          <p className="text-sm text-muted-foreground">
+            🚧 Esta funcionalidade estará disponível em breve!
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderInstanceStep = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <Bot className="w-16 h-16 text-primary mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">
+          Selecionar Instância WhatsApp
+        </h3>
+        <p className="text-muted-foreground">
+          Escolha qual instância do WhatsApp será usada por este agente
         </p>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h4 className="font-semibold text-gray-900">Habilitar Base de Conhecimento</h4>
-              <p className="text-sm text-gray-600">
-                Permite que o agente use documentos carregados para responder perguntas
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={formData.knowledgeEnabled}
-              onChange={(e) => updateFormData('knowledgeEnabled', e.target.checked)}
-              className="w-5 h-5 text-blue-600 rounded"
-            />
+      {loadingInstances ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Carregando instâncias...</p>
+        </div>
+      ) : whatsappInstances.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="bg-muted/50 rounded-lg p-6">
+            <p className="text-muted-foreground mb-4">
+              Nenhuma instância WhatsApp encontrada.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Você precisa criar uma instância WhatsApp antes de configurar um
+              agente.
+            </p>
           </div>
-
-          {formData.knowledgeEnabled && (
-            <div className="space-y-4">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h5 className="font-medium text-blue-900 mb-2">📚 Como Funciona</h5>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Carregue PDFs, DOCX, TXT ou URLs</li>
-                  <li>• O sistema cria embeddings automáticos</li>
-                  <li>• O agente busca informações relevantes</li>
-                  <li>• Respostas mais precisas e contextualizadas</li>
-                </ul>
-              </div>
-
-              <Button variant="outline" className="w-full" disabled>
-                <BookOpen className="w-4 h-4 mr-2" />
-                Carregar Documentos (Após Criação)
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Label className="text-base font-medium">
+            Instâncias Disponíveis
+          </Label>
+          <div className="grid gap-3">
+            {whatsappInstances.map((instance) => (
+              <Card
+                key={instance.id}
+                className={`cursor-pointer transition-all ${
+                  formData.selectedInstanceId === instance.id
+                    ? 'ring-2 ring-primary border-primary'
+                    : 'hover:shadow-md'
+                }`}
+                onClick={() =>
+                  updateFormData('selectedInstanceId', instance.id)
+                }
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          instance.status === 'open'
+                            ? 'bg-green-500'
+                            : instance.status === 'connecting'
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                        }`}
+                      />
+                      <div>
+                        <h4 className="font-medium">{instance.instanceName}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Status:{' '}
+                          {instance.status === 'open'
+                            ? 'Conectado'
+                            : instance.status === 'connecting'
+                              ? 'Conectando'
+                              : 'Desconectado'}
+                        </p>
+                      </div>
+                    </div>
+                    {formData.selectedInstanceId === instance.id && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -486,8 +623,12 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
                 <span className="font-medium">{formData.description}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Instância:</span>
-                <span className="font-medium">{formData.instanceName}</span>
+                <span className="text-gray-600">Instância WhatsApp:</span>
+                <span className="font-medium">
+                  {whatsappInstances.find(
+                    (i) => i.id === formData.selectedInstanceId,
+                  )?.instanceName || 'Nenhuma selecionada'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Tipo:</span>
@@ -532,7 +673,9 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
             </h4>
             <div className="flex justify-between">
               <span className="text-gray-600">Status:</span>
-              <Badge variant={formData.knowledgeEnabled ? 'default' : 'secondary'}>
+              <Badge
+                variant={formData.knowledgeEnabled ? 'default' : 'secondary'}
+              >
                 {formData.knowledgeEnabled ? 'Habilitada' : 'Desabilitada'}
               </Badge>
             </div>
@@ -550,6 +693,8 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
         return renderPersonaStep()
       case 'knowledge':
         return renderKnowledgeStep()
+      case 'instance':
+        return renderInstanceStep()
       case 'review':
         return renderReviewStep()
       default:
@@ -565,6 +710,8 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
         return 'Configurar Persona'
       case 'knowledge':
         return 'Base de Conhecimento'
+      case 'instance':
+        return 'Selecionar Instância'
       case 'review':
         return 'Revisar e Criar'
       default:
@@ -583,9 +730,7 @@ export function CreateAgentModal({ open, onOpenChange }: CreateAgentModalProps) 
 
         {renderStepIndicator()}
 
-        <div className="py-6">
-          {renderCurrentStep()}
-        </div>
+        <div className="py-6">{renderCurrentStep()}</div>
 
         {/* Navegação */}
         <div className="flex justify-between pt-6 border-t">

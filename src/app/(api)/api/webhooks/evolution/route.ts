@@ -9,7 +9,7 @@ export const POST = async (req: NextRequest) => {
     console.log('[Evolution Webhook] Mensagem recebida:', {
       event: body.event,
       instance: body.instance,
-      data: body.data ? 'presente' : 'ausente'
+      data: body.data ? 'presente' : 'ausente',
     })
 
     // Verificar se é um evento de mensagem
@@ -20,7 +20,7 @@ export const POST = async (req: NextRequest) => {
       // Verificar se a instância existe no sistema
       const instance = await prisma.whatsAppInstance.findFirst({
         where: {
-          instanceName: instanceName,
+          instanceName,
         },
       })
 
@@ -39,7 +39,7 @@ export const POST = async (req: NextRequest) => {
               messageTimestamp: messageData.messageTimestamp || Date.now(),
               instanceId: instanceName,
               source: 'webhook',
-            }
+            },
           )
         }
 
@@ -49,7 +49,7 @@ export const POST = async (req: NextRequest) => {
             // Determinar tipo de mensagem
             let messageType = 'TEXT'
             let content = ''
-            let mediaUrl = null
+            const mediaUrl = null
             let mediaType = null
             let fileName = null
 
@@ -70,7 +70,8 @@ export const POST = async (req: NextRequest) => {
               mediaType = 'audio/ogg'
             } else if (messageData.message.documentMessage) {
               messageType = 'DOCUMENT'
-              content = messageData.message.documentMessage.title || '[Documento]'
+              content =
+                messageData.message.documentMessage.title || '[Documento]'
               fileName = messageData.message.documentMessage.fileName
               mediaType = messageData.message.documentMessage.mimetype
             } else if (messageData.message.stickerMessage) {
@@ -80,7 +81,10 @@ export const POST = async (req: NextRequest) => {
             }
 
             // Extrair número do remetente
-            const fromNumber = messageData.key.remoteJid?.replace('@s.whatsapp.net', '')
+            const fromNumber = messageData.key.remoteJid?.replace(
+              '@s.whatsapp.net',
+              '',
+            )
 
             if (fromNumber) {
               // Buscar ou criar contato
@@ -121,8 +125,11 @@ export const POST = async (req: NextRequest) => {
                     whatsappInstanceId: instance.id,
                     contactId: contact.id,
                     status: 'OPEN',
-                    isGroup: messageData.key.remoteJid?.includes('@g.us') || false,
-                    lastMessageAt: new Date(messageData.messageTimestamp * 1000),
+                    isGroup:
+                      messageData.key.remoteJid?.includes('@g.us') || false,
+                    lastMessageAt: new Date(
+                      messageData.messageTimestamp * 1000,
+                    ),
                     lastMessage: content.substring(0, 100),
                     lastMessageType: messageType as any,
                   },
@@ -132,7 +139,9 @@ export const POST = async (req: NextRequest) => {
                 await prisma.conversation.update({
                   where: { id: conversation.id },
                   data: {
-                    lastMessageAt: new Date(messageData.messageTimestamp * 1000),
+                    lastMessageAt: new Date(
+                      messageData.messageTimestamp * 1000,
+                    ),
                     lastMessage: content.substring(0, 100),
                     lastMessageType: messageType as any,
                     unreadCount: { increment: 1 },
@@ -167,13 +176,61 @@ export const POST = async (req: NextRequest) => {
                 from: fromNumber,
                 content: content.substring(0, 50),
               })
+
+              // Processar mensagem com agentes AI se configurado
+              try {
+                const aiProcessResponse = await fetch(
+                  `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/ai-agents/process-message`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      instanceName: instance.instanceName,
+                      remoteJid: messageData.key.remoteJid,
+                      content,
+                      messageType,
+                      fromNumber,
+                      timestamp: messageData.messageTimestamp,
+                      fromMe: messageData.key.fromMe || false,
+                      organizationId: instance.organizationId,
+                      conversationId: conversation.id,
+                      contactId: contact.id,
+                    }),
+                  },
+                )
+
+                if (aiProcessResponse.ok) {
+                  const result = await aiProcessResponse.json()
+                  console.log(
+                    '[Evolution Webhook] Mensagem processada pelo AI Agent:',
+                    result.success,
+                  )
+                } else {
+                  console.warn(
+                    '[Evolution Webhook] Falha ao processar mensagem com AI Agent:',
+                    aiProcessResponse.status,
+                  )
+                }
+              } catch (aiError) {
+                console.error(
+                  '[Evolution Webhook] Erro ao chamar AI Agent API:',
+                  aiError,
+                )
+              }
             }
           } catch (error) {
-            console.error('[Evolution Webhook] Erro ao salvar mensagem no CRM:', error)
+            console.error(
+              '[Evolution Webhook] Erro ao salvar mensagem no CRM:',
+              error,
+            )
           }
         }
       } else {
-        console.warn(`[Evolution Webhook] Instância não encontrada: ${instanceName}`)
+        console.warn(
+          `[Evolution Webhook] Instância não encontrada: ${instanceName}`,
+        )
       }
     }
 
@@ -185,15 +242,22 @@ export const POST = async (req: NextRequest) => {
       if (instanceName && connectionState) {
         await prisma.whatsAppInstance.updateMany({
           where: {
-            instanceName: instanceName,
+            instanceName,
           },
           data: {
-            status: connectionState === 'open' ? 'open' : connectionState === 'close' ? 'close' : 'connecting',
+            status:
+              connectionState === 'open'
+                ? 'open'
+                : connectionState === 'close'
+                  ? 'close'
+                  : 'connecting',
             lastSeen: new Date(),
           },
         })
 
-        console.log(`[Evolution Webhook] Status da instância ${instanceName} atualizado para: ${connectionState}`)
+        console.log(
+          `[Evolution Webhook] Status da instância ${instanceName} atualizado para: ${connectionState}`,
+        )
       }
     }
 
@@ -209,28 +273,31 @@ export const POST = async (req: NextRequest) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Erro interno'
+        error: error instanceof Error ? error.message : 'Erro interno',
       }),
       {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     )
   }
 }
 
 // Método GET para verificar se o webhook está funcionando
 export async function GET() {
-  return new Response(JSON.stringify({
-    status: 'ok',
-    message: 'Evolution API Webhook is working',
-    timestamp: new Date().toISOString(),
-  }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
+  return new Response(
+    JSON.stringify({
+      status: 'ok',
+      message: 'Evolution API Webhook is working',
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     },
-  })
+  )
 }

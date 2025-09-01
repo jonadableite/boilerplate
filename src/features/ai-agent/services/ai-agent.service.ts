@@ -13,6 +13,7 @@ import {
   UpdateSessionStatusInput,
 } from '../ai-agent.types'
 import { EvolutionAPIClient } from './evolution-api.client'
+import { EvolutionBotAPIClient } from './evolution-bot-api.client'
 import { KnowledgeBaseService } from './knowledge-base.service'
 import { OpenAIService } from './openai.service'
 import { VoiceProcessingService } from './voice-processing.service'
@@ -35,6 +36,7 @@ export interface AgentResponse {
 
 export class AIAgentService {
   private evolutionClient: EvolutionAPIClient
+  private evolutionBotClient: EvolutionBotAPIClient
   private knowledgeBaseService: KnowledgeBaseService
   private openaiService: OpenAIService
   private voiceProcessingService: VoiceProcessingService
@@ -49,6 +51,11 @@ export class AIAgentService {
   ) {
     this.context = context
     this.evolutionClient = new EvolutionAPIClient(
+      evolutionBaseURL,
+      evolutionApiKey,
+      instanceName,
+    )
+    this.evolutionBotClient = new EvolutionBotAPIClient(
       evolutionBaseURL,
       evolutionApiKey,
       instanceName,
@@ -114,13 +121,58 @@ export class AIAgentService {
   // AI Agents
   async createAgent(input: CreateAgentInput): Promise<AIAgent> {
     try {
-      // Criar bot na Evolution API
-      const evolutionResult = await this.evolutionClient.createBot(input)
+      // Criar cliente Evolution API específico para a instância selecionada
+      const instanceEvolutionClient = new EvolutionAPIClient(
+        process.env.EVOLUTION_API_URL || '',
+        process.env.EVOLUTION_API_KEY || '',
+        input.instanceName,
+      )
 
-      if (!evolutionResult.success) {
-        throw new Error(
-          `Falha ao criar bot na Evolution API: ${evolutionResult.message}`,
+      let evolutionResult: any
+      let evolutionBotId: string | undefined
+
+      // Se for Evolution Bot, usar o cliente específico
+      if (input.botType === 'evolutionBot') {
+        const instanceEvolutionBotClient = new EvolutionBotAPIClient(
+          process.env.EVOLUTION_API_URL || '',
+          process.env.EVOLUTION_API_KEY || '',
+          input.instanceName,
         )
+
+        const createBotData: any = {
+          enabled: true,
+          description: input.description || input.name,
+          triggerType: input.triggerType || 'all',
+          triggerOperator: input.triggerOperator || 'contains',
+          triggerValue: input.triggerValue || '',
+        }
+
+        // Só incluir apiUrl se functionUrl for fornecido e válido
+        if (input.functionUrl && input.functionUrl.trim() !== '') {
+          createBotData.apiUrl = input.functionUrl
+        }
+
+        evolutionResult =
+          await instanceEvolutionBotClient.createBot(createBotData)
+
+        if (!evolutionResult.success) {
+          throw new Error(
+            `Falha ao criar Evolution Bot: ${evolutionResult.message}`,
+          )
+        }
+
+        evolutionBotId = evolutionResult.data?.id
+      } else {
+        // Criar bot na Evolution API usando a instância específica (método antigo)
+        evolutionResult = await instanceEvolutionClient.createBot(input)
+
+        if (!evolutionResult.success) {
+          throw new Error(
+            `Falha ao criar bot na Evolution API: ${evolutionResult.message}`,
+          )
+        }
+
+        evolutionBotId = evolutionResult.data?.id
       }
 
       // Se for um assistant, criar na OpenAI
@@ -149,12 +201,12 @@ export class AIAgentService {
         name: input.name,
         description: input.description,
         instanceName: input.instanceName,
-        evolutionBotId: evolutionResult.data?.id,
+        evolutionBotId,
         openaiCredsId: input.openaiCredsId,
         botType: input.botType,
         assistantId,
         functionUrl: input.functionUrl,
-        model: input.model,
+        model: input.model as any,
         systemMessages: input.systemMessages,
         assistantMessages: input.assistantMessages,
         userMessages: input.userMessages,
@@ -172,7 +224,7 @@ export class AIAgentService {
         debounceTime: input.debounceTime,
         ignoreJids: input.ignoreJids,
         persona: input.persona,
-        knowledgeBase: input.knowledgeBase,
+        knowledgeBase: input.knowledgeBase as any,
         status: 'ACTIVE' as any,
         organizationId: 'org_id', // Deve vir do contexto
         createdById: 'user_id', // Deve vir do contexto
@@ -493,7 +545,7 @@ export class AIAgentService {
   async getRecentMemories(
     agentId: string,
     remoteJid: string,
-    limit: number = 10,
+    limitParam: number = 10,
   ): Promise<AgentMemory[]> {
     try {
       // Aqui você buscaria as memórias recentes do banco de dados
@@ -506,7 +558,7 @@ export class AIAgentService {
   }
 
   // Métodos auxiliares
-  private async getAgentById(agentId: string): Promise<AIAgent | null> {
+  private async getAgentById(agentIdParam: string): Promise<AIAgent | null> {
     // Aqui você buscaria o agente no banco de dados
     // Por enquanto, retornamos null
     return null
@@ -517,7 +569,7 @@ export class AIAgentService {
    * @param audioBuffer Buffer contendo o áudio
    * @returns URL pública do arquivo de áudio
    */
-  private async storeAudioFile(audioBuffer: Buffer): Promise<string> {
+  private async storeAudioFile(audioBufferParam: Buffer): Promise<string> {
     try {
       // Aqui você implementaria o upload do áudio para um serviço de armazenamento
       // como Amazon S3, Google Cloud Storage, etc.
@@ -627,7 +679,10 @@ export class AIAgentService {
       console.log('[AIAgentService] fetchAgents executado com sucesso')
 
       return {
-        agents,
+        agents: agents.map((agent) => ({
+          ...agent,
+          description: agent.description || undefined,
+        })),
         total,
         page: Number(page),
         limit: Number(limit),

@@ -11,6 +11,7 @@ export enum AgentStatus {
 export enum AgentType {
   ASSISTANT = 'assistant',
   CHAT_COMPLETION = 'chatCompletion',
+  EVOLUTION_BOT = 'evolutionBot',
 }
 
 // Novos enums para OpenAI Assistants API v2
@@ -97,6 +98,30 @@ export enum RunStatus {
   FAILED = 'failed',
   COMPLETED = 'completed',
   EXPIRED = 'expired',
+}
+
+// Interfaces para Agent
+export interface AgentPersona {
+  name: string
+  role: string
+  tone: string
+  expertise: string[]
+  limitations: string[]
+  greeting: string
+  fallback: string
+}
+
+export interface KnowledgeSource {
+  id: string
+  type: 'pdf' | 'docx' | 'txt' | 'url' | 'text'
+  content: string
+  metadata?: Record<string, any>
+  createdAt: Date
+}
+
+export interface KnowledgeBaseConfig {
+  enabled: boolean
+  sources?: KnowledgeSource[]
 }
 
 // Schemas Zod para validação
@@ -225,6 +250,7 @@ export type AgentSettingsInput = z.infer<typeof AgentSettingsSchema>
 
 // Interfaces para entidades
 export interface AIAgent {
+  [x: string]: any
   id: string
   name: string
   description?: string
@@ -258,29 +284,6 @@ export interface AIAgent {
   createdById: string
   createdAt: Date
   updatedAt: Date
-}
-
-export interface AgentPersona {
-  name: string
-  role: string
-  tone: string
-  expertise: string[]
-  limitations: string[]
-  greeting: string
-  fallback: string
-}
-
-export interface KnowledgeBaseConfig {
-  enabled: boolean
-  sources?: KnowledgeSource[]
-}
-
-export interface KnowledgeSource {
-  id: string
-  type: 'pdf' | 'docx' | 'txt' | 'url' | 'text'
-  content: string
-  metadata?: Record<string, any>
-  createdAt: Date
 }
 
 export interface OpenAICreds {
