@@ -195,6 +195,7 @@ model Organization {
   aiAgents AIAgent[]
   openaiCreds OpenAICreds[]
   tokenUsageHistory TokenUsageHistory[]
+  aiAgentLogs AIAgentLog[]
 
   @@unique([slug])
   @@map("organization")
@@ -1075,85 +1076,83 @@ model Campaign {
 }
 
 // AI Agent Models
+
 model AIAgent {
-  id          String @id @default(uuid())
-  name        String
-  description String?
-  instanceName String
-  evolutionBotId String? @unique
-  openaiCredsId String
-  botType     String // 'assistant' ou 'chatCompletion'
-  assistantId String?
-  functionUrl String?
-  model       String?
-  systemMessages Json? // Array de strings
-  assistantMessages Json? // Array de strings
-  userMessages Json? // Array de strings
-  maxTokens   Int?
-  triggerType String // 'all' ou 'keyword'
-  triggerOperator String // 'contains', 'equals', 'startsWith', 'endsWith', 'regex', 'none'
-  triggerValue String?
-  expire      Int? // minutos
-  keywordFinish String?
-  delayMessage Int? // ms
-  unknownMessage String?
-  listeningFromMe Boolean?
-  stopBotFromMe Boolean?
-  keepOpen    Boolean?
-  debounceTime Int? // ms
-  ignoreJids  Json? // Array de strings
-  persona     Json? // Configuração da persona
-  knowledgeBase Json? // Configuração da base de conhecimento
-  status      String @default("ACTIVE") // ACTIVE, INACTIVE, TRAINING, ERROR
-
+  id                   String    @id @default(uuid())
+  name                 String
+  description          String?
+  type                 String    @default("LLM_AGENT") // LLM_AGENT, CREW_AI, LANGGRAPH_WORKFLOW, etc
+  role                 String?   // Papel do agente
+  goal                 String?   // Objetivo principal
+  systemPrompt         String    // Instruções detalhadas
+  
+  // Configurações do modelo
+  model                String    @default("gpt-4")
+  temperature          Float     @default(0.7)
+  maxTokens            Int       @default(1000)
+  topP                 Float?
+  frequencyPenalty     Float?
+  presencePenalty      Float?
+  
+  // Base de conhecimento
+  knowledgeBaseId      String?
+  
+  // Configurações de segurança (Guardrails)
+  enableContentFilter  Boolean   @default(true)
+  enablePiiDetection   Boolean   @default(true)
+  maxResponseLength    Int?
+  allowedTopics        String[]  @default([])
+  blockedTopics        String[]  @default([])
+  
+  // Configurações gerais
+  fallbackMessage      String?
+  isActive             Boolean   @default(true)
+  
   // Relacionamentos
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  createdById String
-  createdBy   User   @relation("AIAgentCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
-
-  sessions    AIAgentSession[]
-  memories    AIAgentMemory[]
-  knowledgeChunks KnowledgeChunk[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([organizationId, status])
-  @@index([instanceName])
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdById          String
+  createdBy            User      @relation("AIAgentCreatedBy", fields: [createdById], references: [id])
+  
+  // Credenciais OpenAI específicas (opcional)
+  openaiCredsId        String?
+  openaiCreds          OpenAICreds? @relation(fields: [openaiCredsId], references: [id])
+  
+  // Relacionamentos com outros modelos
+  memories             AIAgentMemory[]
+  knowledgeChunks      KnowledgeChunk[]
+  
+  // Metadados
+  metadata             Json?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  @@index([organizationId, isActive])
+  @@index([organizationId, type])
+  @@index([createdById])
   @@map("ai_agent")
 }
 
 model OpenAICreds {
-  id       String @id @default(uuid())
-  name     String
-  apiKey   String
+  id             String    @id @default(uuid())
+  name           String    // Nome descritivo das credenciais
+  apiKey         String    // Chave da API OpenAI
+  isActive       Boolean   @default(true)
+  
+  // Relacionamentos
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([organizationId, name])
+  
+  // Agentes que usam essas credenciais
+  agents         AIAgent[]
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([organizationId, isActive])
   @@map("openai_creds")
-}
-
-model AIAgentSession {
-  id           String @id @default(uuid())
-  agentId      String
-  agent        AIAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  openaiBotId  String
-  remoteJid    String
-  status       String // 'opened', 'paused', 'closed'
-  metadata     Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([agentId, remoteJid])
-  @@index([status])
-  @@map("ai_agent_session")
 }
 
 model AIAgentMemory {
@@ -1285,6 +1284,26 @@ model MessageLog {
   @@index([campaignId, status])
   @@index([messageDate])
   @@map("message_log")
+}
+
+model AIAgentLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  agentId        String
+  sessionId      String?
+  level          String   // debug, info, warn, error
+  message        String
+  metadata       Json?    // Dados adicionais do log
+  error          Json?    // Informações de erro se aplicável
+  
+  createdAt      DateTime @default(now())
+  
+  @@index([organizationId, agentId, createdAt])
+  @@index([organizationId, level])
+  @@index([sessionId])
+  @@map("ai_agent_log")
 }
 
 model TokenUsageHistory {

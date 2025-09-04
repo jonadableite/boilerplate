@@ -319,12 +319,16 @@ export class CampaignSchedulerService {
       console.log(
         `[CampaignScheduler] Agendamento da campanha ${campaignId} cancelado`,
       )
+    } catch (error) {
+      console.error(
+        `[CampaignScheduler] Erro ao cancelar agendamento da campanha ${campaignId}:`,
+        error,
+      )
       throw new Error('Erro ao cancelar agendamento da campanha')
     }
   }
 
   /**
-   /**
    * Obtém próximas execuções agendadas
    */
   async getUpcomingExecutions(organizationId: string): Promise<Campaign[]> {

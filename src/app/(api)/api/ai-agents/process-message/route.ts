@@ -1,5 +1,5 @@
 import { prisma } from '@/providers/prisma'
-import { AIAgentService } from '@/features/ai-agent/services/ai-agent.service'
+import { AgentEngineService } from '@/features/ai-agents/services/agent-engine.service'
 import type { NextRequest } from 'next/server'
 
 // Endpoint interno para processar mensagens do Evolution Bot
@@ -7,18 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    const {
-      instanceName,
-      remoteJid,
-      content,
-      messageType,
-      fromNumber,
-      timestamp,
-      fromMe,
-      organizationId,
-      conversationId,
-      contactId,
-    } = body
+    const { instanceName, remoteJid, content, fromMe, organizationId } = body
 
     // Validar dados obrigatórios
     if (!instanceName || !remoteJid || !content || !organizationId) {
@@ -38,8 +27,11 @@ export async function POST(req: NextRequest) {
     const aiAgent = await prisma.aIAgent.findFirst({
       where: {
         organizationId,
-        status: 'ACTIVE',
-        instanceName,
+        isActive: true,
+        metadata: {
+          path: ['instanceName'],
+          equals: instanceName,
+        },
       },
       include: {
         organization: true,
@@ -76,68 +68,79 @@ export async function POST(req: NextRequest) {
     console.log('[AI Agent API] Processando mensagem:', {
       agentId: aiAgent.id,
       agentName: aiAgent.name,
-      from: fromNumber,
+      from: remoteJid,
       content: content.substring(0, 50),
     })
 
-    // Buscar credenciais OpenAI
-    const openaiCreds = await prisma.openAICreds.findUnique({
-      where: { id: aiAgent.openaiCredsId },
-    })
+    // Buscar credenciais OpenAI ou usar chave global
+    let openaiApiKey: string
 
-    if (!openaiCreds) {
-      console.error(
-        '[AI Agent API] Credenciais OpenAI não encontradas para o agente:',
-        aiAgent.id,
-      )
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Credenciais OpenAI não configuradas',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+    if (aiAgent.openaiCredsId) {
+      // Usar credenciais específicas do banco de dados
+      const openaiCreds = await prisma.openAICreds.findUnique({
+        where: { id: aiAgent.openaiCredsId },
+      })
+
+      if (!openaiCreds) {
+        console.error(
+          '[AI Agent API] Credenciais OpenAI não encontradas para o agente:',
+          aiAgent.id,
+        )
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Credenciais OpenAI não configuradas',
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
+      }
+
+      openaiApiKey = openaiCreds.apiKey
+    } else {
+      // Usar chave global do .env
+      openaiApiKey = process.env.OPENAI_API_KEY || ''
+
+      if (!openaiApiKey) {
+        console.error(
+          '[AI Agent API] Chave OpenAI global não configurada no .env',
+        )
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Chave OpenAI global não configurada',
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
+      }
     }
 
     // Inicializar o serviço de AI Agent
-    const aiAgentService = new AIAgentService(
-      process.env.EVOLUTION_API_BASE_URL || '',
-      process.env.EVOLUTION_API_KEY || '',
-      openaiCreds.apiKey,
-    )
+    const agentEngineService = new AgentEngineService()
 
     // Processar mensagem com o agente AI
-    const response = await aiAgentService.processMessage({
-      remoteJid,
-      content,
-      messageType: messageType as
-        | 'text'
-        | 'audio'
-        | 'image'
-        | 'video'
-        | 'document',
-      fromNumber,
-      timestamp,
-      metadata: {
-        conversationId,
-        contactId,
-        organizationId,
-      },
+    const result = await agentEngineService.processMessage({
+      agentId: aiAgent.id,
+      organizationId,
+      sessionId: remoteJid,
+      userMessage: content,
     })
 
     console.log('[AI Agent API] Resposta gerada:', {
-      hasResponse: !!response,
-      responseLength: response?.length || 0,
+      hasResponse: !!result.response,
+      responseLength: result.response?.length || 0,
     })
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Mensagem processada com sucesso',
-        response,
+        response: result.response,
       }),
       {
         status: 200,
