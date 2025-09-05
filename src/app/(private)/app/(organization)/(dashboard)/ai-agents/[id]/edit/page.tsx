@@ -35,7 +35,7 @@ import { api } from '@/igniter.client'
 import { Bot, Save, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
@@ -51,14 +51,17 @@ import {
 } from '@/components/ui/form'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
+import { AIAgentType } from '@/features/ai-agents/types/ai-agent.types'
 
 const updateAgentSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
   description: z.string().optional(),
-  type: z.enum(['LLM_AGENT', 'CREW_AI', 'LANGGRAPH_WORKFLOW']),
+  type: z.nativeEnum(AIAgentType),
   role: z.string().optional(),
   goal: z.string().optional(),
-  systemPrompt: z.string().min(10, 'Prompt do sistema deve ter pelo menos 10 caracteres'),
+  systemPrompt: z
+    .string()
+    .min(10, 'Prompt do sistema deve ter pelo menos 10 caracteres'),
   model: z.string(),
   temperature: z.number().min(0).max(2),
   maxTokens: z.number().min(1).max(8000),
@@ -81,26 +84,21 @@ export default function EditAgentPage() {
   const router = useRouter()
   const agentId = params.id as string
 
-  const { data: agent, isLoading } = api.aiAgents.getById.useQuery({
-    id: agentId,
+  const agentQuery = api.aiAgents.getById.useQuery({
+    params: { id: agentId },
   })
 
-  const updateAgentMutation = api.aiAgents.update.useMutation({
-    onSuccess: () => {
-      toast.success('Agente atualizado com sucesso!')
-      router.push(`/app/ai-agents/${agentId}`)
-    },
-    onError: (error) => {
-      toast.error('Erro ao atualizar agente: ' + error.message)
-    },
-  })
+  const agent = agentQuery.data
+  const isLoading = agentQuery.loading
+
+  const updateAgentMutation = api.aiAgents.update.useMutation()
 
   const form = useForm<UpdateAgentFormData>({
     resolver: zodResolver(updateAgentSchema),
     defaultValues: {
       name: '',
       description: '',
-      type: 'LLM_AGENT',
+      type: AIAgentType.LLM_AGENT,
       role: '',
       goal: '',
       systemPrompt: '',
@@ -141,11 +139,19 @@ export default function EditAgentPage() {
     }
   }, [agent, form])
 
-  const onSubmit = (data: UpdateAgentFormData) => {
-    updateAgentMutation.mutate({
-      id: agentId,
-      ...data,
-    })
+  const onSubmit = async (data: UpdateAgentFormData) => {
+    try {
+      await updateAgentMutation.execute({
+        params: { id: agentId },
+        body: data,
+      })
+      toast.success('Agente atualizado com sucesso!')
+      router.push(`/app/ai-agents/${agentId}`)
+    } catch (error: any) {
+      toast.error(
+        'Erro ao atualizar agente: ' + (error?.message || 'Erro desconhecido'),
+      )
+    }
   }
 
   if (isLoading) {
@@ -166,9 +172,12 @@ export default function EditAgentPage() {
         <PageBody>
           <div className="text-center py-8">
             <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">Agente não encontrado</h3>
+            <h3 className="mt-4 text-lg font-semibold">
+              Agente não encontrado
+            </h3>
             <p className="text-muted-foreground">
-              O agente solicitado não existe ou você não tem permissão para editá-lo.
+              O agente solicitado não existe ou você não tem permissão para
+              editá-lo.
             </p>
             <Button asChild className="mt-4">
               <Link href="/app/ai-agents">Voltar para Agentes</Link>
@@ -210,7 +219,9 @@ export default function EditAgentPage() {
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Editar Agente</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Editar Agente
+                </h1>
                 <p className="text-muted-foreground">
                   Modifique as configurações do agente {agent.name}
                 </p>
@@ -224,7 +235,10 @@ export default function EditAgentPage() {
             </div>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
@@ -241,7 +255,10 @@ export default function EditAgentPage() {
                           <FormItem>
                             <FormLabel>Nome do Agente</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Assistente de Vendas" {...field} />
+                              <Input
+                                placeholder="Ex: Assistente de Vendas"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -272,17 +289,35 @@ export default function EditAgentPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Tipo de Agente</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Selecione o tipo" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="LLM_AGENT">LLM Agent</SelectItem>
-                                <SelectItem value="CREW_AI">Crew AI</SelectItem>
-                                <SelectItem value="LANGGRAPH_WORKFLOW">
+                                <SelectItem value={AIAgentType.LLM_AGENT}>
+                                  LLM Agent
+                                </SelectItem>
+                                <SelectItem value={AIAgentType.CREW_AI}>
+                                  Crew AI
+                                </SelectItem>
+                                <SelectItem
+                                  value={AIAgentType.LANGGRAPH_WORKFLOW}
+                                >
                                   LangGraph Workflow
+                                </SelectItem>
+                                <SelectItem value={AIAgentType.GOOGLE_ADK}>
+                                  Google ADK
+                                </SelectItem>
+                                <SelectItem value={AIAgentType.A2A_PROTOCOL}>
+                                  A2A Protocol
+                                </SelectItem>
+                                <SelectItem value={AIAgentType.MCP_SERVER}>
+                                  MCP Server
                                 </SelectItem>
                               </SelectContent>
                             </Select>
@@ -298,7 +333,10 @@ export default function EditAgentPage() {
                           <FormItem>
                             <FormLabel>Papel/Função</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Especialista em vendas" {...field} />
+                              <Input
+                                placeholder="Ex: Especialista em vendas"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -312,7 +350,10 @@ export default function EditAgentPage() {
                           <FormItem>
                             <FormLabel>Objetivo</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Ajudar clientes com dúvidas" {...field} />
+                              <Input
+                                placeholder="Ex: Ajudar clientes com dúvidas"
+                                {...field}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -325,7 +366,9 @@ export default function EditAgentPage() {
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-base">Agente Ativo</FormLabel>
+                              <FormLabel className="text-base">
+                                Agente Ativo
+                              </FormLabel>
                               <FormDescription>
                                 Ativar ou desativar o agente
                               </FormDescription>
@@ -356,7 +399,10 @@ export default function EditAgentPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Modelo</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue />
@@ -364,8 +410,12 @@ export default function EditAgentPage() {
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="gpt-4">GPT-4</SelectItem>
-                                <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                                <SelectItem value="gpt-4-turbo">
+                                  GPT-4 Turbo
+                                </SelectItem>
+                                <SelectItem value="gpt-3.5-turbo">
+                                  GPT-3.5 Turbo
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -385,11 +435,14 @@ export default function EditAgentPage() {
                                 max={2}
                                 step={0.1}
                                 value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
+                                onValueChange={(value) =>
+                                  field.onChange(value[0])
+                                }
                               />
                             </FormControl>
                             <FormDescription>
-                              Controla a criatividade das respostas (0 = conservador, 2 = criativo)
+                              Controla a criatividade das respostas (0 =
+                              conservador, 2 = criativo)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -408,7 +461,9 @@ export default function EditAgentPage() {
                                 min={1}
                                 max={8000}
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                onChange={(e) =>
+                                  field.onChange(parseInt(e.target.value))
+                                }
                               />
                             </FormControl>
                             <FormDescription>
@@ -508,7 +563,8 @@ export default function EditAgentPage() {
                             />
                           </FormControl>
                           <FormDescription>
-                            Mensagem exibida quando o agente não consegue responder
+                            Mensagem exibida quando o agente não consegue
+                            responder
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -521,9 +577,11 @@ export default function EditAgentPage() {
                   <Button type="button" variant="outline" asChild>
                     <Link href={`/app/ai-agents/${agentId}`}>Cancelar</Link>
                   </Button>
-                  <Button type="submit" disabled={updateAgentMutation.isPending}>
+                  <Button type="submit" disabled={updateAgentMutation.loading}>
                     <Save className="mr-2 h-4 w-4" />
-                    {updateAgentMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                    {updateAgentMutation.loading
+                      ? 'Salvando...'
+                      : 'Salvar Alterações'}
                   </Button>
                 </div>
               </form>

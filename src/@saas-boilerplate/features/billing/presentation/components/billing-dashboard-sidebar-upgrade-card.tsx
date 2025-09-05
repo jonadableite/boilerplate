@@ -44,28 +44,19 @@ export function BillingDashboardSidebarUpgradeCard() {
   // Buscar contadores de uso
   const { data: whatsappInstancesData, isLoading: isLoadingWhatsApp } =
     api.whatsAppInstances.list.useQuery({
-      params: {
-        query: { limit: 100 }, // Limite máximo permitido
-        params: undefined,
-      },
+      limit: 100, // Limite máximo permitido
     })
 
   // Buscar contadores de leads
   const { data: leadsData, isLoading: isLoadingLeads } =
     api.lead.findMany.useQuery({
-      params: {
-        query: { limit: 100 },
-        params: undefined,
-      },
+      limit: 100,
     })
 
   // Buscar contadores de submissions
   const { data: submissionsData, isLoading: isLoadingSubmissions } =
     api.submission.findMany.useQuery({
-      params: {
-        query: { limit: 100 },
-        params: undefined,
-      },
+      limit: 100,
     })
 
   useEffect(() => {

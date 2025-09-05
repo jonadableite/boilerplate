@@ -81,7 +81,7 @@ export const AIAgentFeatureProcedure = igniter.procedure({
                   },
                   _count: {
                     select: {
-                      memory: true,
+                      memories: true,
                       knowledgeChunks: true,
                     },
                   },
@@ -137,7 +137,7 @@ export const AIAgentFeatureProcedure = igniter.procedure({
                 openaiCreds: true,
                 _count: {
                   select: {
-                    memory: true,
+                    memories: true,
                     knowledgeChunks: true,
                   },
                 },
@@ -203,15 +203,27 @@ export const AIAgentFeatureProcedure = igniter.procedure({
               data: {
                 name: input.name,
                 description: input.description,
-                type: input.type,
+                type: input.type || 'LLM_AGENT',
                 role: input.role,
                 goal: input.goal,
                 systemPrompt: input.systemPrompt,
-                modelConfig,
-                guardrailConfig,
+                // Configurações do modelo (campos individuais)
+                model: input.model || 'gpt-4',
+                temperature: input.temperature || 0.7,
+                maxTokens: input.maxTokens || 1000,
+                topP: input.topP,
+                frequencyPenalty: input.frequencyPenalty,
+                presencePenalty: input.presencePenalty,
+                // Configurações de segurança (campos individuais)
+                enableContentFilter: input.enableContentFilter ?? true,
+                enablePiiDetection: input.enablePiiDetection ?? true,
+                maxResponseLength: input.maxResponseLength,
+                allowedTopics: input.allowedTopics || [],
+                blockedTopics: input.blockedTopics || [],
+                // Outros campos
                 knowledgeBaseId: input.knowledgeBaseId,
                 fallbackMessage: input.fallbackMessage,
-                isActive: input.isActive,
+                isActive: input.isActive ?? true,
                 openaiCredsId: input.openaiCredsId,
                 metadata: input.metadata || {},
                 organizationId: input.organizationId,
@@ -227,7 +239,7 @@ export const AIAgentFeatureProcedure = igniter.procedure({
                 openaiCreds: true,
                 _count: {
                   select: {
-                    memory: true,
+                    memories: true,
                     knowledgeChunks: true,
                   },
                 },
@@ -277,78 +289,8 @@ export const AIAgentFeatureProcedure = igniter.procedure({
               throw new AgentNotFoundError('Agent not found')
             }
 
-            // Preparar dados de atualização
+            // Preparar dados de atualização (usar campos individuais)
             const dataToUpdate: any = { ...updateData }
-
-            // Atualizar configurações se fornecidas
-            if (
-              updateData.model ||
-              updateData.temperature !== undefined ||
-              updateData.maxTokens !== undefined ||
-              updateData.topP !== undefined ||
-              updateData.frequencyPenalty !== undefined ||
-              updateData.presencePenalty !== undefined
-            ) {
-              dataToUpdate.modelConfig = {
-                ...existingAgent.modelConfig,
-                ...(updateData.model && { model: updateData.model }),
-                ...(updateData.temperature !== undefined && {
-                  temperature: updateData.temperature,
-                }),
-                ...(updateData.maxTokens !== undefined && {
-                  maxTokens: updateData.maxTokens,
-                }),
-                ...(updateData.topP !== undefined && { topP: updateData.topP }),
-                ...(updateData.frequencyPenalty !== undefined && {
-                  frequencyPenalty: updateData.frequencyPenalty,
-                }),
-                ...(updateData.presencePenalty !== undefined && {
-                  presencePenalty: updateData.presencePenalty,
-                }),
-              }
-
-              // Remover campos individuais do modelo
-              delete dataToUpdate.model
-              delete dataToUpdate.temperature
-              delete dataToUpdate.maxTokens
-              delete dataToUpdate.topP
-              delete dataToUpdate.frequencyPenalty
-              delete dataToUpdate.presencePenalty
-            }
-
-            if (
-              updateData.enableContentFilter !== undefined ||
-              updateData.enablePiiDetection !== undefined ||
-              updateData.maxResponseLength !== undefined ||
-              updateData.allowedTopics ||
-              updateData.blockedTopics
-            ) {
-              dataToUpdate.guardrailConfig = {
-                ...existingAgent.guardrailConfig,
-                ...(updateData.enableContentFilter !== undefined && {
-                  enableContentFilter: updateData.enableContentFilter,
-                }),
-                ...(updateData.enablePiiDetection !== undefined && {
-                  enablePiiDetection: updateData.enablePiiDetection,
-                }),
-                ...(updateData.maxResponseLength !== undefined && {
-                  maxResponseLength: updateData.maxResponseLength,
-                }),
-                ...(updateData.allowedTopics && {
-                  allowedTopics: updateData.allowedTopics,
-                }),
-                ...(updateData.blockedTopics && {
-                  blockedTopics: updateData.blockedTopics,
-                }),
-              }
-
-              // Remover campos individuais de guardrails
-              delete dataToUpdate.enableContentFilter
-              delete dataToUpdate.enablePiiDetection
-              delete dataToUpdate.maxResponseLength
-              delete dataToUpdate.allowedTopics
-              delete dataToUpdate.blockedTopics
-            }
 
             // Verificar credenciais OpenAI se fornecidas
             if (updateData.openaiCredsId) {
@@ -382,7 +324,7 @@ export const AIAgentFeatureProcedure = igniter.procedure({
                 openaiCreds: true,
                 _count: {
                   select: {
-                    memory: true,
+                    memories: true,
                     knowledgeChunks: true,
                   },
                 },

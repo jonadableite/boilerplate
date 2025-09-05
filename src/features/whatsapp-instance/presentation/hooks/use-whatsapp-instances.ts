@@ -1,23 +1,23 @@
 // src/features/whatsapp-instance/presentation/hooks/use-whatsapp-instances.ts
-import { api } from '@/igniter.client'
-import { InstanceConnectionStatus } from '../../whatsapp-instance.types'
+import { api } from "@/igniter.client";
+import { InstanceConnectionStatus } from "../../whatsapp-instance.types";
 
 export interface UseWhatsAppInstancesOptions {
   /**
    * Filtrar apenas instâncias conectadas
    * @default false
    */
-  onlyConnected?: boolean
+  onlyConnected?: boolean;
   /**
    * Incluir instâncias em processo de conexão
    * @default false
    */
-  includeConnecting?: boolean
+  includeConnecting?: boolean;
   /**
    * Limite de instâncias a serem retornadas
    * @default 100
    */
-  limit?: number
+  limit?: number;
 }
 
 /**
@@ -31,31 +31,26 @@ export function useWhatsAppInstances(
     onlyConnected = false,
     includeConnecting = false,
     limit = 100,
-  } = options
+  } = options;
 
   // Construir filtros de status
   const statusFilter = (() => {
     if (onlyConnected && !includeConnecting) {
-      return InstanceConnectionStatus.OPEN
+      return InstanceConnectionStatus.OPEN;
     }
     if (onlyConnected && includeConnecting) {
-      return undefined // Será filtrado no frontend
+      return undefined; // Será filtrado no frontend
     }
-    return undefined // Buscar todas
-  })()
+    return undefined; // Buscar todas
+  })();
 
   const queryParams = {
     page: 1,
     limit,
     ...(statusFilter && { status: statusFilter }),
-  }
+  };
 
-  const query = api.whatsAppInstances.list.useQuery({
-    params: {
-      query: queryParams,
-      params: undefined,
-    },
-  })
+  const query = api.whatsAppInstances.list.useQuery(queryParams);
 
   // Filtrar instâncias no frontend se necessário
   const filteredInstances =
@@ -64,10 +59,10 @@ export function useWhatsAppInstances(
         return (
           instance.status === InstanceConnectionStatus.OPEN ||
           instance.status === InstanceConnectionStatus.CONNECTING
-        )
+        );
       }
-      return true
-    }) || []
+      return true;
+    }) || [];
 
   return {
     instances: filteredInstances,
@@ -87,7 +82,7 @@ export function useWhatsAppInstances(
         (i) => i.status === InstanceConnectionStatus.CLOSE,
       ).length,
     },
-  }
+  };
 }
 
 /**
@@ -98,7 +93,7 @@ export function useConnectedWhatsAppInstances() {
   return useWhatsAppInstances({
     onlyConnected: true,
     includeConnecting: false,
-  })
+  });
 }
 
 /**
@@ -109,5 +104,5 @@ export function useAvailableWhatsAppInstances() {
   return useWhatsAppInstances({
     onlyConnected: true,
     includeConnecting: true,
-  })
+  });
 }

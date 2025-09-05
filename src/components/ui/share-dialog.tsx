@@ -139,8 +139,8 @@ interface ShareDialogRootProps extends React.ComponentProps<typeof Dialog> {
   children: React.ReactNode
 }
 
-const ShareDialogRoot = React.forwardRef<HTMLDivElement, ShareDialogRootProps>(
-  ({ children, ...props }) => <Dialog {...props}>{children}</Dialog>,
+const ShareDialogRoot = ({ children, ...props }: ShareDialogRootProps) => (
+  <Dialog {...props}>{children}</Dialog>
 )
 ShareDialogRoot.displayName = 'ShareDialogRoot'
 

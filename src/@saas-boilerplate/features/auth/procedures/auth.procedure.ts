@@ -1,5 +1,5 @@
-import { igniter } from '@/igniter'
-import { tryCatch, Url } from '@/@saas-boilerplate/utils'
+import { igniter } from "@/igniter";
+import { tryCatch, Url } from "@/@saas-boilerplate/utils";
 
 import type {
   AppSession,
@@ -8,10 +8,10 @@ import type {
   OrganizationMembershipRole,
   SendVerificationOTPInput,
   SignInInput,
-} from '../auth.interface'
+} from "../auth.interface";
 
 export const AuthFeatureProcedure = igniter.procedure({
-  name: 'AuthFeatureProcedure',
+  name: "AuthFeatureProcedure",
   handler: async (options, { request, context }) => {
     return {
       auth: {
@@ -21,7 +21,7 @@ export const AuthFeatureProcedure = igniter.procedure({
               body: input,
               headers: request.headers,
             }),
-          )
+          );
         },
 
         listSession: async () => {
@@ -29,7 +29,7 @@ export const AuthFeatureProcedure = igniter.procedure({
             context.providers.auth.api.listSessions({
               headers: request.headers,
             }),
-          )
+          );
         },
 
         signInWithProvider: async (input: SignInInput) => {
@@ -38,20 +38,20 @@ export const AuthFeatureProcedure = igniter.procedure({
               headers: request.headers,
               body: {
                 provider: input.provider,
-                callbackURL: Url.get('/auth'),
-                newUserCallbackURL: Url.get('/get-started'),
-                errorCallbackURL: Url.get('/auth?error=true'),
+                callbackURL: Url.get("/auth"),
+                newUserCallbackURL: Url.get("/get-started"),
+                errorCallbackURL: Url.get("/auth?error=true"),
               },
             }),
-          )
+          );
 
           if (response.error) {
             return {
               error: {
-                code: 'ERR_BAD_REQUEST',
+                code: "ERR_BAD_REQUEST",
                 message: response.error.message,
               },
-            }
+            };
           }
 
           return {
@@ -59,7 +59,7 @@ export const AuthFeatureProcedure = igniter.procedure({
               redirect: true,
               url: response.data.url,
             },
-          }
+          };
         },
 
         signInWithOTP: async (input: { email: string; otpCode: string }) => {
@@ -71,22 +71,22 @@ export const AuthFeatureProcedure = igniter.procedure({
                 otp: input.otpCode,
               },
             }),
-          )
+          );
 
           if (response.error) {
             return {
               error: {
-                code: 'ERR_BAD_REQUEST',
+                code: "ERR_BAD_REQUEST",
                 message: response.error.message,
               },
-            }
+            };
           }
 
           return {
             data: {
               success: true,
             },
-          }
+          };
         },
 
         sendOTPVerificationCode: async (input: SendVerificationOTPInput) => {
@@ -95,7 +95,7 @@ export const AuthFeatureProcedure = igniter.procedure({
               headers: request.headers,
               body: input,
             }),
-          )
+          );
         },
 
         signOut: async () => {
@@ -103,7 +103,7 @@ export const AuthFeatureProcedure = igniter.procedure({
             context.providers.auth.api.signOut({
               headers: request.headers,
             }),
-          )
+          );
         },
 
         getSession: async <
@@ -115,55 +115,44 @@ export const AuthFeatureProcedure = igniter.procedure({
         ): Promise<AppSession<TRequirements, TRoles>> => {
           const session = await context.providers.auth.api.getSession({
             headers: request.headers,
-          })
+          });
 
           if (!session) {
             // @ts-expect-error - This is a hack to make TypeScript happy
-            return null
+            return null;
           }
 
           const user = await context.providers.database.user.findUnique({
             where: { id: session.user.id },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              emailVerified: true,
-              role: true,
-              createdAt: true,
-              updatedAt: true,
-              metadata: true,
-            },
-          })
+          });
 
           if (!user) {
             // @ts-expect-error - This is a hack to make TypeScript happy
-            return null
+            return null;
           }
 
           let organization =
             await context.providers.auth.api.getFullOrganization({
               headers: request.headers,
-            })
+            });
 
           if (!organization) {
             const userOrganizations =
               await context.providers.auth.api.listOrganizations({
                 headers: request.headers,
-              })
+              });
 
             if (userOrganizations.length > 0) {
               await context.providers.auth.api.setActiveOrganization({
                 body: { organizationId: userOrganizations[0].id },
                 headers: request.headers,
-              })
+              });
 
               organization =
                 await context.providers.auth.api.getFullOrganization({
                   query: { organizationId: userOrganizations[0].id },
                   headers: request.headers,
-                })
+                });
             }
           }
 
@@ -174,23 +163,23 @@ export const AuthFeatureProcedure = igniter.procedure({
               user,
               organization: null,
               membership: null,
-            }
+            };
           }
 
           // Parse metadata
           organization.metadata = organization.metadata
             ? JSON.parse(organization.metadata)
-            : {}
+            : {};
 
           // Get active membership
           const membership = await context.providers.auth.api.getActiveMember({
             headers: request.headers,
-          })
+          });
 
           // Get current org billing
           const billing = await context.providers.payment.getCustomerById(
             organization.id,
-          )
+          );
 
           // @ts-expect-error - This is a hack to make TypeScript happy
           return {
@@ -201,9 +190,9 @@ export const AuthFeatureProcedure = igniter.procedure({
               billing,
             },
             membership,
-          }
+          };
         },
       },
-    }
+    };
   },
-})
+});
