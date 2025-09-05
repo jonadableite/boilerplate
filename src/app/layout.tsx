@@ -7,6 +7,7 @@ import { Suspense } from 'react'
 import { GeistSans } from 'geist/font/sans'
 import { cn } from '@/utils/cn'
 import { DemoPromoBar } from '@/components/ui/demo-promo-bar'
+
 import { AppConfig } from '@/boilerplate.config'
 
 import './globals.css'

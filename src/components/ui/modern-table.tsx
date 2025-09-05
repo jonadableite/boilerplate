@@ -195,14 +195,9 @@ export function ActionButton({
 
   return (
     <motion.button
-      whileHover={{
+      whileHover={{ 
         scale: 1.05,
-        backgroundColor:
-          variant === 'danger'
-            ? 'rgba(239, 68, 68, 0.1)'
-            : variant === 'success'
-              ? 'rgba(34, 197, 94, 0.1)'
-              : 'rgba(var(--primary), 0.1)',
+        backgroundColor: variant === 'danger' ? 'rgba(239, 68, 68, 0.1)' : variant === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(var(--primary), 0.1)'
       }}
       whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.1 }}

@@ -217,6 +217,12 @@ const config: Config = {
           '0%': { backgroundPosition: '0% 50%' },
           '100%': { backgroundPosition: '200% 50%' },
         },
+        // Border beam animation
+        'border-beam': {
+          '100%': {
+            'offset-distance': '100%',
+          },
+        },
         // Novas animações para carregamento da página
         fadeIn: {
           '0%': { opacity: '0' },
@@ -249,6 +255,7 @@ const config: Config = {
         'caret-blink': 'caret-blink 1s ease-out infinite',
         'pulse-scale': 'pulse-scale 6s ease-out infinite',
         'gradient-move': 'gradient-move 5s linear infinite',
+        'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
         // Novas animações para carregamento da página
         fadeIn: 'fadeIn 0.8s ease-in-out forwards',
         slideUp: 'slideUp 0.8s ease-in-out forwards',

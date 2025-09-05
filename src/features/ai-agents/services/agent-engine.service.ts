@@ -1,46 +1,46 @@
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { prisma } from "@/providers/prisma";
-import { TokenUsageService } from "./token-usage.service";
-import { RAGService } from "./rag.service";
-import { GuardrailService } from "./guardrail.service";
-import { MemoryService } from "./memory.service";
+import { ChatOpenAI } from '@langchain/openai'
+import { HumanMessage, AIMessage, BaseMessage } from '@langchain/core/messages'
+import { ChatPromptTemplate } from '@langchain/core/prompts'
+import { StringOutputParser } from '@langchain/core/output_parsers'
+import { RunnableSequence } from '@langchain/core/runnables'
+import { prisma } from '@/providers/prisma'
+import { TokenUsageService } from './token-usage.service'
+import { RAGService } from './rag.service'
+import { GuardrailService } from './guardrail.service'
+import { MemoryService } from './memory.service'
 
 // Configuração do modelo
 interface ModelConfig {
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
+  model: string
+  temperature: number
+  maxTokens: number
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
 }
 
 // Configuração do agente
 interface AgentConfig {
-  id: string;
-  name: string;
-  systemPrompt: string;
-  modelConfig: ModelConfig;
-  knowledgeBaseId?: string;
-  guardrails?: any;
-  organizationId: string;
+  id: string
+  name: string
+  systemPrompt: string
+  modelConfig: ModelConfig
+  knowledgeBaseId?: string
+  guardrails?: any
+  organizationId: string
 }
 
 export class AgentEngineService {
-  private tokenUsageService: TokenUsageService;
-  private ragService: RAGService;
-  private guardrailService: GuardrailService;
-  private memoryService: MemoryService;
+  private tokenUsageService: TokenUsageService
+  private ragService: RAGService
+  private guardrailService: GuardrailService
+  private memoryService: MemoryService
 
   constructor() {
-    this.tokenUsageService = new TokenUsageService();
-    this.ragService = new RAGService();
-    this.guardrailService = new GuardrailService();
-    this.memoryService = new MemoryService();
+    this.tokenUsageService = new TokenUsageService()
+    this.ragService = new RAGService()
+    this.guardrailService = new GuardrailService()
+    this.memoryService = new MemoryService()
   }
 
   /**
@@ -52,34 +52,34 @@ export class AgentEngineService {
     organizationId,
     userMessage,
   }: {
-    agentId: string;
-    sessionId: string;
-    organizationId: string;
-    userMessage: string;
+    agentId: string
+    sessionId: string
+    organizationId: string
+    userMessage: string
   }): Promise<{
-    response: string;
+    response: string
     tokenUsage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
-    conversationId: string;
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+    conversationId: string
   }> {
     try {
       // Verificar limites de token
       const tokenCheck = await this.tokenUsageService.checkTokenLimits({
         organizationId,
         requestedTokens: 1000,
-      });
+      })
 
       if (!tokenCheck.allowed) {
-        throw new Error(`Token limit exceeded: ${tokenCheck.reason}`);
+        throw new Error(`Token limit exceeded: ${tokenCheck.reason}`)
       }
 
       // Buscar configuração do agente
-      const agent = await this.getAgentConfig(agentId);
+      const agent = await this.getAgentConfig(agentId)
       if (!agent) {
-        throw new Error(`Agent not found: ${agentId}`);
+        throw new Error(`Agent not found: ${agentId}`)
       }
 
       // Processar mensagem
@@ -89,12 +89,12 @@ export class AgentEngineService {
         agentId,
         sessionId,
         organizationId,
-      );
+      )
 
-      return result;
+      return result
     } catch (error) {
-      console.error("Error processing message:", error);
-      throw error;
+      console.error('Error processing message:', error)
+      throw error
     }
   }
 
@@ -110,23 +110,23 @@ export class AgentEngineService {
       topP: agent.modelConfig.topP,
       frequencyPenalty: agent.modelConfig.frequencyPenalty,
       presencePenalty: agent.modelConfig.presencePenalty,
-    });
+    })
 
     // Criar o template do prompt
     const promptTemplate = ChatPromptTemplate.fromMessages([
-      ["system", agent.systemPrompt || "You are a helpful AI assistant."],
-      ["placeholder", "{chat_history}"],
-      ["human", "{input}"],
-    ]);
+      ['system', agent.systemPrompt || 'You are a helpful AI assistant.'],
+      ['placeholder', '{chat_history}'],
+      ['human', '{input}'],
+    ])
 
     // Criar a cadeia de processamento
     const chain = RunnableSequence.from([
       promptTemplate,
       llm,
       new StringOutputParser(),
-    ]);
+    ])
 
-    return chain;
+    return chain
   }
 
   /**
@@ -141,61 +141,57 @@ export class AgentEngineService {
   ) {
     try {
       // Carregar histórico da conversa
-      const conversationHistory =
-        await this.memoryService.getConversationHistory({
-          agentId,
-          sessionId,
-          limit: 10,
-        });
+      const conversationHistory = await this.memoryService.getConversationHistory({
+        agentId,
+        sessionId,
+        limit: 10,
+      })
 
       // Converter para formato do LangChain
       const chatHistory = conversationHistory.messages.map((msg) => {
-        if (msg.role === "user") {
-          return new HumanMessage(msg.content);
+        if (msg.role === 'user') {
+          return new HumanMessage(msg.content)
         } else {
-          return new AIMessage(msg.content);
+          return new AIMessage(msg.content)
         }
-      });
+      })
 
       // Buscar contexto RAG se necessário
-      let contextData = "";
+      let contextData = ''
       if (agent.knowledgeBaseId) {
         const ragResults = await this.ragService.retrieveRelevantChunks({
           query: userMessage,
           knowledgeBaseId: agent.knowledgeBaseId,
           limit: 5,
-        });
-        contextData = ragResults.chunks
-          .map((chunk: any) => chunk.content)
-          .join("\n\n");
+        })
+        contextData = ragResults.chunks.map((chunk: any) => chunk.content).join('\n\n')
       }
 
       // Criar a cadeia do agente
-      const chain = await this.createAgentChain(agent);
+      const chain = await this.createAgentChain(agent)
 
       // Construir prompt do sistema com contexto
-      let systemPrompt =
-        agent.systemPrompt || "You are a helpful AI assistant.";
+      let systemPrompt = agent.systemPrompt || 'You are a helpful AI assistant.'
       if (contextData) {
-        systemPrompt += `\n\nContexto relevante:\n${contextData}`;
+        systemPrompt += `\n\nContexto relevante:\n${contextData}`
       }
 
       // Executar a cadeia
       const response = await chain.invoke({
         chat_history: chatHistory,
         input: userMessage,
-      });
+      })
 
       // Estimar tokens (implementação simplificada)
       const estimatedTokens = this.estimateTokens(
         systemPrompt + userMessage + response,
-      );
+      )
 
       const tokenUsage = {
         promptTokens: Math.floor(estimatedTokens * 0.7),
         completionTokens: Math.floor(estimatedTokens * 0.3),
         totalTokens: estimatedTokens,
-      };
+      }
 
       // Salvar conversa na memória
       await this.memoryService.saveConversation({
@@ -204,19 +200,19 @@ export class AgentEngineService {
         organizationId,
         messages: [
           {
-            role: "user" as any,
+            role: 'user' as any,
             content: userMessage,
             timestamp: new Date(),
             tokens: tokenUsage.promptTokens,
           },
           {
-            role: "assistant" as any,
+            role: 'assistant' as any,
             content: response,
             timestamp: new Date(),
             tokens: tokenUsage.completionTokens,
           },
         ],
-      });
+      })
 
       // Registrar uso de tokens
       await this.tokenUsageService.recordTokenUsage({
@@ -226,17 +222,17 @@ export class AgentEngineService {
         completionTokens: tokenUsage.completionTokens,
         totalTokens: tokenUsage.totalTokens,
         model: agent.modelConfig.model,
-        operation: "chat_completion",
-      });
+        operation: 'chat_completion',
+      })
 
       return {
         response,
         tokenUsage,
         conversationId: sessionId,
-      };
+      }
     } catch (error) {
-      console.error("Error processing agent message:", error);
-      throw error;
+      console.error('Error processing agent message:', error)
+      throw error
     }
   }
 
@@ -252,7 +248,7 @@ export class AgentEngineService {
       frequencyPenalty: modelConfig.frequencyPenalty,
       presencePenalty: modelConfig.presencePenalty,
       openAIApiKey: process.env.OPENAI_API_KEY,
-    });
+    })
   }
 
   /**
@@ -265,10 +261,10 @@ export class AgentEngineService {
         include: {
           openaiCreds: true,
         },
-      });
+      })
 
       if (!agent) {
-        return null;
+        return null
       }
 
       return {
@@ -292,10 +288,10 @@ export class AgentEngineService {
           blockedTopics: agent.blockedTopics,
         },
         organizationId: agent.organizationId,
-      };
+      }
     } catch (error) {
-      console.error("Error fetching agent config:", error);
-      return null;
+      console.error('Error fetching agent config:', error)
+      return null
     }
   }
 
@@ -304,7 +300,7 @@ export class AgentEngineService {
    */
   private estimateTokens(text: string): number {
     // Estimativa simples: ~4 caracteres por token
-    return Math.ceil(text.length / 4);
+    return Math.ceil(text.length / 4)
   }
 
   /**
@@ -321,13 +317,13 @@ export class AgentEngineService {
         createdAt: true,
         updatedAt: true,
       },
-    });
+    })
   }
 
   /**
    * Cria um novo agente
    */
-  async createAgent(config: Omit<AgentConfig, "id"> & { createdById: string }) {
+  async createAgent(config: Omit<AgentConfig, 'id'> & { createdById: string }) {
     return await prisma.aIAgent.create({
       data: {
         name: config.name,
@@ -348,7 +344,7 @@ export class AgentEngineService {
         createdById: config.createdById,
         isActive: true,
       },
-    });
+    })
   }
 
   /**
@@ -373,7 +369,7 @@ export class AgentEngineService {
         allowedTopics: config.guardrails?.allowedTopics,
         blockedTopics: config.guardrails?.blockedTopics,
       },
-    });
+    })
   }
 
   /**
@@ -382,31 +378,30 @@ export class AgentEngineService {
   async deleteAgent(agentId: string) {
     return await prisma.aIAgent.delete({
       where: { id: agentId },
-    });
+    })
   }
 
   /**
    * Obtém estatísticas do agente
    */
   async getAgentStats(input: {
-    agentId: string;
-    organizationId: string;
-    startDate?: Date;
-    endDate?: Date;
+    agentId: string
+    organizationId: string
+    startDate?: Date
+    endDate?: Date
   }): Promise<{
-    totalMessages: number;
-    totalTokensUsed: number;
-    averageResponseTime: number;
-    successRate: number;
-    lastActive?: Date;
+    totalMessages: number
+    totalTokensUsed: number
+    averageResponseTime: number
+    successRate: number
+    lastActive?: Date
   }> {
     try {
-      const { agentId, organizationId, startDate, endDate } = input;
-
+      const { agentId, organizationId, startDate, endDate } = input
+      
       // Definir período padrão se não fornecido (últimos 30 dias)
-      const defaultStartDate =
-        startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const defaultEndDate = endDate || new Date();
+      const defaultStartDate = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const defaultEndDate = endDate || new Date()
 
       // Buscar estatísticas de uso de tokens
       const tokenStats = await this.tokenUsageService.getTokenUsageStats({
@@ -414,7 +409,7 @@ export class AgentEngineService {
         agentId,
         startDate: defaultStartDate,
         endDate: defaultEndDate,
-      });
+      })
 
       // Buscar memórias/conversas do agente para calcular total de mensagens
       const totalMessages = await prisma.aIAgentMemory.count({
@@ -426,7 +421,7 @@ export class AgentEngineService {
             lte: defaultEndDate,
           },
         },
-      });
+      })
 
       // Buscar última atividade
       const lastActivity = await prisma.aIAgentMemory.findFirst({
@@ -435,12 +430,12 @@ export class AgentEngineService {
           organizationId,
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: 'desc',
         },
         select: {
           createdAt: true,
         },
-      });
+      })
 
       // Buscar logs de erro para calcular taxa de sucesso
       const totalLogs = await prisma.aIAgentLog.count({
@@ -452,26 +447,25 @@ export class AgentEngineService {
             lte: defaultEndDate,
           },
         },
-      });
+      })
 
       const errorLogs = await prisma.aIAgentLog.count({
         where: {
           agentId,
           organizationId,
-          level: "ERROR",
+          level: 'ERROR',
           createdAt: {
             gte: defaultStartDate,
             lte: defaultEndDate,
           },
         },
-      });
+      })
 
       // Calcular taxa de sucesso
-      const successRate =
-        totalLogs > 0 ? ((totalLogs - errorLogs) / totalLogs) * 100 : 100;
+      const successRate = totalLogs > 0 ? ((totalLogs - errorLogs) / totalLogs) * 100 : 100
 
       // Tempo médio de resposta (estimativa baseada em dados disponíveis)
-      const averageResponseTime = 1500; // ms - valor padrão estimado
+      const averageResponseTime = 1500 // ms - valor padrão estimado
 
       return {
         totalMessages,
@@ -479,9 +473,9 @@ export class AgentEngineService {
         averageResponseTime,
         successRate,
         lastActive: lastActivity?.createdAt,
-      };
+      }
     } catch (error) {
-      console.error("Error getting agent stats:", error);
+      console.error('Error getting agent stats:', error)
       // Retornar estatísticas padrão em caso de erro
       return {
         totalMessages: 0,
@@ -489,7 +483,7 @@ export class AgentEngineService {
         averageResponseTime: 0,
         successRate: 0,
         lastActive: undefined,
-      };
+      }
     }
   }
 }

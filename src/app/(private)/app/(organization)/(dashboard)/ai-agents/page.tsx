@@ -90,12 +90,10 @@ import { AIAgentType } from '@/features/ai-agents/types/ai-agent.types'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { createAIAgentSchema } from '@/features/ai-agents/validation/ai-agent.validation'
-import {
-  AnimatedCard,
-  AnimatedCardHeader,
-  AnimatedCardContent,
-  AnimatedCardTitle,
-} from '@/components/ui/animated-card'
+
+import { BorderBeam } from '@/components/magicui/border-beam'
+import { MagicCard } from '@/components/magicui/magic-card'
+import { useTheme } from 'next-themes'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import {
   ModernTable,
@@ -135,6 +133,7 @@ const createAgentSchema = createAIAgentSchema
 type CreateAgentFormData = z.infer<typeof createAgentSchema>
 
 export default function AIAgentsPage() {
+  const { theme } = useTheme()
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -624,14 +623,13 @@ export default function AIAgentsPage() {
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <AnimatedCard 
-                className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 hover:shadow-lg hover:scale-105 transition-all duration-300"
-                delay={0.1}
-              >
-                <AnimatedCardContent className="p-6">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 hover:shadow-lg hover:scale-105 transition-all duration-300">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total de Agentes</p>
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        Total de Agentes
+                      </p>
                       <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
                         {agentsData?.data?.length || 0}
                       </p>
@@ -640,46 +638,46 @@ export default function AIAgentsPage() {
                       <IconBrain className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                     </div>
                   </div>
-                </AnimatedCardContent>
-              </AnimatedCard>
+                </CardContent>
+              </Card>
 
-              <AnimatedCard 
-                className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 hover:shadow-lg hover:scale-105 transition-all duration-300"
-                delay={0.2}
-              >
-                <AnimatedCardContent className="p-6">
+              <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 hover:shadow-lg hover:scale-105 transition-all duration-300">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-green-600 dark:text-green-400">Agentes Ativos</p>
+                      <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                        Agentes Ativos
+                      </p>
                       <p className="text-3xl font-bold text-green-900 dark:text-green-100">
-                        {agentsData?.data?.filter(agent => agent.isActive).length || 0}
+                        {agentsData?.data?.filter((agent) => agent.isActive)
+                          .length || 0}
                       </p>
                     </div>
                     <div className="p-3 bg-green-200 dark:bg-green-800 rounded-full transform hover:rotate-12 transition-transform duration-300">
                       <IconActivity className="h-6 w-6 text-green-600 dark:text-green-400" />
                     </div>
                   </div>
-                </AnimatedCardContent>
-              </AnimatedCard>
+                </CardContent>
+              </Card>
 
-              <AnimatedCard 
-                className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 hover:shadow-lg hover:scale-105 transition-all duration-300"
-                delay={0.3}
-              >
-                <AnimatedCardContent className="p-6">
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800 hover:shadow-lg hover:scale-105 transition-all duration-300">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Agentes Inativos</p>
+                      <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                        Agentes Inativos
+                      </p>
                       <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-                        {agentsData?.data?.filter(agent => !agent.isActive).length || 0}
+                        {agentsData?.data?.filter((agent) => !agent.isActive)
+                          .length || 0}
                       </p>
                     </div>
                     <div className="p-3 bg-orange-200 dark:bg-orange-800 rounded-full transform hover:rotate-12 transition-transform duration-300">
                       <IconClock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                     </div>
                   </div>
-                </AnimatedCardContent>
-              </AnimatedCard>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Enhanced Filters */}
@@ -708,16 +706,22 @@ export default function AIAgentsPage() {
                       Todos
                     </Button>
                     <Button
-                      variant={statusFilter === 'active' ? 'default' : 'outline'}
+                      variant={
+                        statusFilter === 'active' ? 'default' : 'outline'
+                      }
                       size="sm"
-                      onClick={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
+                      onClick={() =>
+                        setStatusFilter(
+                          statusFilter === 'active' ? 'all' : 'active',
+                        )
+                      }
                       className="transition-all duration-200"
                     >
                       Ativos
                     </Button>
                   </div>
                 </div>
-                
+
                 {/* Advanced Filters */}
                 <div className="flex flex-wrap gap-3">
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -726,15 +730,27 @@ export default function AIAgentsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">🤖 Todos os tipos</SelectItem>
-                      <SelectItem value={AIAgentType.LLM_AGENT}>🧠 LLM Agent</SelectItem>
-                      <SelectItem value={AIAgentType.CREW_AI}>👥 Crew AI</SelectItem>
-                      <SelectItem value={AIAgentType.LANGGRAPH_WORKFLOW}>🔄 LangGraph</SelectItem>
-                      <SelectItem value={AIAgentType.GOOGLE_ADK}>🔍 Google ADK</SelectItem>
-                      <SelectItem value={AIAgentType.A2A_PROTOCOL}>🔗 A2A Protocol</SelectItem>
-                      <SelectItem value={AIAgentType.MCP_SERVER}>🖥️ MCP Server</SelectItem>
+                      <SelectItem value={AIAgentType.LLM_AGENT}>
+                        🧠 LLM Agent
+                      </SelectItem>
+                      <SelectItem value={AIAgentType.CREW_AI}>
+                        👥 Crew AI
+                      </SelectItem>
+                      <SelectItem value={AIAgentType.LANGGRAPH_WORKFLOW}>
+                        🔄 LangGraph
+                      </SelectItem>
+                      <SelectItem value={AIAgentType.GOOGLE_ADK}>
+                        🔍 Google ADK
+                      </SelectItem>
+                      <SelectItem value={AIAgentType.A2A_PROTOCOL}>
+                        🔗 A2A Protocol
+                      </SelectItem>
+                      <SelectItem value={AIAgentType.MCP_SERVER}>
+                        🖥️ MCP Server
+                      </SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Status" />
@@ -745,7 +761,7 @@ export default function AIAgentsPage() {
                       <SelectItem value="inactive">🔴 Inativo</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   {/* Sort Options */}
                   <Select defaultValue="newest">
                     <SelectTrigger className="w-40">
@@ -758,29 +774,29 @@ export default function AIAgentsPage() {
                       <SelectItem value="active">⚡ Mais ativos</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   {/* Clear Filters */}
-                  {(searchTerm || typeFilter !== 'all' || statusFilter !== 'all') && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSearchTerm('')
-                        setTypeFilter('all')
-                        setStatusFilter('all')
-                      }}
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-200"
-                    >
-                      ✨ Limpar filtros
-                    </Button>
-                  )}
+                  {(searchTerm ||
+                    typeFilter !== 'all' ||
+                    statusFilter !== 'all') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm('')
+                          setTypeFilter('all')
+                          setStatusFilter('all')
+                        }}
+                        className="text-muted-foreground hover:text-foreground transition-colors duration-200"
+                      >
+                        ✨ Limpar filtros
+                      </Button>
+                    )}
                 </div>
-                
+
                 {/* Results Summary */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>
-                    Mostrando {agentsData?.data?.length || 0} agentes
-                  </span>
+                  <span>Mostrando {agentsData?.data?.length || 0} agentes</span>
                   <div className="flex items-center gap-2">
                     <span>Visualização:</span>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -800,29 +816,29 @@ export default function AIAgentsPage() {
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <AnimatedCard key={i} className="animate-pulse" delay={i * 0.1}>
-                    <AnimatedCardHeader>
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
                       <div className="h-4 bg-muted rounded w-3/4"></div>
                       <div className="h-3 bg-muted rounded w-1/2"></div>
-                    </AnimatedCardHeader>
-                    <AnimatedCardContent>
+                    </CardHeader>
+                    <CardContent>
                       <div className="space-y-2">
                         <div className="h-3 bg-muted rounded"></div>
                         <div className="h-3 bg-muted rounded w-5/6"></div>
                       </div>
-                    </AnimatedCardContent>
-                  </AnimatedCard>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             ) : agentsData?.data && agentsData.data.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {agentsData.data.map((agent, index) => (
-                  <AnimatedCard
+                  <Card
                     key={agent.id}
-                    className="group hover:shadow-xl hover:scale-105 transition-all duration-500 border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950 dark:hover:to-purple-950"
-                    delay={index * 0.1}
+                    className="relative overflow-hidden group hover:shadow-xl hover:scale-105 transition-all duration-500 border rounded-xl"
                   >
-                    <AnimatedCardHeader>
+                    <MagicCard gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}>
+                    <CardHeader>
                       <div className="flex items-start gap-4">
                         {/* Avatar */}
                         <div className="relative">
@@ -843,16 +859,18 @@ export default function AIAgentsPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-2">
-                            <AnimatedCardTitle className="text-lg font-semibold group-hover:text-primary transition-colors truncate">
+                            <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors truncate">
                               {agent.name}
-                            </AnimatedCardTitle>
+                            </CardTitle>
                             <div className="flex items-center gap-2 ml-2">
                               <div className="flex items-center gap-1">
                                 <IconStar className="h-4 w-4 text-yellow-500 fill-current" />
-                                <span className="text-sm text-muted-foreground">4.8</span>
+                                <span className="text-sm text-muted-foreground">
+                                  4.8
+                                </span>
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -874,13 +892,17 @@ export default function AIAgentsPage() {
                                     </Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/app/ai-agents/${agent.id}/edit`}>
+                                    <Link
+                                      href={`/app/ai-agents/${agent.id}/edit`}
+                                    >
                                       <IconEdit className="mr-2 h-4 w-4" />
                                       Editar
                                     </Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/app/ai-agents/${agent.id}/chat`}>
+                                    <Link
+                                      href={`/app/ai-agents/${agent.id}/chat`}
+                                    >
                                       <IconMessageCircle className="mr-2 h-4 w-4" />
                                       Chat
                                     </Link>
@@ -897,53 +919,77 @@ export default function AIAgentsPage() {
                               </DropdownMenu>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2 mb-3">
                             {getTypeBadge(agent.type)}
                             {getStatusBadge(agent.isActive)}
                           </div>
-                          
+
                           {/* Informações adicionais */}
                           <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground mb-3">
                             <div className="flex items-center gap-1">
                               <IconClock className="h-3 w-3" />
-                              <span>Criado: {new Date(agent.createdAt).toLocaleDateString('pt-BR')}</span>
+                              <span>
+                                Criado:{' '}
+                                {new Date(agent.createdAt).toLocaleDateString(
+                                  'pt-BR',
+                                )}
+                              </span>
                             </div>
                             <div className="flex items-center gap-1">
                               <IconActivity className="h-3 w-3" />
-                              <span>Atualizado: {agent.updatedAt ? new Date(agent.updatedAt).toLocaleDateString('pt-BR') : 'Nunca'}</span>
+                              <span>
+                                Atualizado:{' '}
+                                {agent.updatedAt
+                                  ? new Date(
+                                    agent.updatedAt,
+                                  ).toLocaleDateString('pt-BR')
+                                  : 'Nunca'}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </AnimatedCardHeader>
-                    <AnimatedCardContent>
+                    </CardHeader>
+                    <CardContent>
                       <div className="space-y-4">
                         <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                           {agent.description || 'Sem descrição disponível'}
                         </p>
-                        
+
                         {/* Métricas do agente */}
                         <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                           <div className="text-center">
-                            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">127</div>
-                            <div className="text-xs text-muted-foreground">Conversas</div>
+                            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                              127
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Conversas
+                            </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-semibold text-green-600 dark:text-green-400">98%</div>
-                            <div className="text-xs text-muted-foreground">Precisão</div>
+                            <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+                              98%
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Precisão
+                            </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">2.3s</div>
-                            <div className="text-xs text-muted-foreground">Resposta</div>
+                            <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                              2.3s
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Resposta
+                            </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>Modelo: {agent.model}</span>
                           <span>Temp: {agent.temperature}</span>
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex gap-2">
                             <Button
@@ -968,7 +1014,7 @@ export default function AIAgentsPage() {
                               </Link>
                             </Button>
                           </div>
-                          
+
                           {/* Status indicator */}
                           <div className="flex items-center gap-2">
                             {agent.isActive ? (
@@ -985,8 +1031,15 @@ export default function AIAgentsPage() {
                           </div>
                         </div>
                       </div>
-                    </AnimatedCardContent>
-                  </AnimatedCard>
+                    </CardContent>
+                      <BorderBeam
+                        size={300}
+                        duration={4}
+                        reverse
+                        className="from-transparent via-green-500 to-transparent"
+                      />
+                    </MagicCard>
+                  </Card>
                 ))}
               </div>
             ) : (
