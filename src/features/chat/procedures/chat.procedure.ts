@@ -21,6 +21,7 @@ import {
   type UpdateConversationDTO,
   type UpdateFunnelStageDTO,
 } from '../chat.types'
+import { socketService } from '@/services/socket.service'
 
 // Interface para Evolution API Service
 interface EvolutionApiService {
@@ -811,7 +812,7 @@ export const ChatProcedure = igniter.procedure({
             })
 
             // Atualizar conversa
-            await context.providers.database.conversation.update({
+            const updatedConversation = await context.providers.database.conversation.update({
               where: { id: messageData.conversationId },
               data: {
                 lastMessageAt: new Date(),
@@ -819,6 +820,17 @@ export const ChatProcedure = igniter.procedure({
                 lastMessageType: messageData.type,
                 status: ConversationStatus.OPEN,
               },
+              include: {
+                contact: true,
+                whatsappInstance: true,
+              },
+            })
+
+            // Emitir evento Socket.IO para nova mensagem enviada
+            socketService.emitNewMessage({
+              message: updatedMessage,
+              conversation: updatedConversation,
+              organizationId,
             })
 
             return updatedMessage
@@ -1033,16 +1045,46 @@ export const ChatProcedure = igniter.procedure({
           })
 
           // Atualizar último contato do lead
-          await context.providers.database.contact.update({
+          const updatedContact = await context.providers.database.contact.update({
             where: { id: contact.id },
             data: { lastSeenAt: new Date() },
           })
 
+          // Buscar conversa atualizada com dados completos
+          const updatedConversation = await context.providers.database.conversation.findFirst({
+            where: { id: conversation.id },
+            include: {
+              contact: true,
+              whatsappInstance: true,
+            },
+          })
+
+          // Emitir evento Socket.IO para nova mensagem recebida
+          socketService.emitNewMessage({
+            message: newMessage,
+            conversation: updatedConversation!,
+            organizationId,
+          })
+
+          // Emitir evento de atualização de conversa
+          socketService.emitConversationUpdate({
+            conversation: updatedConversation!,
+            organizationId,
+          })
+
+          // Se é um novo contato, emitir evento
+          if (contact.createdAt.getTime() === updatedContact.updatedAt?.getTime()) {
+            socketService.emitContactUpdate({
+              contact: updatedContact,
+              organizationId,
+            })
+          }
+
           return {
             processed: true,
             message: newMessage,
-            conversation,
-            contact,
+            conversation: updatedConversation,
+            contact: updatedContact,
           }
         },
 
@@ -1266,6 +1308,213 @@ export const ChatProcedure = igniter.procedure({
               prospectToCustomer: Math.round(prospectToCustomer * 100) / 100,
               overallConversion: Math.round(overallConversion * 100) / 100,
             },
+          }
+        },
+
+        // Processar webhook da Evolution API
+        processWebhook: async (input: {
+          payload: any
+          organizationId: string
+        }) => {
+          const { payload, organizationId } = input
+          
+          // Verificar se é um evento de mensagem
+          if (payload.event !== 'messages.upsert') {
+            return { processed: false, reason: 'Not a message event' }
+          }
+
+          const messageData = payload.data
+          if (!messageData?.key || !messageData?.message) {
+            return { processed: false, reason: 'Invalid message data' }
+          }
+
+          // Não processar mensagens enviadas por nós
+          if (messageData.key.fromMe) {
+            return { processed: false, reason: 'Message sent by us' }
+          }
+
+          try {
+            // Determinar tipo de mensagem e conteúdo
+            let messageType = MessageType.TEXT
+            let content = ''
+            let mediaUrl: string | null = null
+            let mediaType: string | null = null
+            let fileName: string | null = null
+
+            if (messageData.message.conversation) {
+              messageType = MessageType.TEXT
+              content = messageData.message.conversation
+            } else if (messageData.message.imageMessage) {
+              messageType = MessageType.IMAGE
+              content = messageData.message.imageMessage.caption || '[Imagem]'
+              mediaType = 'image/jpeg'
+            } else if (messageData.message.videoMessage) {
+              messageType = MessageType.VIDEO
+              content = messageData.message.videoMessage.caption || '[Vídeo]'
+              mediaType = 'video/mp4'
+            } else if (messageData.message.audioMessage) {
+              messageType = MessageType.AUDIO
+              content = '[Áudio]'
+              mediaType = 'audio/ogg'
+            } else if (messageData.message.documentMessage) {
+              messageType = MessageType.DOCUMENT
+              content = messageData.message.documentMessage.title || '[Documento]'
+              fileName = messageData.message.documentMessage.fileName
+              mediaType = messageData.message.documentMessage.mimetype
+            } else if (messageData.message.stickerMessage) {
+              messageType = MessageType.STICKER
+              content = '[Figurinha]'
+              mediaType = 'image/webp'
+            }
+
+            // Extrair número do remetente
+            const fromNumber = messageData.key.remoteJid?.replace('@s.whatsapp.net', '')
+            if (!fromNumber) {
+              return { processed: false, reason: 'No sender number' }
+            }
+
+            // Buscar ou criar contato
+            let contact = await context.providers.database.contact.findFirst({
+              where: {
+                whatsappNumber: fromNumber,
+                organizationId,
+              },
+            })
+
+            if (!contact) {
+              contact = await context.providers.database.contact.create({
+                data: {
+                  whatsappNumber: fromNumber,
+                  name: messageData.pushName || fromNumber,
+                  organizationId,
+                  status: ContactStatus.LEAD,
+                  funnelStage: FunnelStage.NEW_LEAD,
+                },
+              })
+
+              // Emitir evento de novo contato
+              socketService.emitNewContact(organizationId, contact)
+            }
+
+            // Buscar ou criar conversa
+            let conversation = await context.providers.database.conversation.findFirst({
+              where: {
+                whatsappChatId: messageData.key.remoteJid,
+                organizationId,
+              },
+              include: {
+                contact: true,
+                whatsappInstance: true,
+                _count: {
+                  select: { messages: true },
+                },
+              },
+            })
+
+            if (!conversation) {
+              // Buscar instância do WhatsApp
+              const instance = await context.providers.database.whatsappInstance.findFirst({
+                where: { organizationId },
+              })
+
+              if (!instance) {
+                return { processed: false, reason: 'No WhatsApp instance found' }
+              }
+
+              conversation = await context.providers.database.conversation.create({
+                data: {
+                  whatsappChatId: messageData.key.remoteJid,
+                  title: contact.name || fromNumber,
+                  organizationId,
+                  whatsappInstanceId: instance.id,
+                  contactId: contact.id,
+                  status: ConversationStatus.OPEN,
+                  isGroup: messageData.key.remoteJid?.includes('@g.us') || false,
+                  lastMessageAt: new Date(messageData.messageTimestamp * 1000),
+                  lastMessage: content.substring(0, 100),
+                  lastMessageType: messageType,
+                  unreadCount: 1,
+                },
+                include: {
+                  contact: true,
+                  whatsappInstance: true,
+                  _count: {
+                    select: { messages: true },
+                  },
+                },
+              })
+
+              // Emitir evento de nova conversa
+              socketService.emitConversationUpdate(organizationId, conversation)
+            } else {
+              // Atualizar conversa existente
+              conversation = await context.providers.database.conversation.update({
+                where: { id: conversation.id },
+                data: {
+                  lastMessageAt: new Date(messageData.messageTimestamp * 1000),
+                  lastMessage: content.substring(0, 100),
+                  lastMessageType: messageType,
+                  unreadCount: { increment: 1 },
+                },
+                include: {
+                  contact: true,
+                  whatsappInstance: true,
+                  _count: {
+                    select: { messages: true },
+                  },
+                },
+              })
+
+              // Emitir evento de atualização da conversa
+              socketService.emitConversationUpdate(organizationId, conversation)
+            }
+
+            // Criar mensagem
+            const message = await context.providers.database.message.create({
+              data: {
+                whatsappMessageId: messageData.key.id,
+                content,
+                type: messageType,
+                direction: MessageDirection.INBOUND,
+                status: MessageStatus.DELIVERED,
+                mediaUrl,
+                mediaType,
+                fileName,
+                timestamp: new Date(messageData.messageTimestamp * 1000),
+                fromMe: false,
+                fromName: messageData.pushName,
+                fromNumber,
+                organizationId,
+                conversationId: conversation.id,
+                contactId: contact.id,
+              },
+              include: {
+                contact: true,
+                conversation: {
+                  include: {
+                    contact: true,
+                    whatsappInstance: true,
+                  },
+                },
+              },
+            })
+
+            // Emitir evento de nova mensagem
+            socketService.emitNewMessage(organizationId, message)
+
+            return {
+              processed: true,
+              message,
+              conversation,
+              contact,
+            }
+          } catch (error) {
+            console.error('[ChatProcedure] Erro ao processar webhook:', error)
+            return {
+              processed: false,
+              reason: 'Processing error',
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }
           }
         },
       },

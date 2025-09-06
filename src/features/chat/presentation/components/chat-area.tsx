@@ -26,6 +26,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { Message, MessageType } from '../../chat.types'
+import { useChatSocket } from '@/hooks/use-socket'
 
 interface ChatAreaProps {
   conversationId: string
@@ -36,6 +37,18 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Socket.IO para tempo real
+  const {
+    isConnected,
+    joinConversation,
+    leaveConversation,
+    startTyping,
+    stopTyping,
+    on,
+    off,
+  } = useChatSocket()
 
   // Buscar dados da conversa
   const { data: conversation } = api.chat.getConversation.useQuery(
@@ -101,6 +114,63 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
     }
   }, [conversationId])
 
+  // Socket.IO: Entrar na sala da conversa
+  useEffect(() => {
+    if (conversationId && isConnected) {
+      joinConversation(conversationId)
+
+      // Listener para novas mensagens
+      const handleNewMessage = (data: {
+        conversationId: string
+        message: {
+          id: string
+          content: string
+          fromMe: boolean
+          createdAt: string
+          contentType: string
+        }
+      }) => {
+        if (data.conversationId === conversationId) {
+          // Refetch messages to get the new message
+          refetchMessages()
+          
+          // Scroll to bottom
+          setTimeout(() => {
+            if (scrollAreaRef.current) {
+              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+            }
+          }, 100)
+        }
+      }
+
+      // Listener para atualizações de conversa
+      const handleConversationUpdate = (data: {
+        conversationId: string
+        lastMessage?: {
+          id: string
+          content: string
+          fromMe: boolean
+          createdAt: string
+        }
+        unreadCount?: number
+      }) => {
+        if (data.conversationId === conversationId) {
+          // Refetch conversation data
+          refetchMessages()
+        }
+      }
+
+      on('message:received', handleNewMessage)
+      on('conversation:updated', handleConversationUpdate)
+
+      return () => {
+        off('message:received', handleNewMessage)
+        off('conversation:updated', handleConversationUpdate)
+        leaveConversation(conversationId)
+      }
+    }
+  }, [conversationId, isConnected, joinConversation, leaveConversation, on, off, refetchMessages])
+
   const handleSendMessage = () => {
     if (!messageText.trim() || sendMessageMutation.isPending) return
 
@@ -116,6 +186,29 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       e.preventDefault()
       handleSendMessage()
     }
+  }
+
+  // Handle typing indicators
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setMessageText(value)
+
+    // Send typing indicator
+    if (value.trim() && !isTyping) {
+      setIsTyping(true)
+      startTyping(conversationId)
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    // Set new timeout to stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false)
+      stopTyping(conversationId)
+    }, 1000)
   }
 
   if (!conversation) {
@@ -259,7 +352,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
               ref={inputRef}
               placeholder="Digite uma mensagem..."
               value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               disabled={sendMessageMutation.isPending}
               className="pr-12"

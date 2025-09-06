@@ -17,9 +17,10 @@ import {
   Search,
   Settings,
   Users,
-  Video
+  Video,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useChatSocket } from '@/hooks/use-socket'
 import type { Contact, Conversation } from '../../chat.types'
 
 interface ChatLayoutProps {
@@ -31,13 +32,22 @@ interface ChatLayoutProps {
 export function ChatLayout({
   children,
   selectedConversationId,
-  onConversationSelect
+  onConversationSelect,
 }: ChatLayoutProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedTab, setSelectedTab] = useState<'conversations' | 'contacts'>('conversations')
+  const [selectedTab, setSelectedTab] = useState<'conversations' | 'contacts'>(
+    'conversations',
+  )
+
+  // Socket.IO para tempo real
+  const { isConnected, joinInbox, on, off } = useChatSocket()
 
   // Buscar conversas
-  const { data: conversationsData, isLoading: loadingConversations } = api.chat.listConversations.useQuery({
+  const {
+    data: conversationsData,
+    isLoading: loadingConversations,
+    refetch: refetchConversations,
+  } = api.chat.listConversations.useQuery({
     search: searchTerm,
     page: 1,
     limit: 50,
@@ -46,13 +56,77 @@ export function ChatLayout({
   })
 
   // Buscar contatos
-  const { data: contactsData, isLoading: loadingContacts } = api.chat.listContacts.useQuery({
+  const {
+    data: contactsData,
+    isLoading: loadingContacts,
+    refetch: refetchContacts,
+  } = api.chat.listContacts.useQuery({
     search: searchTerm,
     page: 1,
     limit: 50,
     sortBy: 'lastSeenAt',
     sortOrder: 'desc',
   })
+
+  // Socket.IO: Entrar na inbox e escutar eventos
+  useEffect(() => {
+    if (isConnected) {
+      joinInbox()
+
+      // Listener para novas mensagens
+      const handleNewMessage = (data: {
+        conversationId: string
+        message: {
+          id: string
+          content: string
+          fromMe: boolean
+          createdAt: string
+        }
+      }) => {
+        // Refetch conversations to update the list
+        refetchConversations()
+      }
+
+      // Listener para atualizações de conversa
+      const handleConversationUpdate = (data: {
+        conversationId: string
+        lastMessage?: {
+          id: string
+          content: string
+          fromMe: boolean
+          createdAt: string
+        }
+        unreadCount?: number
+      }) => {
+        // Refetch conversations to update the list
+        refetchConversations()
+      }
+
+      // Listener para novos contatos
+      const handleNewContact = (data: {
+        contactId: string
+        contact: {
+          id: string
+          name?: string
+          whatsappNumber: string
+          profilePicUrl?: string
+        }
+      }) => {
+        // Refetch contacts to update the list
+        refetchContacts()
+      }
+
+      on('message:received', handleNewMessage)
+      on('conversation:updated', handleConversationUpdate)
+      on('contact:created', handleNewContact)
+
+      return () => {
+        off('message:received', handleNewMessage)
+        off('conversation:updated', handleConversationUpdate)
+        off('contact:created', handleNewContact)
+      }
+    }
+  }, [isConnected, joinInbox, on, off, refetchConversations, refetchContacts])
 
   const conversations = conversationsData?.data || []
   const contacts = contactsData?.data || []
@@ -124,7 +198,10 @@ export function ChatLayout({
               {loadingConversations ? (
                 <div className="space-y-2">
                   {Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+                    <div
+                      key={i}
+                      className="h-16 bg-muted rounded-lg animate-pulse"
+                    />
                   ))}
                 </div>
               ) : conversations.length === 0 ? (
@@ -150,7 +227,10 @@ export function ChatLayout({
               {loadingContacts ? (
                 <div className="space-y-2">
                   {Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+                    <div
+                      key={i}
+                      className="h-16 bg-muted rounded-lg animate-pulse"
+                    />
                   ))}
                 </div>
               ) : contacts.length === 0 ? (
@@ -160,10 +240,7 @@ export function ChatLayout({
                 </div>
               ) : (
                 contacts.map((contact) => (
-                  <ContactItem
-                    key={contact.id}
-                    contact={contact}
-                  />
+                  <ContactItem key={contact.id} contact={contact} />
                 ))
               )}
             </div>
@@ -180,9 +257,7 @@ export function ChatLayout({
       </div>
 
       {/* Área principal - Chat ou conteúdo */}
-      <div className="flex-1 flex flex-col">
-        {children || <EmptyState />}
-      </div>
+      <div className="flex-1 flex flex-col">{children || <EmptyState />}</div>
     </div>
   )
 }
@@ -197,33 +272,36 @@ function ConversationItem({
   isSelected: boolean
   onClick: () => void
 }) {
-  const contactName = conversation.contact?.name || conversation.contact?.whatsappNumber || 'Contato'
+  const contactName =
+    conversation.contact?.name ||
+    conversation.contact?.whatsappNumber ||
+    'Contato'
   const lastMessageTime = conversation.lastMessageAt
     ? formatDistanceToNow(new Date(conversation.lastMessageAt), {
       addSuffix: true,
-      locale: ptBR
+      locale: ptBR,
     })
     : ''
 
   return (
     <div
       className={cn(
-        "flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
-        isSelected && "bg-muted"
+        'flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors',
+        isSelected && 'bg-muted',
       )}
       onClick={onClick}
     >
       <Avatar className="h-12 w-12">
         <AvatarImage src={conversation.contact?.profilePicUrl} />
-        <AvatarFallback>
-          {contactName.charAt(0).toUpperCase()}
-        </AvatarFallback>
+        <AvatarFallback>{contactName.charAt(0).toUpperCase()}</AvatarFallback>
       </Avatar>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <p className="font-medium text-sm truncate">{contactName}</p>
-          <span className="text-xs text-muted-foreground">{lastMessageTime}</span>
+          <span className="text-xs text-muted-foreground">
+            {lastMessageTime}
+          </span>
         </div>
 
         <div className="flex items-center justify-between mt-1">
@@ -247,17 +325,22 @@ function ContactItem({ contact }: { contact: Contact }) {
   const lastSeenTime = contact.lastSeenAt
     ? formatDistanceToNow(new Date(contact.lastSeenAt), {
       addSuffix: true,
-      locale: ptBR
+      locale: ptBR,
     })
     : 'Nunca visto'
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'LEAD': return 'bg-blue-500'
-      case 'PROSPECT': return 'bg-yellow-500'
-      case 'CUSTOMER': return 'bg-green-500'
-      case 'INACTIVE': return 'bg-gray-500'
-      default: return 'bg-gray-500'
+      case 'LEAD':
+        return 'bg-blue-500'
+      case 'PROSPECT':
+        return 'bg-yellow-500'
+      case 'CUSTOMER':
+        return 'bg-green-500'
+      case 'INACTIVE':
+        return 'bg-gray-500'
+      default:
+        return 'bg-gray-500'
     }
   }
 
@@ -266,14 +349,14 @@ function ContactItem({ contact }: { contact: Contact }) {
       <div className="relative">
         <Avatar className="h-12 w-12">
           <AvatarImage src={contact.profilePicUrl} />
-          <AvatarFallback>
-            {contactName.charAt(0).toUpperCase()}
-          </AvatarFallback>
+          <AvatarFallback>{contactName.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <div className={cn(
-          "absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background",
-          getStatusColor(contact.status)
-        )} />
+        <div
+          className={cn(
+            'absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background',
+            getStatusColor(contact.status),
+          )}
+        />
       </div>
 
       <div className="flex-1 min-w-0">
