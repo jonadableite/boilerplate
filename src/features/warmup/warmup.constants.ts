@@ -148,17 +148,17 @@ export const REACTION_EMOJIS = [
 
 // Configurações padrão do aquecimento
 export const DEFAULT_WARMUP_CONFIG = {
-  textChance: 0.3,
+  textChance: 0.5, // Aumentando chance de texto
   audioChance: 0.3,
-  reactionChance: 0.3,
-  stickerChance: 0.4,
+  reactionChance: 0.4, // Aumentando chance de reação
+  stickerChance: 0.3,
   imageChance: 0.1,
   videoChance: 0.1,
-  minDelay: 3000,
-  maxDelay: 90000,
+  minDelay: 1000, // Reduzindo delay mínimo para 1 segundo
+  maxDelay: 10000, // Reduzindo delay máximo para 10 segundos
   // Configurações para grupos e números externos
-  groupChance: 0.3, // 30% chance de enviar para grupo
-  externalNumbersChance: 0.4, // 40% chance de usar números externos
+  groupChance: 0.2, // Reduzindo chance de grupo para focar em números externos
+  externalNumbersChance: 0.7, // Aumentando chance de usar números externos
   groupId: DEFAULT_GROUP_ID, // ID do grupo padrão
   // Configurações de comportamento humano
   typingSimulation: true,

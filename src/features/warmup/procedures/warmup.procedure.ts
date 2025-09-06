@@ -1,31 +1,37 @@
-import { evolutionApi } from '@/plugins/evolution-api.plugin'
-import { prisma } from '@/providers/prisma'
-import { EventEmitter } from 'node:events'
-import {
-  CreateWarmupInput,
-  DEFAULT_PLAN_LIMITS
-} from '../warmup.types'
+import { evolutionApi } from "@/plugins/evolution-api.plugin";
+import { prisma } from "@/providers/prisma";
+import { EventEmitter } from "node:events";
+import { CreateWarmupInput, DEFAULT_PLAN_LIMITS } from "../warmup.types";
 
 // Classe principal do serviço de aquecimento
 export class WarmupService {
-  private activeInstances: Map<string, NodeJS.Timeout>
-  private stop: boolean
-  private eventEmitter: EventEmitter
+  private activeInstances: Map<string, NodeJS.Timeout>;
+  private stop: boolean;
+  private eventEmitter: EventEmitter;
 
   constructor() {
-    this.activeInstances = new Map()
-    this.stop = false
-    this.eventEmitter = new EventEmitter()
-    this.eventEmitter.setMaxListeners(50) // Para suportar 200+ instâncias
+    this.activeInstances = new Map();
+    this.stop = false;
+    this.eventEmitter = new EventEmitter();
+    this.eventEmitter.setMaxListeners(50); // Para suportar 200+ instâncias
   }
 
   /**
    * Inicia o aquecimento para múltiplas instâncias
    */
-  async startWarmup(config: CreateWarmupInput, organizationId: string, userId: string): Promise<void> {
-    this.stop = false
+  async startWarmup(
+    config: CreateWarmupInput,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    this.stop = false;
 
-    console.log(`[Warmup] Iniciando aquecimento para ${config.phoneInstances.length} instâncias`)
+    console.log(
+      `[Warmup] Iniciando aquecimento para ${config.phoneInstances.length} instâncias`,
+    );
+
+    // Garantir que números externos padrão existam
+    await this.ensureExternalNumbers(organizationId);
 
     // Verificar limites do plano
     const user = await prisma.user.findUnique({
@@ -33,32 +39,69 @@ export class WarmupService {
       include: {
         members: {
           where: { organizationId },
-          include: { organization: { include: { customer: { include: { subscriptions: true } } } } }
-        }
-      }
-    })
+          include: {
+            organization: {
+              include: { customer: { include: { subscriptions: true } } },
+            },
+          },
+        },
+      },
+    });
 
     if (!user) {
-      throw new Error('Usuário não encontrado')
+      throw new Error("Usuário não encontrado");
     }
 
     // Determinar plano atual (simplificado)
-    const currentPlan = 'free' // Implementar lógica real baseada na subscription
+    const currentPlan = "free"; // Implementar lógica real baseada na subscription
 
     // Usar os limites definidos no arquivo de tipos
-    const planLimits = DEFAULT_PLAN_LIMITS[currentPlan]
+    const planLimits = DEFAULT_PLAN_LIMITS[currentPlan];
 
-    if (config.phoneInstances.length > planLimits.instancesLimit && planLimits.instancesLimit !== -1) {
-      throw new Error(`Limite de instâncias excedido para o plano ${currentPlan}`)
+    if (
+      config.phoneInstances.length > planLimits.instancesLimit &&
+      planLimits.instancesLimit !== -1
+    ) {
+      throw new Error(
+        `Limite de instâncias excedido para o plano ${currentPlan}`,
+      );
     }
 
-    // Iniciar aquecimento para cada instância
+    // Iniciar aquecimento para cada instância de forma assíncrona
     const warmupPromises = config.phoneInstances.map(async (instance) => {
-      await this.startInstanceTimer(instance.instanceId, organizationId, userId)
-      await this.startInstanceWarmup(instance, config, organizationId, userId)
-    })
+      try {
+        await this.startInstanceTimer(
+          instance.instanceId,
+          organizationId,
+          userId,
+        );
+        // Executar o aquecimento em background sem aguardar
+        this.startInstanceWarmup(
+          instance,
+          config,
+          organizationId,
+          userId,
+        ).catch((error) => {
+          console.error(
+            `[Warmup] Erro no aquecimento da instância ${instance.instanceId}:`,
+            error,
+          );
+        });
+        console.log(
+          `[Warmup] Aquecimento iniciado para instância ${instance.instanceId}`,
+        );
+      } catch (error) {
+        console.error(
+          `[Warmup] Erro ao iniciar timer para instância ${instance.instanceId}:`,
+          error,
+        );
+        throw error;
+      }
+    });
 
-    await Promise.all(warmupPromises)
+    // Aguardar apenas a inicialização dos timers, não o loop infinito
+    await Promise.all(warmupPromises);
+    console.log(`[Warmup] Todos os aquecimentos foram iniciados com sucesso`);
   }
 
   /**
@@ -67,12 +110,12 @@ export class WarmupService {
   private async startInstanceTimer(
     instanceName: string,
     organizationId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Buscar ou criar estatísticas do dia atual
     let mediaStats = await prisma.mediaStats.findFirst({
@@ -84,7 +127,7 @@ export class WarmupService {
           lt: tomorrow,
         },
       },
-    })
+    });
 
     if (!mediaStats) {
       mediaStats = await prisma.mediaStats.create({
@@ -103,7 +146,7 @@ export class WarmupService {
           totalSent: 0,
           totalReceived: 0,
         },
-      })
+      });
     }
 
     // Buscar ou criar estatísticas de recebimento
@@ -116,7 +159,7 @@ export class WarmupService {
           lt: tomorrow,
         },
       },
-    })
+    });
 
     if (!mediaReceived) {
       mediaReceived = await prisma.mediaReceived.create({
@@ -133,7 +176,7 @@ export class WarmupService {
           totalDaily: 0,
           totalAllTime: 0,
         },
-      })
+      });
     }
 
     // Buscar ou criar estatísticas de aquecimento
@@ -141,7 +184,7 @@ export class WarmupService {
       where: { instanceName },
       create: {
         instanceName,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         startTime: new Date(),
         organizationId,
         userId,
@@ -152,31 +195,31 @@ export class WarmupService {
         targetDuration: 2073600, // 24 dias
       },
       update: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         startTime: new Date(),
         mediaStatsId: mediaStats.id,
         mediaReceivedId: mediaReceived.id,
       },
-    })
+    });
 
     // Timer para atualizar progresso a cada segundo
     const timer = setInterval(async () => {
       if (this.stop) {
-        clearInterval(timer)
-        return
+        clearInterval(timer);
+        return;
       }
 
       try {
         const currentStats = await prisma.warmupStats.findUnique({
           where: { instanceName },
-        })
+        });
 
-        if (currentStats?.status === 'ACTIVE') {
-          const newWarmupTime = (currentStats.warmupTime || 0) + 1
+        if (currentStats?.status === "ACTIVE") {
+          const newWarmupTime = (currentStats.warmupTime || 0) + 1;
           const progress = Math.min(
             (newWarmupTime / (currentStats.targetDuration || 2073600)) * 100,
-            100
-          )
+            100,
+          );
 
           await prisma.warmupStats.update({
             where: { instanceName },
@@ -185,14 +228,17 @@ export class WarmupService {
               progress,
               lastActive: new Date(),
             },
-          })
+          });
         }
       } catch (error) {
-        console.error(`[Warmup] Erro ao atualizar timer para ${instanceName}:`, error)
+        console.error(
+          `[Warmup] Erro ao atualizar timer para ${instanceName}:`,
+          error,
+        );
       }
-    }, 1000)
+    }, 1000);
 
-    this.activeInstances.set(instanceName, timer)
+    this.activeInstances.set(instanceName, timer);
   }
 
   /**
@@ -201,7 +247,7 @@ export class WarmupService {
   private async checkDailyMessageLimit(
     instanceName: string,
     organizationId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
     try {
       const user = await prisma.user.findUnique({
@@ -209,28 +255,32 @@ export class WarmupService {
         include: {
           members: {
             where: { organizationId },
-            include: { organization: { include: { customer: { include: { subscriptions: true } } } } }
-          }
-        }
-      })
+            include: {
+              organization: {
+                include: { customer: { include: { subscriptions: true } } },
+              },
+            },
+          },
+        },
+      });
 
       if (!user) {
-        console.error(`Usuário ${userId} não encontrado`)
-        return false
+        console.error(`Usuário ${userId} não encontrado`);
+        return false;
       }
 
       // Determinar plano atual (simplificado)
-      const currentPlan = 'free' // Implementar lógica real
-      const planLimits = DEFAULT_PLAN_LIMITS[currentPlan]
+      const currentPlan = "free"; // Implementar lógica real
+      const planLimits = DEFAULT_PLAN_LIMITS[currentPlan];
 
       if (planLimits.messagesPerDay === -1) {
-        return true // Ilimitado
+        return true; // Ilimitado
       }
 
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       const stats = await prisma.mediaStats.findFirst({
         where: {
@@ -242,33 +292,36 @@ export class WarmupService {
           },
         },
         select: { totalDaily: true },
-      })
+      });
 
-      const totalMessages = stats?.totalDaily || 0
+      const totalMessages = stats?.totalDaily || 0;
 
       if (totalMessages >= planLimits.messagesPerDay) {
         console.log(
-          `[Warmup] Limite diário atingido para ${instanceName}: ${totalMessages}/${planLimits.messagesPerDay}`
-        )
+          `[Warmup] Limite diário atingido para ${instanceName}: ${totalMessages}/${planLimits.messagesPerDay}`,
+        );
 
         await prisma.warmupStats.updateMany({
           where: {
             instanceName,
-            status: 'ACTIVE',
+            status: "ACTIVE",
           },
           data: {
-            status: 'PAUSED',
+            status: "PAUSED",
             pauseTime: new Date(),
           },
-        })
+        });
 
-        return false
+        return false;
       }
 
-      return true
+      return true;
     } catch (error) {
-      console.error(`[Warmup] Erro ao verificar limite diário para ${instanceName}:`, error)
-      return false
+      console.error(
+        `[Warmup] Erro ao verificar limite diário para ${instanceName}:`,
+        error,
+      );
+      return false;
     }
   }
 
@@ -279,13 +332,13 @@ export class WarmupService {
     instanceName: string,
     organizationId: string,
     messageType: string,
-    isSent: boolean
+    isSent: boolean,
   ): Promise<void> {
     try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       // Buscar ou criar estatísticas do dia atual
       let mediaStats = await prisma.mediaStats.findFirst({
@@ -297,7 +350,7 @@ export class WarmupService {
             lt: tomorrow,
           },
         },
-      })
+      });
 
       if (!mediaStats) {
         mediaStats = await prisma.mediaStats.create({
@@ -316,47 +369,52 @@ export class WarmupService {
             totalSent: 0,
             totalReceived: 0,
           },
-        })
+        });
       }
 
       // Preparar dados para atualização
       const updateData: any = {
         totalDaily: { increment: 1 },
         totalAllTime: { increment: 1 },
-      }
+      };
 
       // Atualizar contadores de envio/recebimento
       if (isSent) {
-        updateData.totalSent = { increment: 1 }
+        updateData.totalSent = { increment: 1 };
       } else {
-        updateData.totalReceived = { increment: 1 }
+        updateData.totalReceived = { increment: 1 };
       }
 
       // Atualizar contador específico do tipo de mensagem
       const messageTypeMap: Record<string, string> = {
-        text: 'text',
-        image: 'image',
-        video: 'video',
-        audio: 'audio',
-        sticker: 'sticker',
-        reaction: 'reaction',
-      }
+        text: "text",
+        image: "image",
+        video: "video",
+        audio: "audio",
+        sticker: "sticker",
+        reaction: "reaction",
+      };
 
-      const dbField = messageTypeMap[messageType.toLowerCase()]
+      const dbField = messageTypeMap[messageType.toLowerCase()];
       if (dbField) {
-        updateData[dbField] = { increment: 1 }
+        updateData[dbField] = { increment: 1 };
       }
 
       // Atualizar estatísticas no banco
       await prisma.mediaStats.update({
         where: { id: mediaStats.id },
         data: updateData,
-      })
+      });
 
-      console.log(`[Warmup] Estatísticas atualizadas para ${instanceName}: ${messageType} (${isSent ? 'enviada' : 'recebida'})`)
+      console.log(
+        `[Warmup] Estatísticas atualizadas para ${instanceName}: ${messageType} (${isSent ? "enviada" : "recebida"})`,
+      );
     } catch (error) {
-      console.error(`[Warmup] Erro ao atualizar estatísticas para ${instanceName}:`, error)
-      throw error
+      console.error(
+        `[Warmup] Erro ao atualizar estatísticas para ${instanceName}:`,
+        error,
+      );
+      throw error;
     }
   }
 
@@ -366,27 +424,36 @@ export class WarmupService {
   async processReceivedMessage(
     instanceName: string,
     organizationId: string,
-    message: any // EvolutionApiResponse
+    message: any, // EvolutionApiResponse
   ): Promise<void> {
     try {
-      const messageType = this.getMessageType(message)
-      await this.updateMediaStats(instanceName, organizationId, messageType, false)
+      const messageType = this.getMessageType(message);
+      await this.updateMediaStats(
+        instanceName,
+        organizationId,
+        messageType,
+        false,
+      );
     } catch (error) {
-      console.error(`[Warmup] Erro ao processar mensagem recebida para ${instanceName}:`, error)
+      console.error(
+        `[Warmup] Erro ao processar mensagem recebida para ${instanceName}:`,
+        error,
+      );
     }
   }
 
   /**
    * Determina o tipo de mensagem baseado no payload
    */
-  private getMessageType(message: any): string { // EvolutionApiResponse
-    if (message.message?.conversation) return 'text'
-    if (message.message?.imageMessage) return 'image'
-    if (message.message?.videoMessage) return 'video'
-    if (message.message?.audioMessage) return 'audio'
-    if (message.message?.stickerMessage) return 'sticker'
-    if (message.message?.reactionMessage) return 'reaction'
-    return 'text' // fallback
+  private getMessageType(message: any): string {
+    // EvolutionApiResponse
+    if (message.message?.conversation) return "text";
+    if (message.message?.imageMessage) return "image";
+    if (message.message?.videoMessage) return "video";
+    if (message.message?.audioMessage) return "audio";
+    if (message.message?.stickerMessage) return "sticker";
+    if (message.message?.reactionMessage) return "reaction";
+    return "text"; // fallback
   }
 
   /**
@@ -396,9 +463,11 @@ export class WarmupService {
     instance: any, // PhoneInstance
     config: CreateWarmupInput,
     organizationId: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
-    console.log(`[Warmup] Iniciando aquecimento para instância ${instance.instanceId}`)
+    console.log(
+      `[Warmup] Iniciando aquecimento para instância ${instance.instanceId}`,
+    );
 
     while (!this.stop) {
       try {
@@ -406,92 +475,112 @@ export class WarmupService {
         const canSendMessage = await this.checkDailyMessageLimit(
           instance.instanceId,
           organizationId,
-          userId
-        )
+          userId,
+        );
 
         if (!canSendMessage) {
-          console.log(`[Warmup] Limite diário atingido para ${instance.instanceId}`)
-          await this.stopWarmup(instance.instanceId)
-          break
+          console.log(
+            `[Warmup] Limite diário atingido para ${instance.instanceId}`,
+          );
+          await this.stopWarmup(instance.instanceId);
+          break;
         }
 
         // Verificar status do aquecimento
         const stats = await prisma.warmupStats.findUnique({
           where: { instanceName: instance.instanceId },
-        })
+        });
 
-        if (stats?.status !== 'ACTIVE') {
-          console.log(`[Warmup] Aquecimento pausado para ${instance.instanceId}`)
-          break
+        if (stats?.status !== "ACTIVE") {
+          console.log(
+            `[Warmup] Aquecimento pausado para ${instance.instanceId}`,
+          );
+          break;
         }
 
         // Determinar targets de mensagem
         const { isGroup, targets } = await this.getMessageDestination(
           config.config || {},
           config.phoneInstances,
-          organizationId
-        )
+          organizationId,
+        );
+
+        console.log(
+          `[Warmup] Targets determinados para ${instance.instanceId}:`,
+          { isGroup, targets: targets.length, targetList: targets },
+        );
 
         for (const target of targets) {
-          if (this.stop) break
+          if (this.stop) break;
 
           try {
             // Decidir tipo de mensagem
-            const messageType = this.decideMessageType(config.config || {})
+            const messageType = this.decideMessageType(config.config || {});
 
             // Simular comportamento humano
-            await this.simulateHumanBehavior(messageType)
+            await this.simulateHumanBehavior(messageType);
 
             // Obter conteúdo para o tipo de mensagem
-            const content = this.getContentForType(messageType, config.contents)
+            const content = this.getContentForType(
+              messageType,
+              config.contents,
+            );
 
             if (content) {
-              console.log(`[Warmup] Enviando ${messageType} para ${target}`)
+              console.log(`[Warmup] Enviando ${messageType} para ${target}`);
 
               const messageId = await this.sendMessage(
                 instance.instanceId,
                 target,
                 content,
                 messageType,
-                organizationId
-              )
+                organizationId,
+              );
 
               if (messageId) {
-                console.log(`[Warmup] Mensagem ${messageType} enviada com sucesso`)
+                console.log(
+                  `[Warmup] Mensagem ${messageType} enviada com sucesso`,
+                );
 
                 // Possibilidade de reagir à mensagem
                 if (
-                  messageType === 'text' &&
+                  messageType === "text" &&
                   Math.random() < (config.config?.reactionChance || 0.4)
                 ) {
-                  await this.delay(2000, 4000)
+                  await this.delay(2000, 4000);
                   await this.sendReaction(
                     instance.instanceId,
                     target,
                     messageId,
                     config,
-                    organizationId
-                  )
+                    organizationId,
+                  );
                 }
 
                 // Aguardar antes da próxima mensagem
                 await this.delay(
-                  config.config?.minDelay || 8000,
-                  config.config?.maxDelay || 20000
-                )
+                  config.config?.minDelay || 1000,
+                  config.config?.maxDelay || 5000,
+                );
               }
             }
           } catch (error) {
-            console.error(`[Warmup] Erro ao enviar mensagem para ${target}:`, error)
-            await this.delay(10000, 20000)
+            console.error(
+              `[Warmup] Erro ao enviar mensagem para ${target}:`,
+              error,
+            );
+            await this.delay(2000, 5000);
           }
         }
 
         // Intervalo entre ciclos
-        await this.delay(15000, 30000)
+        await this.delay(3000, 8000);
       } catch (error) {
-        console.error(`[Warmup] Erro no loop principal para ${instance.instanceId}:`, error)
-        await this.delay(20000, 40000)
+        console.error(
+          `[Warmup] Erro no loop principal para ${instance.instanceId}:`,
+          error,
+        );
+        await this.delay(5000, 10000);
       }
     }
   }
@@ -507,10 +596,56 @@ export class WarmupService {
       video: [3000, 8000],
       sticker: [2000, 6000],
       reaction: [1000, 3000],
-    }
+    };
 
-    const [min, max] = delays[messageType] || [2000, 5000]
-    await this.delay(min, max)
+    const [min, max] = delays[messageType] || [2000, 5000];
+    await this.delay(min, max);
+  }
+
+  /**
+   * Adiciona números externos padrão se não existirem
+   */
+  private async ensureExternalNumbers(organizationId: string): Promise<void> {
+    try {
+      // Verificar se já existem números externos para esta organização
+      const existingNumbers = await prisma.warmupExternalNumber.count({
+        where: { organizationId },
+      });
+
+      if (existingNumbers === 0) {
+        console.log(
+          `[Warmup] Adicionando números externos padrão para organização ${organizationId}`,
+        );
+
+        // Importar números padrão
+        const { EXTERNAL_NUMBERS } = await import("../warmup.constants");
+
+        // Adicionar os primeiros 10 números padrão
+        const numbersToAdd = EXTERNAL_NUMBERS.slice(0, 10);
+
+        const createPromises = numbersToAdd.map((phoneNumber, index) =>
+          prisma.warmupExternalNumber.create({
+            data: {
+              phoneNumber,
+              name: `Número Padrão ${index + 1}`,
+              organizationId,
+              active: true,
+            },
+          }),
+        );
+
+        await Promise.all(createPromises);
+        console.log(
+          `[Warmup] ${numbersToAdd.length} números externos padrão adicionados`,
+        );
+      }
+    } catch (error) {
+      console.error(
+        "[Warmup] Erro ao adicionar números externos padrão:",
+        error,
+      );
+      // Não interromper o warmup por causa deste erro
+    }
   }
 
   /**
@@ -519,19 +654,27 @@ export class WarmupService {
   private async getMessageDestination(
     config: any, // WarmupConfig
     availableInstances: any[], // PhoneInstance[]
-    organizationId: string
+    organizationId: string,
   ): Promise<{ isGroup: boolean; targets: string[] }> {
-    const isGroup = Math.random() < (config.groupChance || 0.3)
+    const isGroup = Math.random() < (config.groupChance || 0.3);
+    console.log(
+      `[Warmup] Decisão de destino - isGroup: ${isGroup}, groupChance: ${config.groupChance || 0.3}`,
+    );
 
     if (isGroup && config.groupId) {
+      console.log(`[Warmup] Enviando para grupo: ${config.groupId}`);
       return {
         isGroup: true,
         targets: [config.groupId],
-      }
+      };
     }
 
     // Usar números externos configurados
-    const useExternalNumbers = Math.random() < (config.externalNumbersChance || 0.4)
+    const useExternalNumbers =
+      Math.random() < (config.externalNumbersChance || 0.4);
+    console.log(
+      `[Warmup] Usar números externos: ${useExternalNumbers}, chance: ${config.externalNumbersChance || 0.4}`,
+    );
 
     if (useExternalNumbers) {
       // Buscar números externos da organização
@@ -541,54 +684,65 @@ export class WarmupService {
           active: true,
         },
         select: { phoneNumber: true },
-      })
+      });
+
+      console.log(
+        `[Warmup] Números externos encontrados: ${externalNumbers.length}`,
+      );
 
       if (externalNumbers.length > 0) {
         const selectedNumbers = externalNumbers
           .slice(0, Math.floor(Math.random() * 3) + 1)
-          .map(n => n.phoneNumber)
+          .map((n) => n.phoneNumber);
 
+        console.log(`[Warmup] Números externos selecionados:`, selectedNumbers);
         return {
           isGroup: false,
           targets: selectedNumbers,
-        }
+        };
       }
     }
 
     // Usar outras instâncias como fallback
     const instanceNumbers = availableInstances
-      .filter(inst => Math.random() > 0.5) // Selecionar aleatoriamente algumas
+      .filter((inst) => Math.random() > 0.5) // Selecionar aleatoriamente algumas
       .slice(0, Math.floor(Math.random() * 2) + 1)
-      .map(inst => inst.phoneNumber)
+      .map((inst) => inst.phoneNumber);
+
+    console.log(`[Warmup] Usando instâncias como fallback:`, instanceNumbers);
 
     return {
       isGroup: false,
-      targets: instanceNumbers.length > 0 ? instanceNumbers : [availableInstances[0].phoneNumber],
-    }
+      targets:
+        instanceNumbers.length > 0
+          ? instanceNumbers
+          : [availableInstances[0].phoneNumber],
+    };
   }
 
   /**
    * Decide o tipo de mensagem baseado nas configurações
    */
-  private decideMessageType(config: any): string { // WarmupConfig
-    const random = Math.random()
+  private decideMessageType(config: any): string {
+    // WarmupConfig
+    const random = Math.random();
     const chances = [
-      { type: 'TEXT' as string, chance: config.textChance || 0.35 },
-      { type: 'AUDIO' as string, chance: config.audioChance || 0.35 },
-      { type: 'STICKER' as string, chance: config.stickerChance || 0.2 },
-      { type: 'IMAGE' as string, chance: config.imageChance || 0.05 },
-      { type: 'VIDEO' as string, chance: config.videoChance || 0.05 },
-    ]
+      { type: "TEXT" as string, chance: config.textChance || 0.35 },
+      { type: "AUDIO" as string, chance: config.audioChance || 0.35 },
+      { type: "STICKER" as string, chance: config.stickerChance || 0.2 },
+      { type: "IMAGE" as string, chance: config.imageChance || 0.05 },
+      { type: "VIDEO" as string, chance: config.videoChance || 0.05 },
+    ];
 
-    let accumulated = 0
+    let accumulated = 0;
     for (const { type, chance } of chances) {
-      accumulated += chance
+      accumulated += chance;
       if (random <= accumulated) {
-        return type
+        return type;
       }
     }
 
-    return 'TEXT' // fallback
+    return "TEXT"; // fallback
   }
 
   /**
@@ -596,12 +750,13 @@ export class WarmupService {
    */
   private getContentForType(
     type: string, // WarmupMessageType
-    contents: CreateWarmupInput['contents']
-  ): string | any | null { // MediaContent
+    contents: CreateWarmupInput["contents"],
+  ): string | any | null {
+    // MediaContent
     try {
-      if (type === 'TEXT') {
-        if (contents.texts.length === 0) return null
-        return this.getRandomItem(contents.texts)
+      if (type === "TEXT") {
+        if (contents.texts.length === 0) return null;
+        return this.getRandomItem(contents.texts);
       }
 
       const contentArrays = {
@@ -609,15 +764,15 @@ export class WarmupService {
         VIDEO: contents.videos,
         AUDIO: contents.audios,
         STICKER: contents.stickers,
-      }
+      };
 
-      const contentArray = contentArrays[type as keyof typeof contentArrays]
-      if (!contentArray || contentArray.length === 0) return null
+      const contentArray = contentArrays[type as keyof typeof contentArrays];
+      if (!contentArray || contentArray.length === 0) return null;
 
-      return this.getRandomItem(contentArray)
+      return this.getRandomItem(contentArray);
     } catch (error) {
-      console.error(`[Warmup] Erro ao obter conteúdo para ${type}:`, error)
-      return null
+      console.error(`[Warmup] Erro ao obter conteúdo para ${type}:`, error);
+      return null;
     }
   }
 
@@ -629,15 +784,15 @@ export class WarmupService {
     target: string,
     content: string | any, // MediaContent
     messageType: string, // WarmupMessageType
-    organizationId: string
+    organizationId: string,
   ): Promise<string | false> {
     try {
-      const formattedNumber = target.replace('@s.whatsapp.net', '')
+      const formattedNumber = target.replace("@s.whatsapp.net", "");
 
-      let result: any
+      let result: any;
 
       switch (messageType) {
-        case 'TEXT':
+        case "TEXT":
           result = await evolutionApi.actions.sendText.handler({
             config: {},
             input: {
@@ -645,45 +800,47 @@ export class WarmupService {
               number: formattedNumber,
               text: content as string,
             },
-          })
-          break
+          });
+          break;
 
-        case 'IMAGE':
-        case 'VIDEO':
-          const mediaContent = content as any // MediaContent
+        case "IMAGE":
+        case "VIDEO":
+          const mediaContent = content as any; // MediaContent
           result = await evolutionApi.actions.sendMedia.handler({
             config: {},
             input: {
               instanceName,
               number: formattedNumber,
-              mediatype: messageType.toLowerCase() as 'image' | 'video',
-              media: mediaContent.content || '',
-              mimetype: mediaContent.mimeType || '',
+              mediatype: messageType.toLowerCase() as "image" | "video",
+              media: mediaContent.content || "",
+              mimetype: mediaContent.mimeType || "",
               caption: mediaContent.caption,
               fileName: mediaContent.fileName,
             },
-          })
-          break
+          });
+          break;
 
-        case 'AUDIO':
-          const audioContent = content as any // MediaContent
+        case "AUDIO":
+          const audioContent = content as any; // MediaContent
           result = await evolutionApi.actions.sendAudio.handler({
             config: {},
             input: {
               instanceName,
               number: formattedNumber,
-              audio: audioContent.content || '',
+              audio: audioContent.content || "",
               encoding: true,
             },
-          })
-          break
+          });
+          break;
 
-        case 'STICKER':
-          const stickerContent = content as any // MediaContent
+        case "STICKER":
+          const stickerContent = content as any; // MediaContent
           // Verificar se há conteúdo válido para sticker
-          if (!stickerContent.content || stickerContent.content.trim() === '') {
-            console.warn(`[Warmup] Conteúdo de sticker vazio para ${instanceName}`)
-            return false
+          if (!stickerContent.content || stickerContent.content.trim() === "") {
+            console.warn(
+              `[Warmup] Conteúdo de sticker vazio para ${instanceName}`,
+            );
+            return false;
           }
 
           result = await evolutionApi.actions.sendSticker.handler({
@@ -693,23 +850,30 @@ export class WarmupService {
               number: formattedNumber,
               sticker: stickerContent.content,
             },
-          })
-          break
+          });
+          break;
 
         default:
-          console.warn(`[Warmup] Tipo de mensagem não suportado: ${messageType}`)
-          return false
+          console.warn(
+            `[Warmup] Tipo de mensagem não suportado: ${messageType}`,
+          );
+          return false;
       }
 
       if (result?.key?.id) {
-        await this.updateMediaStats(instanceName, organizationId, messageType, true)
-        return result.key.id
+        await this.updateMediaStats(
+          instanceName,
+          organizationId,
+          messageType,
+          true,
+        );
+        return result.key.id;
       }
 
-      return false
+      return false;
     } catch (error) {
-      console.error(`[Warmup] Erro ao enviar ${messageType}:`, error)
-      return false
+      console.error(`[Warmup] Erro ao enviar ${messageType}:`, error);
+      return false;
     }
   }
 
@@ -721,19 +885,28 @@ export class WarmupService {
     target: string,
     messageId: string,
     config: CreateWarmupInput,
-    organizationId: string
+    organizationId: string,
   ): Promise<boolean> {
     try {
-      const reaction = this.getRandomItem(config.contents.emojis || ['👍', '❤️', '😂'])
+      const reaction = this.getRandomItem(
+        config.contents.emojis || ["👍", "❤️", "😂"],
+      );
 
       // Implementar envio de reação via Evolution API quando disponível
-      console.log(`[Warmup] Enviando reação ${reaction} para mensagem ${messageId}`)
+      console.log(
+        `[Warmup] Enviando reação ${reaction} para mensagem ${messageId}`,
+      );
 
-      await this.updateMediaStats(instanceName, organizationId, 'REACTION', true)
-      return true
+      await this.updateMediaStats(
+        instanceName,
+        organizationId,
+        "REACTION",
+        true,
+      );
+      return true;
     } catch (error) {
-      console.error(`[Warmup] Erro ao enviar reação:`, error)
-      return false
+      console.error(`[Warmup] Erro ao enviar reação:`, error);
+      return false;
     }
   }
 
@@ -741,46 +914,46 @@ export class WarmupService {
    * Para o aquecimento de uma instância específica
    */
   async stopWarmup(instanceName: string): Promise<void> {
-    const timer = this.activeInstances.get(instanceName)
+    const timer = this.activeInstances.get(instanceName);
     if (timer) {
-      clearInterval(timer)
-      this.activeInstances.delete(instanceName)
+      clearInterval(timer);
+      this.activeInstances.delete(instanceName);
     }
 
     await prisma.warmupStats.updateMany({
       where: { instanceName },
       data: {
-        status: 'PAUSED',
+        status: "PAUSED",
         pauseTime: new Date(),
       },
-    })
+    });
 
-    console.log(`[Warmup] Aquecimento parado para ${instanceName}`)
+    console.log(`[Warmup] Aquecimento parado para ${instanceName}`);
   }
 
   /**
    * Para todos os aquecimentos
    */
   async stopAll(): Promise<void> {
-    this.stop = true
+    this.stop = true;
 
     for (const [instanceName, timer] of this.activeInstances.entries()) {
-      clearInterval(timer)
+      clearInterval(timer);
       try {
         await prisma.warmupStats.updateMany({
           where: { instanceName },
           data: {
-            status: 'PAUSED',
+            status: "PAUSED",
             pauseTime: new Date(),
           },
-        })
+        });
       } catch (error) {
-        console.error(`[Warmup] Erro ao pausar ${instanceName}:`, error)
+        console.error(`[Warmup] Erro ao pausar ${instanceName}:`, error);
       }
     }
 
-    this.activeInstances.clear()
-    console.log('[Warmup] Todos os aquecimentos foram parados')
+    this.activeInstances.clear();
+    console.log("[Warmup] Todos os aquecimentos foram parados");
   }
 
   /**
@@ -788,10 +961,10 @@ export class WarmupService {
    */
   async getInstanceStats(instanceName: string, organizationId: string) {
     try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
       // Estatísticas do dia atual
       const dailyStats = await prisma.mediaStats.findFirst({
@@ -803,7 +976,7 @@ export class WarmupService {
             lt: tomorrow,
           },
         },
-      })
+      });
 
       // Totais gerais
       const totalStats = await prisma.mediaStats.aggregate({
@@ -820,7 +993,7 @@ export class WarmupService {
           sticker: true,
           reaction: true,
         },
-      })
+      });
 
       return {
         daily: dailyStats || {
@@ -833,10 +1006,13 @@ export class WarmupService {
           totalDaily: 0,
         },
         total: totalStats._sum,
-      }
+      };
     } catch (error) {
-      console.error(`[Warmup] Erro ao obter estatísticas para ${instanceName}:`, error)
-      throw error
+      console.error(
+        `[Warmup] Erro ao obter estatísticas para ${instanceName}:`,
+        error,
+      );
+      throw error;
     }
   }
 
@@ -845,16 +1021,16 @@ export class WarmupService {
    */
   private getRandomItem<T>(items: T[]): T {
     if (!items || items.length === 0) {
-      throw new Error('Array vazio ou indefinido')
+      throw new Error("Array vazio ou indefinido");
     }
-    return items[Math.floor(Math.random() * items.length)]
+    return items[Math.floor(Math.random() * items.length)];
   }
 
   private async delay(min: number, max?: number): Promise<void> {
-    const delay = max ? Math.floor(Math.random() * (max - min + 1)) + min : min
-    return new Promise(resolve => setTimeout(resolve, delay))
+    const delay = max ? Math.floor(Math.random() * (max - min + 1)) + min : min;
+    return new Promise((resolve) => setTimeout(resolve, delay));
   }
 }
 
 // Instância singleton do serviço
-export const warmupService = new WarmupService()
+export const warmupService = new WarmupService();

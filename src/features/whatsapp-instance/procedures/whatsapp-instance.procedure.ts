@@ -535,8 +535,39 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
 
             console.log('[WhatsApp Instance Procedure] Status sincronizado:', newStatus);
             return updatedInstance;
-          } catch (error) {
+          } catch (error: any) {
             console.error('[WhatsApp Instance Procedure] Erro ao sincronizar status:', error);
+            
+            // Verificar se é erro 404 (instância não existe na Evolution API)
+            if (error.status === 404 || error.response?.status === 404) {
+              console.log('[WhatsApp Instance Procedure] Instância não existe na Evolution API, marcando como CLOSE');
+              
+              // Marcar instância como CLOSE no banco local
+              const updatedInstance = await context.providers.database.whatsAppInstance.update({
+                where: { id },
+                data: {
+                  status: InstanceConnectionStatus.CLOSE,
+                  metadata: {
+                    ...(typeof instance.metadata === 'object' &&
+                      instance.metadata !== null
+                      ? instance.metadata
+                      : {}),
+                    lastSync: {
+                      timestamp: new Date().toISOString(),
+                      error: 'Instância não encontrada na Evolution API',
+                      errorCode: 404,
+                    },
+                  },
+                },
+                include: {
+                  user: true,
+                  createdBy: true,
+                },
+              });
+              
+              return updatedInstance;
+            }
+            
             throw new Error('Erro ao sincronizar com a Evolution API');
           }
         },
