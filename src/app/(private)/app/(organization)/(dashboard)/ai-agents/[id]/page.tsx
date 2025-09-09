@@ -68,7 +68,7 @@ export default function AgentDetailsPage() {
     isLoading,
     error,
   } = api.aiAgents.getById.useQuery({
-    id: agentId,
+    params: { id: agentId },
   })
 
   const { data: stats } = api.aiAgents.getStats.useQuery({

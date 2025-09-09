@@ -452,7 +452,7 @@ export const AIAgentFeatureProcedure = igniter.procedure({
             const tokenUsageService = getTokenUsageService()
             const canProceed = await tokenUsageService.checkTokenLimits({
               organizationId: input.organizationId,
-              requestedTokens: agent.modelConfig.maxTokens || 1000,
+              requestedTokens: agent.maxTokens || 1000,
             })
 
             if (!canProceed.allowed) {
@@ -465,7 +465,13 @@ export const AIAgentFeatureProcedure = igniter.procedure({
             const guardrailService = getGuardrailService()
             const inputValidation = await guardrailService.validateInput({
               content: input.userMessage,
-              config: agent.guardrailConfig,
+              config: {
+                enableContentFilter: agent.enableContentFilter,
+                enablePiiDetection: agent.enablePiiDetection,
+                maxResponseLength: agent.maxResponseLength,
+                allowedTopics: agent.allowedTopics || [],
+                blockedTopics: agent.blockedTopics || [],
+              },
             })
 
             if (!inputValidation.isValid) {
@@ -476,7 +482,18 @@ export const AIAgentFeatureProcedure = igniter.procedure({
             }
 
             // Processar mensagem com o engine
+            console.log('Starting message processing with agent engine...')
             const agentEngineService = getAgentEngineService()
+            
+            console.log('Processing message with params:', {
+              agentId: input.agentId,
+              organizationId: input.organizationId,
+              sessionId: input.sessionId,
+              userMessageLength: input.userMessage?.length || 0,
+              hasAgent: !!agent,
+              agentModel: agent?.model || 'unknown'
+            })
+            
             const result = await agentEngineService.processMessage({
               agentId: input.agentId,
               organizationId: input.organizationId,
@@ -486,8 +503,18 @@ export const AIAgentFeatureProcedure = igniter.procedure({
               agent,
             })
 
+            console.log('Message processing completed successfully')
             return result
           } catch (error) {
+            console.error('=== AI AGENT ERROR DETAILS ===')
+            console.error('Error Type:', error?.name || 'Unknown')
+            console.error('Error Message:', error?.message || 'No message')
+            console.error('Full Error Object:', error)
+            console.error('Agent ID:', input.agentId)
+            console.error('Organization ID:', input.organizationId)
+            console.error('Session ID:', input.sessionId)
+            console.error('================================')
+            
             const loggingService = getLoggingService()
             await loggingService.logError({
               agentId: input.agentId,

@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/page'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { api } from '@/igniter.client'
 import {
   Bot,
   Send,
@@ -46,17 +45,78 @@ interface Message {
   timestamp: Date
 }
 
+interface Agent {
+  id: string
+  name: string
+  description?: string
+  model: string
+  isActive: boolean
+}
+
 export default function AgentChatPage() {
   const params = useParams()
   const agentId = params.id as string
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [agent, setAgent] = useState<Agent | null>(null)
+  const [agentLoading, setAgentLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data: agent, isLoading: agentLoading } = api.aiAgents.getById.useQuery({
-    id: agentId,
-  })
+  // Fetch agent data manually
+  useEffect(() => {
+    const fetchAgent = async () => {
+      try {
+        setAgentLoading(true)
+        setError(null)
+        
+        const response = await fetch(`/api/v1/ai-agents/${agentId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies for authentication
+        })
+
+        if (response.status === 401) {
+          setError('Você precisa fazer login para acessar este agente.')
+          return
+        }
+
+        if (response.status === 404) {
+          setError('Agente não encontrado ou você não tem permissão para acessá-lo.')
+          return
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          setError(`Erro ao carregar agente: ${response.status} - ${errorText}`)
+          return
+        }
+
+        const data = await response.json()
+        
+        // Handle different response formats
+        const agentData = data.data || data
+        
+        if (agentData && agentData.id) {
+          setAgent(agentData)
+        } else {
+          setError('Dados do agente inválidos.')
+        }
+      } catch (err) {
+        console.error('Error fetching agent:', err)
+        setError('Erro de conexão ao carregar o agente.')
+      } finally {
+        setAgentLoading(false)
+      }
+    }
+
+    if (agentId) {
+      fetchAgent()
+    }
+  }, [agentId])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -81,20 +141,57 @@ export default function AgentChatPage() {
     setIsLoading(true)
 
     try {
-      // Simular resposta do agente (substituir pela chamada real da API)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Gerar sessionId único para esta conversa
+      const sessionId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      
+      // Chamar API real do agente IA
+      const response = await fetch(`/api/v1/ai-agents/${agentId}/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          sessionId: sessionId,
+          userMessage: inputMessage.trim(),
+          context: {
+            messageId: userMessage.id,
+            metadata: {
+              source: 'web-chat',
+              timestamp: new Date().toISOString(),
+            },
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        throw new Error(`API Error: ${response.status} - ${errorData}`)
+      }
+
+      const result = await response.json()
+      const agentResponse = result.data
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `Olá! Sou o ${agent.name}. ${agent.description || 'Como posso ajudá-lo hoje?'}`,
+        content: agentResponse.response || agentResponse.message || 'Desculpe, não consegui processar sua mensagem.',
         role: 'assistant',
         timestamp: new Date(),
       }
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
-      toast.error('Erro ao enviar mensagem')
       console.error('Error sending message:', error)
+      toast.error('Erro ao enviar mensagem: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
+      
+      // Adicionar mensagem de erro como resposta do assistente
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
+        role: 'assistant',
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
@@ -111,40 +208,56 @@ export default function AgentChatPage() {
     setMessages([])
   }
 
+  // Loading state
   if (agentLoading) {
     return (
       <PageWrapper>
         <PageBody>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando agente...</p>
+            </div>
           </div>
         </PageBody>
       </PageWrapper>
     )
   }
 
-  if (!agent) {
+  // Error state
+  if (error || !agent) {
     return (
       <PageWrapper>
         <PageBody>
           <div className="text-center py-8">
             <Bot className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-semibold">
-              Agente não encontrado
+              {error || 'Agente não encontrado'}
             </h3>
-            <p className="text-muted-foreground">
-              O agente solicitado não existe ou você não tem permissão para
-              acessá-lo.
+            <p className="text-muted-foreground mt-2">
+              {error || 'O agente solicitado não existe ou você não tem permissão para acessá-lo.'}
             </p>
-            <Button asChild className="mt-4">
-              <Link href="/app/ai-agents">Voltar para Agentes</Link>
-            </Button>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button asChild variant="outline">
+                <Link href="/auth">Fazer Login</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/app/ai-agents">Voltar para Agentes</Link>
+              </Button>
+            </div>
+            <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-left max-w-md mx-auto">
+              <p className="font-semibold mb-2">Debug Info:</p>
+              <p>Agent ID: {agentId}</p>
+              <p>Error: {error || 'Agent not found'}</p>
+              <p>URL: /api/v1/ai-agents/{agentId}</p>
+            </div>
           </div>
         </PageBody>
       </PageWrapper>
     )
   }
 
+  // Inactive agent state
   if (!agent.isActive) {
     return (
       <PageWrapper>
@@ -171,6 +284,7 @@ export default function AgentChatPage() {
     )
   }
 
+  // Main chat interface
   return (
     <PageWrapper>
       <PageHeader>
@@ -261,7 +375,9 @@ export default function AgentChatPage() {
                       messages.map((message) => (
                         <div
                           key={message.id}
-                          className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          className={`flex gap-3 ${
+                            message.role === 'user' ? 'justify-end' : 'justify-start'
+                          }`}
                         >
                           {message.role === 'assistant' && (
                             <div className="flex-shrink-0">

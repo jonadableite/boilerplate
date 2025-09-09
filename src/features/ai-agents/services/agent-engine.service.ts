@@ -51,11 +51,15 @@ export class AgentEngineService {
     sessionId,
     organizationId,
     userMessage,
+    context,
+    agent,
   }: {
     agentId: string
     sessionId: string
     organizationId: string
     userMessage: string
+    context?: any
+    agent?: any
   }): Promise<{
     response: string
     tokenUsage: {
@@ -76,15 +80,42 @@ export class AgentEngineService {
         throw new Error(`Token limit exceeded: ${tokenCheck.reason}`)
       }
 
-      // Buscar configuração do agente
-      const agent = await this.getAgentConfig(agentId)
-      if (!agent) {
-        throw new Error(`Agent not found: ${agentId}`)
+      // Usar agente passado como parâmetro ou buscar configuração
+      let agentConfig = agent
+      if (!agentConfig) {
+        agentConfig = await this.getAgentConfig(agentId)
+        if (!agentConfig) {
+          throw new Error(`Agent not found: ${agentId}`)
+        }
+      } else {
+        // Converter agente do banco para formato AgentConfig
+        agentConfig = {
+          id: agent.id,
+          name: agent.name,
+          systemPrompt: agent.systemPrompt,
+          modelConfig: {
+            model: agent.model || 'gpt-3.5-turbo',
+            temperature: agent.temperature || 0.7,
+            maxTokens: agent.maxTokens || 1000,
+            topP: agent.topP || undefined,
+            frequencyPenalty: agent.frequencyPenalty || undefined,
+            presencePenalty: agent.presencePenalty || undefined,
+          },
+          knowledgeBaseId: agent.knowledgeBaseId || undefined,
+          guardrails: {
+            enableContentFilter: agent.enableContentFilter,
+            enablePiiDetection: agent.enablePiiDetection,
+            maxResponseLength: agent.maxResponseLength || undefined,
+            allowedTopics: agent.allowedTopics,
+            blockedTopics: agent.blockedTopics,
+          },
+          organizationId: agent.organizationId,
+        }
       }
 
       // Processar mensagem
       const result = await this.processAgentMessage(
-        agent,
+        agentConfig,
         userMessage,
         agentId,
         sessionId,
@@ -177,9 +208,20 @@ export class AgentEngineService {
       }
 
       // Executar a cadeia
+      console.log('Invoking chain with:', {
+        userMessage: userMessage.substring(0, 100),
+        chatHistoryLength: chatHistory.length,
+        hasContext: !!contextData
+      })
+      
       const response = await chain.invoke({
         chat_history: chatHistory,
         input: userMessage,
+      })
+      
+      console.log('Chain response received:', {
+        responseLength: response?.length || 0,
+        responsePreview: response?.substring(0, 100) || 'empty'
       })
 
       // Estimar tokens (implementação simplificada)
@@ -240,6 +282,18 @@ export class AgentEngineService {
    * Cria instância do LLM OpenAI
    */
   private createLLM(modelConfig: ModelConfig) {
+    const apiKey = process.env.OPENAI_API_KEY
+    
+    console.log('OpenAI API Key check:', {
+      hasKey: !!apiKey,
+      keyLength: apiKey?.length || 0,
+      keyPrefix: apiKey?.substring(0, 10) || 'undefined'
+    })
+    
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is not set')
+    }
+    
     return new ChatOpenAI({
       model: modelConfig.model,
       temperature: modelConfig.temperature,
@@ -247,7 +301,7 @@ export class AgentEngineService {
       topP: modelConfig.topP,
       frequencyPenalty: modelConfig.frequencyPenalty,
       presencePenalty: modelConfig.presencePenalty,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: apiKey,
     })
   }
 
