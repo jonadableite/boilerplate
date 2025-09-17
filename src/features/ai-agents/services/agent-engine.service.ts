@@ -8,6 +8,7 @@ import { TokenUsageService } from './token-usage.service'
 import { RAGService } from './rag.service'
 import { GuardrailService } from './guardrail.service'
 import { MemoryService } from './memory.service'
+import { AIServicesProvider } from '../../../providers/ai-services'
 
 // Configuração do modelo
 interface ModelConfig {
@@ -35,12 +36,18 @@ export class AgentEngineService {
   private ragService: RAGService
   private guardrailService: GuardrailService
   private memoryService: MemoryService
+  private knowledgeProcessor: any
+  private ttsService: any
 
   constructor() {
     this.tokenUsageService = new TokenUsageService()
     this.ragService = new RAGService()
     this.guardrailService = new GuardrailService()
     this.memoryService = new MemoryService()
+    
+    // Use AIServicesProvider for AI services following IgniterJS patterns
+    this.knowledgeProcessor = AIServicesProvider.getKnowledgeProcessor()
+    this.ttsService = AIServicesProvider.getTTSService()
   }
 
   /**
@@ -130,9 +137,216 @@ export class AgentEngineService {
   }
 
   /**
+   * Busca contexto relevante de conversas anteriores
+   */
+  private async getRelevantConversationContext(
+    agentId: string,
+    currentMessage: string,
+    userId: string
+  ): Promise<string | null> {
+    try {
+      // Buscar conversas recentes do usuário com este agente
+      const recentMemories = await prisma.aIAgentMemory.findMany({
+        where: {
+          agentId,
+          userId,
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Últimos 7 dias
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 10,
+      })
+
+      if (recentMemories.length === 0) {
+        return null
+      }
+
+      // Filtrar conversas relevantes baseadas em palavras-chave
+      const keywords = this.extractKeywords(currentMessage)
+      const relevantMemories = recentMemories.filter((memory) => {
+        const memoryText = `${memory.userMessage} ${memory.agentResponse}`.toLowerCase()
+        return keywords.some((keyword) => memoryText.includes(keyword.toLowerCase()))
+      })
+
+      if (relevantMemories.length === 0) {
+        return null
+      }
+
+      // Formatar contexto das conversas relevantes
+      const contextParts = relevantMemories.slice(0, 3).map((memory, index) => {
+        const date = memory.createdAt.toLocaleDateString('pt-BR')
+        return `[Conversa ${index + 1} - ${date}]\nUsuário: ${memory.userMessage}\nAgente: ${memory.agentResponse}`
+      })
+
+      return contextParts.join('\n\n---\n\n')
+    } catch (error) {
+      console.error('Error retrieving conversation context:', error)
+      return null
+    }
+  }
+
+  /**
+   * Busca contexto específico do usuário
+   */
+  private async getUserContext(userId: string, agentId: string): Promise<string | null> {
+    try {
+      // Buscar informações do usuário
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+      })
+
+      if (!user) {
+        return null
+      }
+
+      // Buscar estatísticas de interação com o agente
+      const interactionStats = await prisma.aIAgentMemory.aggregate({
+        where: {
+          agentId,
+          userId,
+        },
+        _count: {
+          id: true,
+        },
+      })
+
+      // Buscar tópicos mais discutidos
+      const recentTopics = await this.getRecentTopics(userId, agentId)
+
+      let context = `Nome do usuário: ${user.name}\n`
+      context += `Total de interações: ${interactionStats._count.id}\n`
+      
+      if (recentTopics.length > 0) {
+        context += `Tópicos recentes: ${recentTopics.join(', ')}\n`
+      }
+
+      return context
+    } catch (error) {
+      console.error('Error retrieving user context:', error)
+      return null
+    }
+  }
+
+  /**
+   * Extrai palavras-chave de uma mensagem
+   */
+  private extractKeywords(message: string): string[] {
+    // Remover palavras comuns (stop words) e extrair palavras significativas
+    const stopWords = new Set([
+      'o', 'a', 'os', 'as', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das',
+      'em', 'no', 'na', 'nos', 'nas', 'para', 'por', 'com', 'sem', 'sobre',
+      'e', 'ou', 'mas', 'que', 'se', 'quando', 'onde', 'como', 'por que',
+      'é', 'são', 'foi', 'foram', 'ser', 'estar', 'ter', 'haver',
+    ])
+
+    return message
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .filter((word) => word.length > 2 && !stopWords.has(word))
+      .slice(0, 5) // Limitar a 5 palavras-chave
+  }
+
+  /**
+   * Busca tópicos recentes discutidos pelo usuário
+   */
+  private async getRecentTopics(userId: string, agentId: string): Promise<string[]> {
+    try {
+      const recentMemories = await prisma.aIAgentMemory.findMany({
+        where: {
+          agentId,
+          userId,
+          createdAt: {
+            gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // Últimos 3 dias
+          },
+        },
+        select: {
+          userMessage: true,
+        },
+        take: 20,
+      })
+
+      // Extrair e contar palavras-chave
+      const keywordCounts = new Map<string, number>()
+      
+      recentMemories.forEach((memory) => {
+        const keywords = this.extractKeywords(memory.userMessage)
+        keywords.forEach((keyword) => {
+          keywordCounts.set(keyword, (keywordCounts.get(keyword) || 0) + 1)
+        })
+      })
+
+      // Retornar os tópicos mais frequentes
+      return Array.from(keywordCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([keyword]) => keyword)
+    } catch (error) {
+      console.error('Error retrieving recent topics:', error)
+      return []
+    }
+  }
+
+  /**
+   * Constrói um prompt de sistema especializado para o agente
+   */
+  private buildSpecializedSystemPrompt(agent: AgentConfig, contextData?: string): string {
+    let systemPrompt = ''
+    
+    // Cabeçalho do agente especializado
+    systemPrompt += `Você é ${agent.name}, um agente AI especializado.\n\n`
+    
+    // Adicionar papel e objetivo se definidos
+    if (agent.role) {
+      systemPrompt += `SEU PAPEL: ${agent.role}\n\n`
+    }
+    
+    if (agent.goal) {
+      systemPrompt += `SEU OBJETIVO: ${agent.goal}\n\n`
+    }
+    
+    // Instruções principais do sistema
+    systemPrompt += `INSTRUÇÕES PRINCIPAIS:\n${agent.systemPrompt}\n\n`
+    
+    // Adicionar base de conhecimento se disponível
+    if (contextData && contextData.trim()) {
+      systemPrompt += `BASE DE CONHECIMENTO:\n`
+      systemPrompt += `Use as informações abaixo como sua base de conhecimento especializada. `
+      systemPrompt += `Priorize sempre essas informações ao responder perguntas relacionadas:\n\n`
+      systemPrompt += `${contextData}\n\n`
+    }
+    
+    // Diretrizes de comportamento
+    systemPrompt += `DIRETRIZES DE COMPORTAMENTO:\n`
+    systemPrompt += `- Sempre responda como ${agent.name}, mantendo sua especialização\n`
+    systemPrompt += `- Use sua base de conhecimento quando relevante\n`
+    systemPrompt += `- Seja preciso e específico em suas respostas\n`
+    systemPrompt += `- Se não souber algo, admita e sugira onde o usuário pode encontrar a informação\n`
+    
+    // Adicionar restrições de tópicos se definidas
+    if (agent.guardrails?.allowedTopics && agent.guardrails.allowedTopics.length > 0) {
+      systemPrompt += `- Foque apenas nos seguintes tópicos: ${agent.guardrails.allowedTopics.join(', ')}\n`
+    }
+    
+    if (agent.guardrails?.blockedTopics && agent.guardrails.blockedTopics.length > 0) {
+      systemPrompt += `- Evite discutir os seguintes tópicos: ${agent.guardrails.blockedTopics.join(', ')}\n`
+    }
+    
+    return systemPrompt
+  }
+
+  /**
    * Cria uma cadeia de processamento do agente
    */
-  private async createAgentChain(agent: AgentConfig) {
+  private async createAgentChain(agent: AgentConfig, contextData?: string) {
     // Criar o modelo LLM
     const llm = this.createLLM({
       model: agent.modelConfig.model,
@@ -143,9 +357,12 @@ export class AgentEngineService {
       presencePenalty: agent.modelConfig.presencePenalty,
     })
 
+    // Construir prompt do sistema especializado
+    let systemPrompt = this.buildSpecializedSystemPrompt(agent, contextData)
+
     // Criar o template do prompt
     const promptTemplate = ChatPromptTemplate.fromMessages([
-      ['system', agent.systemPrompt || 'You are a helpful AI assistant.'],
+      ['system', systemPrompt],
       ['placeholder', '{chat_history}'],
       ['human', '{input}'],
     ])
@@ -187,25 +404,49 @@ export class AgentEngineService {
         }
       })
 
-      // Buscar contexto RAG se necessário
+      // Buscar contexto RAG e contextos dinâmicos
       let contextData = ''
+      
+      // 1. Contexto da base de conhecimento
       if (agent.knowledgeBaseId) {
         const ragResults = await this.ragService.retrieveRelevantChunks({
+          agentId,
           query: userMessage,
-          knowledgeBaseId: agent.knowledgeBaseId,
           limit: 5,
+          threshold: 0.7,
         })
-        contextData = ragResults.chunks.map((chunk: any) => chunk.content).join('\n\n')
+        
+        if (ragResults.chunks.length > 0) {
+          const knowledgeContext = ragResults.chunks
+            .map((chunk: any, index: number) => {
+              return `[Documento ${index + 1}]\n${chunk.content}`
+            })
+            .join('\n\n---\n\n')
+          
+          contextData += `CONHECIMENTO ESPECIALIZADO:\n${knowledgeContext}\n\n`
+            
+          console.log('RAG Context retrieved:', {
+            chunksFound: ragResults.chunks.length,
+            contextLength: knowledgeContext.length,
+            query: userMessage.substring(0, 50)
+          })
+        }
+      }
+      
+      // 2. Contexto de conversas anteriores relevantes
+      const conversationContext = await this.getRelevantConversationContext(agentId, userMessage, userId)
+      if (conversationContext) {
+        contextData += `CONTEXTO DE CONVERSAS ANTERIORES:\n${conversationContext}\n\n`
+      }
+      
+      // 3. Contexto do usuário (preferências, histórico)
+      const userContext = await this.getUserContext(userId, agentId)
+      if (userContext) {
+        contextData += `CONTEXTO DO USUÁRIO:\n${userContext}\n\n`
       }
 
-      // Criar a cadeia do agente
-      const chain = await this.createAgentChain(agent)
-
-      // Construir prompt do sistema com contexto
-      let systemPrompt = agent.systemPrompt || 'You are a helpful AI assistant.'
-      if (contextData) {
-        systemPrompt += `\n\nContexto relevante:\n${contextData}`
-      }
+      // Criar a cadeia do agente com contexto
+      const chain = await this.createAgentChain(agent, contextData)
 
       // Executar a cadeia
       console.log('Invoking chain with:', {
@@ -295,7 +536,7 @@ export class AgentEngineService {
     }
     
     return new ChatOpenAI({
-      model: modelConfig.model,
+      modelName: modelConfig.model,
       temperature: modelConfig.temperature,
       maxTokens: modelConfig.maxTokens,
       topP: modelConfig.topP,
@@ -324,6 +565,10 @@ export class AgentEngineService {
       return {
         id: agent.id,
         name: agent.name,
+        description: agent.description || undefined,
+        type: agent.type || undefined,
+        role: agent.role || undefined,
+        goal: agent.goal || undefined,
         systemPrompt: agent.systemPrompt,
         modelConfig: {
           model: agent.model,
@@ -341,6 +586,7 @@ export class AgentEngineService {
           allowedTopics: agent.allowedTopics,
           blockedTopics: agent.blockedTopics,
         },
+        isActive: agent.isActive,
         organizationId: agent.organizationId,
       }
     } catch (error) {
@@ -538,6 +784,56 @@ export class AgentEngineService {
         successRate: 0,
         lastActive: undefined,
       }
+    }
+  }
+
+  /**
+   * Gera áudio da resposta do agente usando TTS
+   */
+  async generateResponseAudio({
+    text,
+    voice = 'alloy',
+    enableTTS = false,
+  }: {
+    text: string
+    voice?: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
+    enableTTS?: boolean
+  }): Promise<Buffer | null> {
+    if (!enableTTS) {
+      return null
+    }
+
+    try {
+      // Verificar se o texto é adequado para TTS
+      if (!this.ttsService.isTextSuitableForTTS(text)) {
+        console.log('Text not suitable for TTS', {
+          textLength: text.length,
+          reason: 'Contains code, tables, or inappropriate length',
+        })
+        return null
+      }
+
+      // Limpar o texto para TTS
+      const cleanText = this.ttsService.cleanTextForTTS(text)
+      
+      // Gerar áudio
+      const audioBuffer = await this.ttsService.textToSpeech({
+        text: cleanText,
+        voice,
+        model: 'tts-1',
+        speed: 1.0,
+      })
+
+      console.log('Audio generated successfully', {
+        originalTextLength: text.length,
+        cleanTextLength: cleanText.length,
+        audioSize: audioBuffer.length,
+      })
+
+      return audioBuffer
+    } catch (error) {
+      console.error('Error generating response audio', { error })
+      return null
     }
   }
 }

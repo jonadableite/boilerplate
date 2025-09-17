@@ -689,6 +689,252 @@ export const AIAgentFeatureProcedure = igniter.procedure({
           }
         },
 
+        // Upload arquivo de conhecimento
+        uploadKnowledgeFile: async (input: {
+          agentId: string
+          organizationId: string
+          file: {
+            name: string
+            type: string
+            size: number
+            content: string
+          }
+        }) => {
+          try {
+            // Verificar se o agente existe e pertence à organização
+            const agent = await prisma.aIAgent.findFirst({
+              where: {
+                id: input.agentId,
+                organizationId: input.organizationId,
+              },
+            })
+
+            if (!agent) {
+              throw new AgentNotFoundError('Agent not found')
+            }
+
+            // Criar registro do arquivo
+            const knowledgeFile = await prisma.knowledgeFile.create({
+              data: {
+                filename: `${Date.now()}-${input.file.name}`,
+                originalName: input.file.name,
+                mimeType: input.file.type,
+                size: input.file.size,
+                content: input.file.content,
+                status: 'uploaded',
+                agentId: input.agentId,
+                organizationId: input.organizationId,
+              },
+            })
+
+            const loggingService = getLoggingService()
+            await loggingService.logInfo({
+              agentId: input.agentId,
+              organizationId: input.organizationId,
+              message: 'Knowledge file uploaded successfully',
+            })
+
+            return knowledgeFile
+          } catch (error) {
+            const loggingService = getLoggingService()
+            await loggingService.logError({
+              agentId: input.agentId,
+              organizationId: input.organizationId,
+              message: 'Failed to upload knowledge file',
+              error,
+            })
+
+            if (error instanceof AgentNotFoundError) {
+              throw error
+            }
+
+            throw new AIAgentError('Failed to upload knowledge file')
+          }
+        },
+
+        // Listar arquivos de conhecimento
+        listKnowledgeFiles: async (input: {
+          agentId: string
+          organizationId: string
+        }) => {
+          try {
+            const files = await prisma.knowledgeFile.findMany({
+              where: {
+                agentId: input.agentId,
+                organizationId: input.organizationId,
+              },
+              select: {
+                id: true,
+                filename: true,
+                originalName: true,
+                mimeType: true,
+                size: true,
+                status: true,
+                createdAt: true,
+                _count: {
+                  select: {
+                    chunks: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: 'desc' },
+            })
+
+            return files
+          } catch (error) {
+            const loggingService = getLoggingService()
+            await loggingService.logError({
+              agentId: input.agentId,
+              organizationId: input.organizationId,
+              message: 'Failed to list knowledge files',
+              error,
+            })
+
+            throw new AIAgentError('Failed to list knowledge files')
+          }
+        },
+
+        // Deletar arquivo de conhecimento
+        deleteKnowledgeFile: async (input: {
+          fileId: string
+          organizationId: string
+        }) => {
+          try {
+            // Verificar se o arquivo existe e pertence à organização
+            const file = await prisma.knowledgeFile.findFirst({
+              where: {
+                id: input.fileId,
+                organizationId: input.organizationId,
+              },
+            })
+
+            if (!file) {
+              throw new Error('Knowledge file not found')
+            }
+
+            // Deletar chunks relacionados e o arquivo
+            await prisma.$transaction(async (tx) => {
+              await tx.knowledgeChunk.deleteMany({
+                where: { fileId: input.fileId },
+              })
+
+              await tx.knowledgeFile.delete({
+                where: { id: input.fileId },
+              })
+            })
+
+            const loggingService = getLoggingService()
+            await loggingService.logInfo({
+              agentId: file.agentId,
+              organizationId: input.organizationId,
+              message: 'Knowledge file deleted successfully',
+            })
+
+            return { success: true }
+          } catch (error) {
+            const loggingService = getLoggingService()
+            await loggingService.logError({
+              agentId: undefined,
+              organizationId: input.organizationId,
+              message: 'Failed to delete knowledge file',
+              error,
+            })
+
+            throw new AIAgentError('Failed to delete knowledge file')
+          }
+        },
+
+        // Processar arquivo de conhecimento
+        processKnowledgeFile: async (input: {
+          fileId: string
+          organizationId: string
+        }) => {
+          try {
+            const file = await prisma.knowledgeFile.findFirst({
+              where: {
+                id: input.fileId,
+                organizationId: input.organizationId,
+              },
+            })
+
+            if (!file) {
+              throw new Error('Knowledge file not found')
+            }
+
+            // Atualizar status para processando
+            await prisma.knowledgeFile.update({
+              where: { id: input.fileId },
+              data: { status: 'processing' },
+            })
+
+            // Aqui você pode adicionar a lógica de processamento do arquivo
+            // Por exemplo, extrair texto, dividir em chunks, gerar embeddings, etc.
+            // Por enquanto, vamos simular o processamento
+
+            // Simular processamento
+            const chunks = [
+              {
+                content: `Chunk 1 do arquivo ${file.originalName}`,
+                metadata: { page: 1, section: 'introduction' },
+              },
+              {
+                content: `Chunk 2 do arquivo ${file.originalName}`,
+                metadata: { page: 2, section: 'content' },
+              },
+            ]
+
+            // Criar chunks no banco
+            const createdChunks = await Promise.all(
+              chunks.map((chunk) =>
+                prisma.knowledgeChunk.create({
+                  data: {
+                    content: chunk.content,
+                    metadata: chunk.metadata,
+                    fileId: input.fileId,
+                    agentId: file.agentId,
+                    organizationId: input.organizationId,
+                  },
+                })
+              )
+            )
+
+            // Atualizar status para processado
+            await prisma.knowledgeFile.update({
+              where: { id: input.fileId },
+              data: { status: 'processed' },
+            })
+
+            const loggingService = getLoggingService()
+            await loggingService.logInfo({
+              agentId: file.agentId,
+              organizationId: input.organizationId,
+              message: 'Knowledge file processed successfully',
+            })
+
+            return {
+              success: true,
+              chunksCreated: createdChunks.length,
+              chunks: createdChunks,
+            }
+          } catch (error) {
+            // Atualizar status para erro
+            await prisma.knowledgeFile.update({
+              where: { id: input.fileId },
+              data: { status: 'error' },
+            })
+
+            const loggingService = getLoggingService()
+            await loggingService.logError({
+              agentId: undefined,
+              organizationId: input.organizationId,
+              message: 'Failed to process knowledge file',
+              error,
+            })
+
+            throw new AIAgentError('Failed to process knowledge file')
+          }
+        },
+
         // Obter estatísticas do agente
         getAgentStats: async (input: {
           agentId: string

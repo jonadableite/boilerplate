@@ -87,12 +87,20 @@ export interface GuardrailConfig {
 export interface AgentConfig {
   id: string
   name: string
-  description: string
-  type: string
+  description?: string
+  type?: string
+  role?: string
+  goal?: string
   systemPrompt: string
-  model: ModelConfig
+  modelConfig: ModelConfig
   knowledgeBaseId?: string
-  guardrails: GuardrailConfig
+  ttsConfig?: {
+    enabled: boolean
+    voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
+    model: 'tts-1' | 'tts-1-hd'
+    speed: number
+  }
+  guardrails?: GuardrailConfig
   fallbackMessage?: string
   isActive: boolean
   organizationId: string

@@ -32,10 +32,11 @@ import {
 } from '@/components/ui/page'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/igniter.client'
-import { Bot, Save, ArrowLeft } from 'lucide-react'
+import { Bot, Save, ArrowLeft, Brain, Database, Settings, Shield, Zap, Upload, FileText, Plus, X } from 'lucide-react'
+import { KnowledgeUpload } from '@/features/ai-agents/components/knowledge-upload'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
@@ -51,6 +52,9 @@ import {
 } from '@/components/ui/form'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AIAgentType } from '@/features/ai-agents/types/ai-agent.types'
 
 const updateAgentSchema = z.object({
@@ -83,6 +87,12 @@ export default function EditAgentPage() {
   const params = useParams()
   const router = useRouter()
   const agentId = params.id as string
+  const [activeTab, setActiveTab] = useState('basic')
+  const [knowledgeFiles, setKnowledgeFiles] = useState<string[]>([])
+  const [allowedTopics, setAllowedTopics] = useState<string[]>([])
+  const [blockedTopics, setBlockedTopics] = useState<string[]>([])
+  const [newTopic, setNewTopic] = useState('')
+  const [newBlockedTopic, setNewBlockedTopic] = useState('')
 
   const agentQuery = api.aiAgents.getById.useQuery({
     params: { id: agentId },
@@ -136,6 +146,13 @@ export default function EditAgentPage() {
         fallbackMessage: agent.fallbackMessage || '',
         isActive: agent.isActive,
       })
+      
+      // Set topics from agent data
+      setAllowedTopics(agent.allowedTopics || [])
+      setBlockedTopics(agent.blockedTopics || [])
+      
+      // Set knowledge files if available
+      setKnowledgeFiles(agent.knowledgeFiles || [])
     }
   }, [agent, form])
 
@@ -143,7 +160,12 @@ export default function EditAgentPage() {
     try {
       await updateAgentMutation.execute({
         params: { id: agentId },
-        body: data,
+        body: {
+          ...data,
+          allowedTopics,
+          blockedTopics,
+          knowledgeFiles,
+        },
       })
       toast.success('Agente atualizado com sucesso!')
       router.push(`/app/ai-agents/${agentId}`)
@@ -151,6 +173,26 @@ export default function EditAgentPage() {
       toast.error(
         'Erro ao atualizar agente: ' + (error?.message || 'Erro desconhecido'),
       )
+    }
+  }
+
+  const addTopic = (topic: string, type: 'allowed' | 'blocked') => {
+    if (!topic.trim()) return
+    
+    if (type === 'allowed') {
+      setAllowedTopics([...allowedTopics, topic.trim()])
+      setNewTopic('')
+    } else {
+      setBlockedTopics([...blockedTopics, topic.trim()])
+      setNewBlockedTopic('')
+    }
+  }
+
+  const removeTopic = (index: number, type: 'allowed' | 'blocked') => {
+    if (type === 'allowed') {
+      setAllowedTopics(allowedTopics.filter((_, i) => i !== index))
+    } else {
+      setBlockedTopics(blockedTopics.filter((_, i) => i !== index))
     }
   }
 
@@ -239,15 +281,35 @@ export default function EditAgentPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-6"
               >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Informações Básicas</CardTitle>
-                      <CardDescription>
-                        Configure as informações principais do agente
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="basic" className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      Básico
+                    </TabsTrigger>
+                    <TabsTrigger value="model" className="flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Modelo
+                    </TabsTrigger>
+                    <TabsTrigger value="knowledge" className="flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      Base de Conhecimento
+                    </TabsTrigger>
+                    <TabsTrigger value="guardrails" className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Guardrails
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="basic" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Informações Básicas</CardTitle>
+                        <CardDescription>
+                          Configure as informações principais do agente
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
                         name="name"
@@ -360,39 +422,42 @@ export default function EditAgentPage() {
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="isActive"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">
-                                Agente Ativo
-                              </FormLabel>
-                              <FormDescription>
-                                Ativar ou desativar o agente
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
+                        <FormField
+                          control={form.control}
+                          name="isActive"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">
+                                  Agente Ativo
+                                </FormLabel>
+                                <FormDescription>
+                                  Ativar ou desativar o agente
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Configurações do Modelo</CardTitle>
-                      <CardDescription>
-                        Ajuste os parâmetros do modelo de IA
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                  <TabsContent value="model" className="space-y-6">
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Configurações do Modelo</CardTitle>
+                        <CardDescription>
+                          Ajuste os parâmetros do modelo de IA
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
                         name="model"
@@ -498,28 +563,278 @@ export default function EditAgentPage() {
 
                         <FormField
                           control={form.control}
-                          name="enablePiiDetection"
+                          name="topP"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                              <div className="space-y-0.5">
-                                <FormLabel>Detecção PII</FormLabel>
-                                <FormDescription className="text-xs">
-                                  Detectar informações pessoais
-                                </FormDescription>
-                              </div>
+                            <FormItem>
+                              <FormLabel>Top P</FormLabel>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={1}
+                                  step={0.1}
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(parseFloat(e.target.value))
+                                  }
                                 />
                               </FormControl>
+                              <FormDescription>
+                                Controla a diversidade das respostas
+                              </FormDescription>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+
+                        <FormField
+                          control={form.control}
+                          name="frequencyPenalty"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Penalidade de Frequência</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={-2}
+                                  max={2}
+                                  step={0.1}
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(parseFloat(e.target.value))
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Reduz repetições de palavras
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="presencePenalty"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Penalidade de Presença</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={-2}
+                                  max={2}
+                                  step={0.1}
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(parseFloat(e.target.value))
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Encoraja novos tópicos
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="knowledge" className="space-y-6">
+                    <KnowledgeUpload agentId={params.id} />
+                  </TabsContent>
+
+                  <TabsContent value="guardrails" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Shield className="h-5 w-5" />
+                          Guardrails e Segurança
+                        </CardTitle>
+                        <CardDescription>
+                          Configure filtros de segurança e limitações do agente
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="enableContentFilter"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Filtro de Conteúdo</FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Ativar filtros de segurança
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="enablePiiDetection"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Detecção PII</FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Detectar informações pessoais
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-medium mb-2">Tópicos Permitidos</h4>
+                            <div className="flex gap-2 mb-2">
+                              <Input
+                                placeholder="Adicionar tópico permitido..."
+                                value={newTopic}
+                                onChange={(e) => setNewTopic(e.target.value)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    addTopic(newTopic, 'allowed')
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => addTopic(newTopic, 'allowed')}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {allowedTopics.map((topic, index) => (
+                                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                  {topic}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0 ml-1"
+                                    onClick={() => removeTopic(index, 'allowed')}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="font-medium mb-2">Tópicos Bloqueados</h4>
+                            <div className="flex gap-2 mb-2">
+                              <Input
+                                placeholder="Adicionar tópico bloqueado..."
+                                value={newBlockedTopic}
+                                onChange={(e) => setNewBlockedTopic(e.target.value)}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    addTopic(newBlockedTopic, 'blocked')
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => addTopic(newBlockedTopic, 'blocked')}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {blockedTopics.map((topic, index) => (
+                                <Badge key={index} variant="destructive" className="flex items-center gap-1">
+                                  {topic}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0 ml-1 text-destructive-foreground hover:text-destructive-foreground"
+                                    onClick={() => removeTopic(index, 'blocked')}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <FormField
+                          control={form.control}
+                          name="maxResponseLength"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tamanho Máximo da Resposta</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="Ex: 500"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(parseInt(e.target.value))
+                                  }
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Limite de caracteres por resposta (opcional)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="fallbackMessage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mensagem de Fallback</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Desculpe, não consegui entender. Pode reformular?"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Mensagem exibida quando o agente não consegue responder
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
 
                 <Card>
                   <CardHeader>

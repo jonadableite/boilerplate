@@ -5,6 +5,7 @@ import { mail } from './providers/mail'
 import { plugins } from './providers/plugin-manager'
 import { payment } from './providers/payment'
 import { prisma } from './providers/prisma'
+import { AIServicesProvider } from './providers/ai-services'
 
 /**
  * @description Create the context of the application
@@ -18,6 +19,7 @@ export const createIgniterAppContext = cache(() => {
       mail,
       payment,
       plugins,
+      aiServices: AIServicesProvider,
     },
   }
 })

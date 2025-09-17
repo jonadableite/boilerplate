@@ -196,6 +196,8 @@ model Organization {
   openaiCreds OpenAICreds[]
   tokenUsageHistory TokenUsageHistory[]
   aiAgentLogs AIAgentLog[]
+  knowledgeFiles KnowledgeFile[]
+  knowledgeChunks KnowledgeChunk[]
 
   @@unique([slug])
   @@map("organization")
@@ -1097,6 +1099,12 @@ model AIAgent {
   // Base de conhecimento
   knowledgeBaseId      String?
   
+  // Configurações de TTS (Text-to-Speech)
+  ttsEnabled           Boolean   @default(false)
+  ttsVoice             String?   @default("alloy") // alloy, echo, fable, onyx, nova, shimmer
+  ttsModel             String?   @default("tts-1") // tts-1, tts-1-hd
+  ttsSpeed             Float?    @default(1.0)
+  
   // Configurações de segurança (Guardrails)
   enableContentFilter  Boolean   @default(true)
   enablePiiDetection   Boolean   @default(true)
@@ -1121,6 +1129,7 @@ model AIAgent {
   
   // Relacionamentos com outros modelos
   memories             AIAgentMemory[]
+  knowledgeFiles       KnowledgeFile[] @relation("AgentKnowledgeFiles")
   knowledgeChunks      KnowledgeChunk[]
   
   // Metadados
@@ -1173,18 +1182,56 @@ model AIAgentMemory {
   @@map("ai_agent_memory")
 }
 
+model KnowledgeFile {
+  id             String    @id @default(uuid())
+  filename       String    // Nome do arquivo no sistema
+  originalName   String    // Nome original do arquivo
+  size           Int       // Tamanho do arquivo em bytes
+  type           String    // Tipo MIME do arquivo
+  chunksCount    Int       @default(0) // Número de chunks gerados
+  processedAt    DateTime  @default(now()) // Quando foi processado
+  metadata       Json?     // Metadados adicionais do arquivo
+  
+  // Relacionamentos
+  agentId        String
+  agent          AIAgent   @relation("AgentKnowledgeFiles", fields: [agentId], references: [id], onDelete: Cascade)
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Chunks relacionados a este arquivo
+  chunks         KnowledgeChunk[]
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([agentId])
+  @@index([organizationId])
+  @@index([type])
+  @@map("knowledge_file")
+}
+
 model KnowledgeChunk {
-  id        String @id @default(uuid())
-  agentId   String
-  agent     AIAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  sourceId  String
-  content   String
-  embedding Json? // Array de números (embeddings)
-  metadata  Json?
-
-  createdAt DateTime @default(now())
-
-  @@index([agentId, sourceId])
+  id             String    @id @default(uuid())
+  content        String    // Conteúdo do chunk
+  embedding      Json?     // Array de números (embeddings)
+  metadata       Json?     // Metadados do chunk (posição, página, etc.)
+  
+  // Relacionamentos
+  agentId        String
+  agent          AIAgent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  fileId         String
+  file           KnowledgeFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime  @default(now())
+  
+  @@index([agentId])
+  @@index([fileId])
+  @@index([organizationId])
   @@index([createdAt])
   @@map("knowledge_chunk")
 }

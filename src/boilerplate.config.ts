@@ -13,7 +13,7 @@ export const AppConfig = {
     'Boilerplate',
     'Micro-SaaS',
   ],
-  theme: 'light',
+  theme: 'system',
   description: 'Transform Your Project into a Successful Micro-SaaS',
   brand: {
     og: 'assets/og-image.png',

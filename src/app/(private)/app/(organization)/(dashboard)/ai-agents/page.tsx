@@ -275,22 +275,33 @@ export default function AIAgentsPage() {
             {/* Header with gradient background */}
             <GradientBackground variant="primary" className="rounded-2xl p-8">
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Agentes IA
-                  </h1>
-                  <p className="text-lg text-muted-foreground max-w-2xl">
-                    Gerencie seus agentes de inteligência artificial. Crie,
-                    configure e monitore agentes para automatizar tarefas e
-                    processos.
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-xl">
+                    <Bot className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                      Agentes IA
+                    </h1>
+                    <p className="text-lg text-muted-foreground max-w-2xl">
+                      Gerencie seus agentes de inteligência artificial. Crie,
+                      configure e monitore agentes para automatizar tarefas e
+                      processos.
+                    </p>
+                  </div>
                 </div>
+                <Link href="/app/ai-agents/new">
+                  <Button size="lg" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <IconPlus className="h-5 w-5" />
+                    Novo Agente
+                  </Button>
+                </Link>
                 <Dialog
                   open={isCreateDialogOpen}
                   onOpenChange={setIsCreateDialogOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button size="lg" className="gap-2">
+                    <Button size="lg" className="gap-2" style={{display: 'none'}}>
                       <IconPlus className="h-5 w-5" />
                       Criar Agente
                     </Button>
