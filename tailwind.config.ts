@@ -160,6 +160,11 @@ const config: Config = {
         'tremor-title': ['1.125rem', { lineHeight: '1.75rem' }],
         'tremor-metric': ['1.875rem', { lineHeight: '2.25rem' }],
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic':
+          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+      },
       keyframes: {
         'accordion-down': {
           from: {
@@ -223,6 +228,14 @@ const config: Config = {
             'offset-distance': '100%',
           },
         },
+        marquee: {
+          from: { transform: 'translateX(0%)' },
+          to: { transform: 'translateX(-100%)' },
+        },
+        'marquee-vertical': {
+          from: { transform: 'translateY(0%)' },
+          to: { transform: 'translateY(-100%)' },
+        },
         // Novas animações para carregamento da página
         fadeIn: {
           '0%': { opacity: '0' },
@@ -244,6 +257,19 @@ const config: Config = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
+        shimmer: {
+          from: {
+            backgroundPosition: '0 0',
+          },
+          to: {
+            backgroundPosition: '-200% 0',
+          },
+        },
+        rainbow: {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -256,12 +282,16 @@ const config: Config = {
         'pulse-scale': 'pulse-scale 6s ease-out infinite',
         'gradient-move': 'gradient-move 5s linear infinite',
         'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
+        marquee: 'marquee var(--duration) linear infinite',
+        'marquee-vertical': 'marquee-vertical var(--duration) linear infinite',
         // Novas animações para carregamento da página
         fadeIn: 'fadeIn 0.8s ease-in-out forwards',
         slideUp: 'slideUp 0.8s ease-in-out forwards',
         slideDown: 'slideDown 0.8s ease-in-out forwards',
         slideIn: 'slideIn 0.8s ease-in-out forwards',
         pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        shimmer: 'shimmer 2s linear infinite',
+        rainbow: 'rainbow 2s ease-in-out infinite',
       },
     },
   },

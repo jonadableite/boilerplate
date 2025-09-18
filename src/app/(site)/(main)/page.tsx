@@ -6,6 +6,7 @@ import { SiteLogoShowcase } from '../(components)/site-logo-showcase'
 import { SiteTestimonialsSection } from '../(components)/site-testimonials-section'
 import { MainHeroSection } from './(components)/main-hero-section'
 import { SitePricingSection } from '../(components)/site-pricing-section'
+import { SiteBentoDemo } from '@/components/site/site-bento-demo'
 
 import { generateMetadata, getPageMetadata } from '@/utils/metadata.utils'
 import SiteExpandedFeaturesSection from '../(components)/site-expanded-features-section'
@@ -20,12 +21,12 @@ export default function Page() {
   return (
     <div className="space-y-0 divide-y">
       <MainHeroSection />
-
       <SiteLogoShowcase />
-      <SiteExpandedFeaturesSection />
+      <SiteBentoDemo />
+      {/* <SiteExpandedFeaturesSection /> */}
       <SiteFeaturedSection />
-      <SitePricingSection />
       <SiteTestimonialsSection />
+      <SitePricingSection />
       <SiteFaqSection />
       <SiteCTA />
     </div>

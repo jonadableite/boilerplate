@@ -69,7 +69,7 @@ export const BorderBeam = ({
         style={
           {
             width: size,
-            offsetPath: `rect(0 auto auto 0 round ${size}px)`,
+            offsetPath: `rect(0 auto auto 0 round inherit)`,
             '--color-from': colorFrom,
             '--color-to': colorTo,
             ...style,

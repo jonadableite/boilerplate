@@ -75,6 +75,9 @@ export function MagicCard({
     mouseY.set(-gradientSize)
   }, [gradientSize, mouseX, mouseY])
 
+  // Responsively adjust gradient size based on container
+  const responsiveGradientSize = `min(${gradientSize}px, 40vw)`
+
   return (
     <div
       ref={cardRef}
@@ -84,7 +87,7 @@ export function MagicCard({
         className="pointer-events-none absolute inset-0 rounded-[inherit] bg-border duration-300 group-hover:opacity-100"
         style={{
           background: useMotionTemplate`
-          radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px,
+          radial-gradient(${responsiveGradientSize} circle at ${mouseX}px ${mouseY}px,
           ${gradientFrom}, 
           ${gradientTo}, 
           hsl(var(--border)) 100%
@@ -97,7 +100,7 @@ export function MagicCard({
         className="pointer-events-none absolute inset-px rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
           background: useMotionTemplate`
-            radial-gradient(${gradientSize}px circle at ${mouseX}px ${mouseY}px, ${gradientColor}, transparent 100%)
+            radial-gradient(${responsiveGradientSize} circle at ${mouseX}px ${mouseY}px, ${gradientColor}, transparent 100%)
           `,
           opacity: gradientOpacity,
         }}
