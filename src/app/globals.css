@@ -79,6 +79,8 @@
     --animate-aurora: aurora 8s ease-in-out infinite alternate;
     --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
     --animate-line-shadow: line-shadow 15s linear infinite;
+    --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+    --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
   }
 }
 
@@ -253,7 +255,7 @@ nextjs-portal {
     background-position: 100% -100%;
     }
   }
-  
+
   @keyframes whatsapp-glow {
   0% {
     background-position: 0% 50%;
@@ -266,6 +268,25 @@ nextjs-portal {
   100% {
     background-position: 200% 50%;
     filter: brightness(1) saturate(1);
+    }
+  }
+  @keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+    }
+  }
+  @keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+    }
+  15%, 35% {
+    transform: translateZ(0) rotate(90deg);
+    }
+  65%, 85% {
+    transform: translateZ(0) rotate(270deg);
+    }
+  100% {
+    transform: translateZ(0) rotate(360deg);
     }
   }
 }
