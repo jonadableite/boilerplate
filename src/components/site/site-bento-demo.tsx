@@ -153,7 +153,7 @@ export function SiteBentoDemo() {
   return (
     <section className="py-24">
       <div className="container mx-auto px-4">
-        <Vortex 
+        <Vortex
           containerClassName="mx-auto max-w-2xl text-center mb-16 relative"
           className="z-10"
           backgroundColor="rgba(0,0,0,0.02)"
