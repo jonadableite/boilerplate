@@ -3,6 +3,29 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+}
+
+@theme inline {
+  --animate-aurora: aurora 60s linear infinite;
+  @keyframes aurora {
+    from {
+      background-position:
+        50% 50%,
+        50% 50%;
+    }
+    to {
+      background-position:
+        350% 50%,
+        350% 50%;
+    }
+  }
+}
+
+@layer base {
   :root {
     --background: 0 0% 98%;
     --foreground: 0 0% 15%;
@@ -268,7 +291,8 @@ nextjs-portal {
     }
   }
   @keyframes pulse-glow {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.4;
       transform: scale(0.95);
     }
@@ -278,7 +302,8 @@ nextjs-portal {
     }
   }
   @keyframes floating-glow {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0px) rotate(0deg);
       opacity: 0.6;
     }

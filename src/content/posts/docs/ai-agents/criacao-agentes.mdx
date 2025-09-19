@@ -1,0 +1,552 @@
+---
+title: "Criação de Agentes de IA"
+date: "2024-01-15"
+category: "ai-agents"
+index: 1
+tags: ["ia", "agentes", "automacao", "criacao"]
+author: "Equipe WhatsApp Marketing"
+---
+
+# Criação de Agentes de IA
+
+Os agentes de IA são o coração da automação inteligente da sua plataforma. Eles podem atender clientes, qualificar leads, processar pedidos e muito mais, tudo de forma natural e eficiente.
+
+## O que são Agentes de IA?
+
+### Definição
+
+Agentes de IA são assistentes virtuais inteligentes que utilizam modelos de linguagem avançados (como GPT-4) para:
+
+- **Conversar Naturalmente**: Entendem contexto e nuances
+- **Aprender Continuamente**: Melhoram com cada interação
+- **Executar Tarefas**: Desde atendimento até vendas
+- **Integrar Sistemas**: Conectam com suas ferramentas existentes
+
+### Benefícios dos Agentes
+
+- ✅ **Atendimento 24/7**: Nunca param de trabalhar
+- ✅ **Escalabilidade**: Atendem milhares simultaneamente
+- ✅ **Consistência**: Sempre seguem os protocolos
+- ✅ **Economia**: Reduzem custos operacionais
+- ✅ **Personalização**: Adaptam-se ao seu negócio
+
+## Tipos de Agentes Disponíveis
+
+### 1. LLM Agent (Recomendado)
+
+**Melhor para**: Atendimento geral, vendas, suporte
+
+- **Tecnologia**: GPT-4, Claude, Gemini
+- **Características**: Conversação natural, contexto avançado
+- **Uso**: Ideal para a maioria dos casos
+- **Configuração**: Simples e intuitiva
+
+### 2. Crew AI
+
+**Melhor para**: Tarefas complexas em equipe
+
+- **Tecnologia**: Múltiplos agentes colaborativos
+- **Características**: Especialização por função
+- **Uso**: Processos que requerem várias etapas
+- **Configuração**: Avançada
+
+### 3. LangGraph Workflow
+
+**Melhor para**: Fluxos de trabalho estruturados
+
+- **Tecnologia**: Grafos de decisão
+- **Características**: Lógica condicional complexa
+- **Uso**: Processos com muitas ramificações
+- **Configuração**: Técnica
+
+### 4. Google ADK
+
+**Melhor para**: Integração com Google Workspace
+
+- **Tecnologia**: APIs do Google
+- **Características**: Acesso a Gmail, Calendar, Drive
+- **Uso**: Empresas que usam Google
+- **Configuração**: Requer credenciais Google
+
+### 5. A2A Protocol
+
+**Melhor para**: Comunicação entre agentes
+
+- **Tecnologia**: Protocolo de comunicação
+- **Características**: Agentes que conversam entre si
+- **Uso**: Sistemas multi-agente
+- **Configuração**: Muito avançada
+
+### 6. MCP Server
+
+**Melhor para**: Integrações personalizadas
+
+- **Tecnologia**: Model Context Protocol
+- **Características**: Conecta com qualquer sistema
+- **Uso**: Integrações específicas
+- **Configuração**: Desenvolvimento necessário
+
+## Criando seu Primeiro Agente
+
+### Passo 1: Acessar a Criação
+
+1. No dashboard, clique em **"Agentes IA"** no menu lateral
+2. Clique no botão **"Novo Agente"**
+3. Escolha **"LLM Agent"** para começar
+
+### Passo 2: Informações Básicas
+
+Configure os dados fundamentais:
+
+#### Nome do Agente
+
+- **Exemplo**: "Atendente Virtual - Loja ABC"
+- **Dica**: Use nomes descritivos e únicos
+- **Limite**: 100 caracteres
+
+#### Descrição
+
+- **Exemplo**: "Agente especializado em atendimento ao cliente, vendas de produtos eletrônicos e suporte técnico básico"
+- **Dica**: Seja específico sobre as funções
+- **Limite**: 500 caracteres
+
+#### Tipo de Agente
+
+- **Recomendado**: LLM Agent
+- **Motivo**: Mais versátil e fácil de configurar
+- **Upgrade**: Pode ser alterado depois
+
+### Passo 3: Configuração de Personalidade
+
+#### Papel (Role)
+
+Define o que o agente é:
+
+```
+Você é um atendente virtual especializado em vendas de produtos eletrônicos.
+Você trabalha para a Loja ABC, uma empresa líder em tecnologia com 15 anos de mercado.
+```
+
+#### Objetivo (Goal)
+
+Define o que o agente deve alcançar:
+
+```
+Seu objetivo é ajudar clientes a encontrar os produtos ideais, esclarecer dúvidas técnicas,
+processar pedidos e garantir uma experiência de compra excepcional.
+```
+
+#### Prompt do Sistema
+
+Instruções detalhadas de comportamento:
+
+```
+Você é um atendente virtual da Loja ABC, especializada em produtos eletrônicos.
+
+PERSONALIDADE:
+- Seja sempre educado, prestativo e profissional
+- Use linguagem clara e acessível
+- Demonstre conhecimento técnico quando necessário
+- Seja proativo em oferecer soluções
+
+CONHECIMENTOS:
+- Produtos: smartphones, notebooks, tablets, acessórios
+- Marcas: Apple, Samsung, Dell, HP, Xiaomi
+- Garantias: 12 meses para eletrônicos, 6 meses para acessórios
+- Entrega: 2-5 dias úteis para capital, 5-10 dias para interior
+
+PROCESSOS:
+1. Cumprimente o cliente de forma calorosa
+2. Identifique a necessidade específica
+3. Apresente opções adequadas ao perfil/orçamento
+4. Esclareça dúvidas técnicas
+5. Auxilie no processo de compra
+6. Ofereça suporte pós-venda
+
+LIMITAÇÕES:
+- Não invente informações sobre produtos
+- Sempre confirme disponibilidade antes de prometer
+- Encaminhe questões complexas para humanos quando necessário
+- Não processe pagamentos diretamente
+
+EXEMPLOS DE RESPOSTAS:
+Cliente: "Preciso de um notebook para trabalho"
+Você: "Olá! Fico feliz em ajudar você a encontrar o notebook ideal para trabalho! Para fazer a melhor recomendação, me conta: que tipo de trabalho você faz? Precisa de algo mais leve para mobilidade ou performance é prioridade? E qual seria seu orçamento aproximado?"
+```
+
+### Passo 4: Configurações do Modelo
+
+#### Modelo de IA
+
+- **GPT-4**: Mais inteligente, mais caro
+- **GPT-3.5-turbo**: Bom custo-benefício
+- **Claude**: Alternativa ao GPT
+- **Gemini**: Opção do Google
+
+#### Temperatura (0.0 - 1.0)
+
+- **0.0-0.3**: Respostas mais precisas e consistentes
+- **0.4-0.7**: Equilibrio entre criatividade e precisão
+- **0.8-1.0**: Mais criativo, menos previsível
+
+**Recomendado para atendimento**: 0.3-0.5
+
+#### Máximo de Tokens
+
+- **500-1000**: Respostas concisas
+- **1000-2000**: Respostas detalhadas
+- **2000+**: Respostas muito longas
+
+**Recomendado**: 1000 tokens
+
+### Passo 5: Configurações de Segurança
+
+#### Filtro de Conteúdo
+
+- **Ativado**: Bloqueia conteúdo inadequado
+- **Recomendado**: Sempre ativo para atendimento
+
+#### Detecção de PII
+
+- **Ativado**: Protege dados pessoais sensíveis
+- **Recomendado**: Sempre ativo para compliance
+
+#### Tópicos Permitidos
+
+Lista de assuntos que o agente pode abordar:
+
+```
+- Produtos eletrônicos
+- Especificações técnicas
+- Preços e promoções
+- Garantias e trocas
+- Entrega e frete
+- Suporte técnico básico
+- Formas de pagamento
+```
+
+#### Tópicos Bloqueados
+
+Assuntos que o agente deve evitar:
+
+```
+- Política
+- Religião
+- Conteúdo adulto
+- Informações médicas
+- Aconselhamento financeiro
+- Dados de outros clientes
+```
+
+### Passo 6: Mensagens de Fallback
+
+#### Mensagem Padrão
+
+Quando o agente não consegue responder:
+
+```
+Desculpe, não consegui entender completamente sua solicitação.
+Você poderia reformular sua pergunta? Ou, se preferir, posso
+conectar você com um de nossos atendentes humanos para ajuda personalizada.
+```
+
+#### Mensagem de Erro
+
+Quando há problemas técnicos:
+
+```
+Ops! Estou enfrentando uma dificuldade técnica momentânea.
+Por favor, aguarde alguns segundos e tente novamente. Se o problema
+persistir, nosso suporte técnico está disponível pelo chat.
+```
+
+## Base de Conhecimento
+
+### O que é Base de Conhecimento?
+
+É o conjunto de informações que o agente pode consultar para dar respostas mais precisas e atualizadas.
+
+### Tipos de Documentos Suportados
+
+- **PDF**: Manuais, catálogos, políticas
+- **TXT**: Listas de produtos, FAQs
+- **DOC/DOCX**: Documentos do Word
+- **Markdown**: Documentação técnica
+
+### Como Adicionar Conhecimento
+
+#### 1. Upload de Documentos
+
+1. Na tela de criação/edição do agente
+2. Vá para a seção **"Base de Conhecimento"**
+3. Clique em **"Fazer Upload"**
+4. Selecione seus arquivos
+5. Aguarde o processamento
+
+#### 2. Tipos de Conteúdo Recomendados
+
+- **Catálogo de Produtos**: Especificações, preços, disponibilidade
+- **FAQ**: Perguntas frequentes e respostas
+- **Políticas**: Garantia, troca, devolução, privacidade
+- **Processos**: Fluxos de atendimento, escalação
+- **Scripts**: Exemplos de conversas bem-sucedidas
+
+#### 3. Boas Práticas para Documentos
+
+- **Organize por Tópicos**: Separe por categorias
+- **Use Linguagem Clara**: Evite jargões técnicos
+- **Mantenha Atualizado**: Revise regularmente
+- **Seja Específico**: Informações precisas e detalhadas
+
+### Exemplo de FAQ para Base de Conhecimento
+
+```markdown
+# FAQ - Loja ABC
+
+## Produtos
+
+### Qual a garantia dos produtos?
+
+- Eletrônicos: 12 meses
+- Acessórios: 6 meses
+- Garantia estendida disponível
+
+### Como consultar disponibilidade?
+
+- Site: www.lojaabc.com
+- WhatsApp: (11) 99999-9999
+- Loja física: Rua ABC, 123
+
+## Entrega
+
+### Prazo de entrega
+
+- Capital: 2-5 dias úteis
+- Interior: 5-10 dias úteis
+- Frete grátis acima de R$ 299
+
+### Formas de envio
+
+- Correios (PAC/SEDEX)
+- Transportadora própria
+- Retirada na loja
+
+## Pagamento
+
+### Formas aceitas
+
+- Cartão de crédito (até 12x)
+- Cartão de débito
+- PIX (5% desconto)
+- Boleto bancário
+
+### Parcelamento
+
+- Até 12x sem juros no cartão
+- Entrada + parcelas disponível
+```
+
+## Testando seu Agente
+
+### Chat de Teste
+
+1. Após criar o agente, clique em **"Testar"**
+2. Use o chat integrado para conversar
+3. Teste diferentes cenários:
+   - Saudação inicial
+   - Perguntas sobre produtos
+   - Solicitações de suporte
+   - Situações de erro
+
+### Cenários de Teste Recomendados
+
+#### 1. Atendimento Básico
+
+```
+Usuário: "Oi"
+Esperado: Saudação calorosa + pergunta sobre como ajudar
+
+Usuário: "Preciso de um celular"
+Esperado: Perguntas qualificadoras (orçamento, uso, preferências)
+```
+
+#### 2. Consulta Técnica
+
+```
+Usuário: "Qual a diferença entre iPhone 14 e 15?"
+Esperado: Comparação detalhada baseada na base de conhecimento
+```
+
+#### 3. Processo de Compra
+
+```
+Usuário: "Quero comprar o iPhone 15"
+Esperado: Confirmação de disponibilidade + orientação sobre processo
+```
+
+#### 4. Suporte
+
+```
+Usuário: "Meu produto chegou com defeito"
+Esperado: Orientação sobre garantia + próximos passos
+```
+
+### Métricas de Qualidade
+
+- **Taxa de Resolução**: % de problemas resolvidos
+- **Satisfação**: Feedback dos usuários
+- **Tempo de Resposta**: Velocidade das respostas
+- **Escalação**: % de casos enviados para humanos
+
+## Configurações Avançadas
+
+### Integração com WhatsApp
+
+1. Vá para **"Instâncias WhatsApp"**
+2. Selecione a instância desejada
+3. Em **"Configurações"** → **"Agente IA"**
+4. Escolha o agente criado
+5. Configure os gatilhos:
+   - **Horário**: Quando o agente deve atuar
+   - **Palavras-chave**: Que ativam o agente
+   - **Fallback**: Quando transferir para humano
+
+### Horários de Funcionamento
+
+Configure quando o agente deve estar ativo:
+
+```json
+{
+  "horarios": {
+    "segunda_a_sexta": "08:00-18:00",
+    "sabado": "09:00-15:00",
+    "domingo": "desativado",
+    "feriados": "desativado"
+  }
+}
+```
+
+### Gatilhos de Ativação
+
+Defina quando o agente deve responder:
+
+- **Mensagens Diretas**: Sempre responde
+- **Palavras-chave**: "ajuda", "suporte", "produto", "preço"
+- **Ausência Humana**: Após 5 minutos sem resposta
+- **Horário Específico**: Fora do expediente
+
+### Escalação para Humanos
+
+Configure quando transferir para atendente:
+
+- **Palavras de Escalação**: "falar com humano", "atendente"
+- **Complexidade**: Quando não consegue resolver
+- **Insatisfação**: Cliente demonstra frustração
+- **Tempo Limite**: Após 10 minutos de conversa
+
+## Monitoramento e Otimização
+
+### Dashboard de Métricas
+
+Acompanhe o desempenho do seu agente:
+
+- **Conversas Ativas**: Quantas estão acontecendo agora
+- **Total de Mensagens**: Volume processado
+- **Taxa de Sucesso**: % de problemas resolvidos
+- **Tempo Médio**: Duração das conversas
+- **Satisfação**: Avaliação dos usuários
+
+### Logs de Conversas
+
+Analise as interações para melhorar:
+
+1. Acesse **"Agentes IA"** → Seu agente → **"Logs"**
+2. Filtre por:
+   - Data/período
+   - Tipo de interação
+   - Status (sucesso/erro)
+   - Satisfação do cliente
+
+### Otimização Contínua
+
+#### Análise Semanal
+
+- Revise conversas com baixa satisfação
+- Identifique perguntas frequentes não cobertas
+- Atualize a base de conhecimento
+- Ajuste prompts conforme necessário
+
+#### Melhorias Baseadas em Dados
+
+- **Perguntas Sem Resposta**: Adicione à base de conhecimento
+- **Escalações Frequentes**: Melhore o treinamento
+- **Respostas Inadequadas**: Ajuste o prompt do sistema
+- **Tempo Alto**: Otimize a base de conhecimento
+
+## Casos de Uso Práticos
+
+### E-commerce
+
+```
+Papel: Consultor de vendas especializado
+Objetivo: Aumentar conversões e satisfação
+Conhecimento: Catálogo, estoque, promoções
+Integração: Sistema de pedidos, pagamento
+```
+
+### Suporte Técnico
+
+```
+Papel: Especialista em suporte técnico
+Objetivo: Resolver problemas rapidamente
+Conhecimento: Manuais, troubleshooting, FAQs
+Integração: Sistema de tickets, base de conhecimento
+```
+
+### Agendamento
+
+```
+Papel: Assistente de agendamento
+Objetivo: Otimizar agenda e reduzir no-shows
+Conhecimento: Disponibilidade, serviços, políticas
+Integração: Calendário, CRM, notificações
+```
+
+### Qualificação de Leads
+
+```
+Papel: Consultor comercial
+Objetivo: Identificar e qualificar prospects
+Conhecimento: Produtos, preços, concorrência
+Integração: CRM, pipeline de vendas
+```
+
+## Próximos Passos
+
+Após criar seu agente:
+
+1. **[Configure Integrações](/docs/integrations/whatsapp)** - Conecte com WhatsApp
+2. **[Monitore Performance](/docs/analytics/agentes-ia)** - Acompanhe métricas
+3. **[Otimize Continuamente](/docs/optimization/agentes)** - Melhore baseado em dados
+
+## Suporte e Recursos
+
+### Documentação Adicional
+
+- 📚 **[Prompts Avançados](/docs/ai-agents/prompts-avancados)** - Técnicas de prompt engineering
+- 🔧 **[Integrações](/docs/ai-agents/integracoes)** - Conecte com outros sistemas
+- 📊 **[Analytics](/docs/ai-agents/analytics)** - Métricas e relatórios
+
+### Suporte Especializado
+
+- 💬 **Chat**: Suporte técnico 24/7
+- 🎓 **Treinamento**: Workshops sobre IA
+- 🔧 **Consultoria**: Configuração personalizada
+- 📞 **Suporte Premium**: Linha direta para emergências
+
+**Contatos:**
+
+- 💬 Chat no dashboard
+- 📧 Email: agentes@whatsappmarketing.com
+- 📞 Telefone: (11) 9999-9999
+- 🎥 Consultoria: Agendamento via dashboard

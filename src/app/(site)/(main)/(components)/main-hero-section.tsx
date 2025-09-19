@@ -24,8 +24,20 @@ export function MainHeroSection() {
       showRadialGradient={true}
     >
       <section className="relative z-10 w-full">
-        <div className="relative mx-auto max-w-screen-lg mb-20 pt-8">
-          <div className="relative z-10 mx-auto max-w-screen-md flex flex-col items-center text-center">
+        <div
+          className="relative mx-auto max-w-screen-lg mb-20 pt-8"
+          style={{
+            transform: "translateZ(0)",
+            willChange: "transform"
+          }}
+        >
+          <div
+            className="relative z-10 mx-auto max-w-screen-md flex flex-col items-center text-center"
+            style={{
+              transform: "translateZ(0.1px)",
+              willChange: "transform"
+            }}
+          >
             {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -153,7 +165,13 @@ export function MainHeroSection() {
         </div>
 
         {/* Screenshot Section */}
-        <div className="relative mx-auto max-w-screen-lg">
+        <div
+          className="relative mx-auto max-w-screen-lg"
+          style={{
+            transform: "translateZ(0.05px)",
+            willChange: "transform"
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}

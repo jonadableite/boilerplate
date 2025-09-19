@@ -1,35 +1,66 @@
 export const docsNavigation = [
   {
-    title: 'Documentation',
+    title: 'Introdução',
     pages: [
       {
-        title: 'Get Started',
-        url: '/docs',
+        title: 'Bem-vindo',
+        url: '/docs/introduction/bem-vindo',
+      },
+      {
+        title: 'Recursos Principais',
+        url: '/docs/introduction/recursos-principais',
       },
     ],
   },
   {
-    title: 'Advanced',
+    title: 'Primeiros Passos',
     pages: [
       {
-        title: 'Introduction',
-        url: '/docs/introduction',
+        title: 'Primeiro Acesso',
+        url: '/docs/getting-started/primeiro-acesso',
       },
       {
-        title: 'Code Blocks',
-        url: '/docs/code-blocks',
+        title: 'Configuração Inicial',
+        url: '/docs/getting-started/configuracao-inicial',
+      },
+    ],
+  },
+  {
+    title: 'Instâncias WhatsApp',
+    pages: [
+      {
+        title: 'Gerenciamento de Instâncias',
+        url: '/docs/whatsapp-instances/gerenciamento-instancias',
       },
       {
-        title: 'Components',
-        url: '/docs/components',
+        title: 'Conexão QR Code',
+        url: '/docs/whatsapp-instances/conexao-qr-code',
+      },
+    ],
+  },
+  {
+    title: 'Aquecimento de Contas',
+    pages: [
+      {
+        title: 'Aquecimento de Contas',
+        url: '/docs/warmup/aquecimento-contas',
       },
       {
-        title: 'In Progress',
-        url: '/docs/in-progress',
+        title: 'Configuração Avançada',
+        url: '/docs/warmup/configuracao-avancada',
+      },
+    ],
+  },
+  {
+    title: 'Agentes de IA',
+    pages: [
+      {
+        title: 'Criação de Agentes',
+        url: '/docs/ai-agents/criacao-agentes',
       },
       {
-        title: 'Style Guide',
-        url: '/docs/style-guide',
+        title: 'Gerenciamento de Agentes',
+        url: '/docs/ai-agents/gerenciamento-agentes',
       },
     ],
   },

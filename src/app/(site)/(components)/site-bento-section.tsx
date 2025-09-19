@@ -154,7 +154,7 @@ const features = [
                   </p>
                   <div className="flex items-center mt-1">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
-                      <div 
+                      <div
                         className="bg-blue-500 h-1 rounded-full transition-all duration-1000"
                         style={{ width: `${item.confidence}%` }}
                       />
@@ -205,7 +205,7 @@ const features = [
                 </div>
                 <div className={cn(
                   "text-xs font-medium px-2 py-1 rounded-full",
-                  stat.change.startsWith('+') 
+                  stat.change.startsWith('+')
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                     : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                 )}>
@@ -222,14 +222,15 @@ const features = [
 
 export function SiteBentoSection() {
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-muted/20">
-      <div className="container mx-auto px-4">
+    <section className="py-24 bg-gradient-to-b from-background to-muted/20 relative" style={{ perspective: "1000px" }}>
+      <div className="container mx-auto px-4" style={{ transform: "translateZ(0)", willChange: "transform" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
+          style={{ transform: "translateZ(0.1px)", willChange: "transform" }}
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
             <Share2Icon className="w-4 h-4" />
@@ -240,7 +241,7 @@ export function SiteBentoSection() {
             <span className="text-primary"> vender mais</span> no WhatsApp
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Uma plataforma completa que integra WhatsApp Business, IA avançada, 
+            Uma plataforma completa que integra WhatsApp Business, IA avançada,
             gerenciamento de leads e analytics para maximizar suas vendas.
           </p>
         </motion.div>

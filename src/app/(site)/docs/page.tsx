@@ -14,7 +14,7 @@ export const metadata: Metadata = generateMetadata(getPageMetadata('docs'))
 export default async function Page() {
   const post = await contentLayer.getPostBySlug(
     'docs',
-    'introduction/why-saas-boilerplate',
+    'introduction/bem-vindo',
   )
   if (!post) return null
   return (

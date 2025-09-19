@@ -104,14 +104,14 @@ export const components: MDXComponents = {
         {React.Children.map(children, (child, index) =>
           React.isValidElement(child)
             ? React.cloneElement(child, {
-                key: `code-${index}`,
-                // @ts-expect-error - Error
-                className: cn(child.props.className, 'hljs'),
-                style: {
-                  fontFamily:
-                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                },
-              })
+              key: `code-${index}`,
+              // @ts-expect-error - Error
+              className: cn(child.props.className, 'hljs'),
+              style: {
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+              },
+            })
             : child,
         )}
       </pre>

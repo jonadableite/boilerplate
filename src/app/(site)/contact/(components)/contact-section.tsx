@@ -18,9 +18,9 @@ import { XIcon } from '@/components/ui/icons/x-icon'
 
 export function ContactSection() {
   return (
-    <section className="py-32">
-      <div className="mx-auto max-w-4xl px-4 lg:px-0">
-        <h1 className="mb-12 text-center text-4xl font-semibold lg:text-5xl">
+    <section className="py-32 relative" style={{ perspective: "1000px" }}>
+      <div className="mx-auto max-w-4xl px-4 lg:px-0" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+        <h1 className="mb-12 text-center text-4xl font-semibold lg:text-5xl" style={{ transform: "translateZ(0.1px)", willChange: "transform" }}>
           Help us route your inquiry at {AppConfig.name}
         </h1>
 

@@ -85,7 +85,7 @@ export default async function Page({ params }: PageProps) {
             >
               <Link href="/docs">
                 <ChevronLeftSquareIcon />
-                Back to docs
+                Voltar para docs
               </Link>
             </Button>
             <div className="ml-auto flex items-center space-x-2">
@@ -117,7 +117,7 @@ export default async function Page({ params }: PageProps) {
 
           <div>
             <p className="text-muted-foreground mb-1">
-              Published on {post.data.date}
+              Publicado em {post.data.date}
             </p>
             <h1 className="text-2xl max-w-[60%] font-bold mb-8">
               {post.data.title}
@@ -125,7 +125,7 @@ export default async function Page({ params }: PageProps) {
 
             <div className="flex items-center space-x-8 text-sm">
               <div>
-                <p className="text-muted-foreground">Published on</p>
+                <p className="text-muted-foreground">Publicado em</p>
                 <div className="flex gap-2">{post.data.date}</div>
               </div>
             </div>
@@ -137,29 +137,30 @@ export default async function Page({ params }: PageProps) {
         <section className="border-t pt-8">
           <main>
             <Badge variant="outline" className="rounded-md mb-4">
-              AD
+              DICA
             </Badge>
-            <h4 className="font-bold mb-1">Quick Tip</h4>
+            <h4 className="font-bold mb-1">Dica Rápida</h4>
             <p className="text-sm text-muted-foreground">
-              Always implement proper error handling and reconnection logic in
-              your SSE clients to ensure a robust user experience.
+              Sempre implemente tratamento adequado de erros e lógica de
+              reconexão em seus clientes para garantir uma experiência robusta
+              do usuário.
             </p>
 
             <Button variant="outline" className="mt-4">
-              Learn More
+              Saiba Mais
             </Button>
           </main>
         </section>
         <section className="space-y-4 border-t pt-8">
           <header>
-            <h2 className="font-bold text-lg">You might also like</h2>
+            <h2 className="font-bold text-lg">Você também pode gostar</h2>
           </header>
           <main>
             <div className="grid rounded-md border divide-y">
               {related.map((item, i) => (
                 <Link
                   key={i}
-                  href={`/help/${item.slug}`}
+                  href={`/docs/${item.slug}`}
                   className="flex items-center justify-between gap-4 px-4 py-4"
                 >
                   <h2 className="text-sm">{item.data.title}</h2>

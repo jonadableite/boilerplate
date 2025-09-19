@@ -4,9 +4,9 @@ import { WrenchIcon } from 'lucide-react'
 
 export default function SiteExpandedFeaturesSection() {
   return (
-    <section className="py-16 md:py-32 dark:bg-transparent">
-      <div className="container mx-auto max-w-screen-md">
-        <div className="flex gap-4 flex-col items-center text-center mb-16">
+    <section className="py-16 md:py-32 dark:bg-transparent relative" style={{ perspective: "1000px" }}>
+      <div className="container mx-auto max-w-screen-md" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+        <div className="flex gap-4 flex-col items-center text-center mb-16" style={{ transform: "translateZ(0.1px)", willChange: "transform" }}>
           <WrenchIcon
             className="size-10 mb-4 stroke-2 text-primary mx-auto"
             fill="currentColor"
