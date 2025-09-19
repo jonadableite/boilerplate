@@ -35,7 +35,7 @@ export const SiteMainHeader = () => {
   const navItems = [
     { name: 'Preços', link: '/pricing' },
     { name: 'Ajuda', link: '/help' },
-    { name: 'Blog', link: '/blog' },
+    // { name: 'Blog', link: '/blog' },
     { name: 'Documentação', link: '/docs' },
     { name: 'Novidades', link: '/updates' },
   ]

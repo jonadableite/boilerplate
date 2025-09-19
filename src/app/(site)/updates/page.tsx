@@ -23,13 +23,13 @@ export default async function Page() {
           <div className="container mx-auto max-w-screen-md">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground mb-2 text-xs">
-                Updates
+                Novidades
               </span>
               <div className="ml-auto flex items-center space-x-2">
                 {AppConfig.links.rss && (
                   <Button variant="ghost" className="rounded-full h-9" asChild>
                     <Link href={AppConfig.links.rss}>
-                      RSS Feed <RssIcon className="size-4" />
+                      Feed RSS <RssIcon className="size-4" />
                     </Link>
                   </Button>
                 )}
@@ -52,7 +52,7 @@ export default async function Page() {
               </div>
             </div>
             <h1 className="text-xl font-bold mb-4 leading-tight">
-              Our Lastest Updates <br /> about Profound 👋
+              Nossas Últimas Novidades <br /> e Atualizações 🚀
             </h1>
           </div>
         </section>

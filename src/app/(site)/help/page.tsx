@@ -6,6 +6,7 @@ import { contentLayer } from '@/providers/content-layer'
 import { ArrowUpRightIcon, ChevronRightIcon } from 'lucide-react'
 import { SiteCTA } from '../(components)/site-cta'
 import { helpCategoriesMenu } from '@/content/menus/help-categories'
+import { LinkPreview } from '@/components/ui/link-preview'
 
 export const metadata: Metadata = generateMetadata(getPageMetadata('help'))
 
@@ -19,68 +20,112 @@ export default async function Page() {
       <section>
         <div className="container mx-auto max-w-screen-md">
           <span className="text-muted-foreground mb-2 text-xs">
-            Help Center
+            Central de Ajuda
           </span>
           <h1 className="text-xl font-bold mb-4 leading-tight">
-            How we can <br />
-            help you today? 👋
+            Como podemos <br />
+            te ajudar hoje? 👋
           </h1>
+          <p className="text-muted-foreground max-w-2xl">
+            Encontre respostas, tutoriais e guias para aproveitar ao máximo nossa plataforma de WhatsApp Marketing.
+          </p>
         </div>
       </section>
       <section className="pt-16">
         <div className="container mx-auto max-w-screen-md">
           <div className="grid md:grid-cols-3 border rounded-md divide-x bg-secondary">
             {helpCategoriesMenu.map((category) => (
-              <Link
-                href={category.href}
-                key={category.id}
-                className="group w-full"
-              >
-                <div className="p-6 w-full h-72 flex flex-col justify-between hover:bg-accent transition-all duration-200">
-                  <div className="rounded-full bg-primary/10 mb-4 size-10 flex items-center justify-center text-primary">
-                    {category.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold group-hover:text-primary transition-colors">
-                      {category.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {category.description}
-                    </p>
-                    <div className="mt-4 flex items-center text-xs text-primary font-medium">
-                      <span>See articles</span>
-                      <ArrowUpRightIcon className="ml-1 size-3 opacity-30" />
+              <div key={category.id} className="group w-full">
+                <Link
+                  href={category.href}
+                  className="group w-full block"
+                >
+                  <div className="p-6 w-full h-72 flex flex-col justify-between hover:bg-accent transition-all duration-200">
+                    <div className="rounded-full bg-primary/10 mb-4 size-10 flex items-center justify-center text-primary">
+                      {category.icon}
+                    </div>
+                    <div>
+                      <LinkPreview
+                        url={`http://localhost:3000${category.href}`}
+                        className="font-semibold group-hover:text-primary transition-colors"
+                      >
+                        {category.title}
+                      </LinkPreview>
+                      <p className="text-sm text-muted-foreground">
+                        {category.description}
+                      </p>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             ))}
           </div>
         </div>
       </section>
       <section className="pt-16">
         <div className="container mx-auto max-w-screen-md">
-          <header>
-            <h2 className="text-lg font-bold mb-8">Artigos populares</h2>
-          </header>
-          <main className="border rounded-md overflow-hidden divide-y">
-            {/* Add content for popular articles here, such as a list or cards */}
-            {posts.map((post, index) => (
-              <Link
-                href={`/help/${post.slug}`}
+          <h2 className="text-lg font-semibold mb-6">Artigos Recentes</h2>
+          <div className="space-y-4">
+            {posts.slice(0, 5).map((post, index) => (
+              <LinkPreview
                 key={index}
-                className="flex gap-4 p-4 text-sm w-full items-center justify-between hover:bg-secondary cursor-pointer transition-colors"
+                url={`http://localhost:3000/docs/${post.slug}`}
+                className="block"
               >
-                <h3 className="text-sm">
-                  <span className="font-semibold text-primary">
-                    /{post.data.category}
-                  </span>{' '}
-                  - {post.data.title}
-                </h3>
-                <ChevronRightIcon className="size-4" />
-              </Link>
+                <Link
+                  href={`/docs/${post.slug}`}
+                  className="flex gap-4 p-4 text-sm w-full items-center justify-between hover:bg-secondary cursor-pointer transition-colors rounded-md border"
+                >
+                  <div>
+                    <h3 className="text-sm font-medium">{post.data.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {post.data.description || 'Saiba mais sobre este tópico'}
+                    </p>
+                  </div>
+                  <ChevronRightIcon className="size-4" />
+                </Link>
+              </LinkPreview>
             ))}
-          </main>
+          </div>
+        </div>
+      </section>
+
+      <section className="pt-16">
+        <div className="container mx-auto max-w-screen-md">
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/40 border rounded-lg p-8 text-center">
+            <h2 className="text-xl font-semibold mb-4">
+              Ainda precisa de ajuda?
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Nossa equipe de suporte está sempre pronta para ajudar você a alcançar seus objetivos com WhatsApp Marketing.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <LinkPreview
+                url="http://localhost:3000/contact"
+                className="inline-block"
+              >
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Falar com Suporte
+                  <ArrowUpRightIcon className="size-4" />
+                </Link>
+              </LinkPreview>
+              <LinkPreview
+                url="http://localhost:3000/docs"
+                className="inline-block"
+              >
+                <Link
+                  href="/docs"
+                  className="inline-flex items-center gap-2 border px-6 py-3 rounded-md hover:bg-secondary transition-colors"
+                >
+                  Ver Documentação
+                  <ArrowUpRightIcon className="size-4" />
+                </Link>
+              </LinkPreview>
+            </div>
+          </div>
         </div>
       </section>
 
