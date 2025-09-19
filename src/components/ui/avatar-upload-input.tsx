@@ -4,6 +4,7 @@ import { Loader2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Button } from './button'
 import { useUpload, type FileState } from '@/@saas-boilerplate/hooks/use-upload'
+import { BorderBeam } from '@/components/magicui/border-beam'
 
 interface AvatarUploadInputProps {
   context: 'organizations' | 'users' | 'shared'
@@ -94,11 +95,14 @@ export function AvatarUploadInput({
             <Loader2 className="absolute text-white h-6 w-6 animate-spin" />
           )}
           {value ? (
-            <img
-              src={value}
-              alt="Profile"
-              className={`w-full h-full object-cover rounded-md border ${isUploading ? 'opacity-60' : ''}`}
-            />
+            <div className="relative w-full h-full">
+              <img
+                src={value}
+                alt="Profile"
+                className={`w-full h-full object-cover rounded-md border ${isUploading ? 'opacity-60' : ''}`}
+              />
+              <BorderBeam size={30} duration={4} delay={0} />
+            </div>
           ) : (
             <div className="w-full h-full bg-gray-200 rounded-md flex items-center justify-center">
               <span className="text-gray-400 text-xs">

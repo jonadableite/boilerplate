@@ -31,15 +31,15 @@ import { UseFormReturn } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.string().email('Por favor, insira um email válido'),
 })
 
 const otpValidationSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.string().email('Por favor, insira um email válido'),
   code: z
     .string()
-    .min(6, 'Code must be 6 digits')
-    .max(6, 'Code must be 6 digits'),
+    .min(6, 'O código deve ter 6 dígitos')
+    .max(6, 'O código deve ter 6 dígitos'),
 })
 
 export function AuthForm({
@@ -62,11 +62,11 @@ export function AuthForm({
       })
 
       if (result.error) {
-        toast.error('Error sending code')
+        toast.error('Erro ao enviar código')
         return
       }
 
-      toast.success(`OTP code sent to ${values.email}`)
+      toast.success(`Código OTP enviado para ${values.email}`)
       setOTPEmail(values.email)
     },
   })
@@ -127,14 +127,14 @@ export function AuthForm({
             className="w-full"
           >
             <header className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
               <p className="text-sm text-muted-foreground">
-                Sign in to your account using one of the methods below
+                Entre na sua conta usando um dos métodos abaixo
               </p>
             </header>
             <main className="space-y-6">
               <SignInWithCredentialForm form={form} />
-              <SeparatorWithText>Or sign in with</SeparatorWithText>
+              <SeparatorWithText>Ou entre com</SeparatorWithText>
               <SignInWithSocialProviderForm />
             </main>
           </motion.div>
@@ -150,12 +150,12 @@ function SignInWithSocialProviderForm() {
   const signInWithProvider = api.auth.signInWithProvider.useMutation({
     onRequest: (response) => {
       if (response.error) {
-        return toast.error('Error signing in')
+        return toast.error('Erro ao entrar')
       }
 
       if (response.data.redirect && response.data.url)
         window.location.href = response.data.url
-      toast.success('Successfully signed in!')
+      toast.success('Login realizado com sucesso!')
     },
   })
 
@@ -176,7 +176,7 @@ function SignInWithSocialProviderForm() {
             })
           }
         >
-          Sign in with {provider.name}
+          Entrar com {provider.name}
           <LoaderIcon
             icon={provider.icon}
             className="h-4 w-4"
@@ -201,12 +201,12 @@ function SignInWithCredentialForm({
           name="email"
           render={({ field }) => (
             <FormItem variant="unstyled">
-              <FormLabel>Email</FormLabel>
+              <FormLabel>E-mail</FormLabel>
               <FormControl>
                 <Input
                   type="email"
                   variant="outline"
-                  placeholder="name@example.com"
+                  placeholder="nome@exemplo.com"
                   className="h-10"
                   disabled={form.formState.isSubmitting}
                   {...field}
@@ -222,7 +222,7 @@ function SignInWithCredentialForm({
           className="w-full h-10 justify-between"
           disabled={form.formState.isSubmitting}
         >
-          Send verification code
+          Enviar código de verificação
           <LoaderIcon
             icon={Mail}
             className="mr-2 h-4 w-4"
@@ -262,11 +262,11 @@ function AuthValidateOTPCodeForm({
       })
 
       if (result.error) {
-        toast.error('Invalid code. Please try again.')
+        toast.error('Código inválido. Tente novamente.')
         return
       }
 
-      toast.success('Code verified successfully!')
+      toast.success('Código verificado com sucesso!')
       router.push(redirectUrl || '/app')
     },
   })
@@ -279,7 +279,7 @@ function AuthValidateOTPCodeForm({
       },
     })
 
-    toast.success(`New code sent to ${email}`)
+    toast.success(`Novo código enviado para ${email}`)
   }
 
   return (
@@ -294,13 +294,13 @@ function AuthValidateOTPCodeForm({
             type="button"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to sign in
+            Voltar ao login
           </Button>
           <h2 className="text-2xl font-semibold tracking-tight">
-            Check your email
+            Verifique seu e-mail
           </h2>
           <p className="text-sm text-muted-foreground">
-            We&apos;ve sent a verification code to{' '}
+            Enviamos um código de verificação para{' '}
             <span className="font-medium">{email}</span>
           </p>
         </header>
@@ -347,18 +347,18 @@ function AuthValidateOTPCodeForm({
               className="mr-2 h-4 w-4"
               isLoading={form.formState.isSubmitting}
             />
-            {form.formState.isSubmitting ? 'Verifying...' : 'Verify Email'}
+            {form.formState.isSubmitting ? 'Verificando...' : 'Verificar E-mail'}
           </Button>
 
           <p className="text-sm text-muted-foreground/80 mt-2">
-            Didn&apos;t receive the code?{' '}
+            Não recebeu o código?{' '}
             <Button
               variant="link"
               className="p-0 h-auto font-normal"
               onClick={handleResendCode}
               disabled={resendOTPCode.loading}
             >
-              {resendOTPCode.loading ? 'Sending...' : 'Click to resend'}
+              {resendOTPCode.loading ? 'Enviando...' : 'Clique para reenviar'}
             </Button>
           </p>
         </footer>
