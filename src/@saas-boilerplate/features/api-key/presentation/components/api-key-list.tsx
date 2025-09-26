@@ -1,14 +1,8 @@
 'use client'
 
 import { Lists } from '@/components/ui/lists'
-import { Button } from '@/components/ui/button'
-import { Key, KeyIcon, PlusSquare, Trash } from 'lucide-react'
-import { toast } from 'sonner'
+import { Key, KeyIcon } from 'lucide-react'
 import { Annotated } from '@/components/ui/annotated'
-import { useState } from 'react'
-import { CreateApiKeyModal } from './upsert-api-key-dialog'
-import { api } from '@/igniter.client'
-import { useRouter } from 'next/navigation'
 import { AnimatedEmptyState } from '@/components/ui/animated-empty-state'
 
 interface ApiKey {
@@ -20,27 +14,9 @@ interface ApiKey {
 
 interface ApiKeyListProps {
   apiKeys: ApiKey[]
-  onDelete?: (id: string) => Promise<void>
 }
 
-export function ApiKeyList({ apiKeys, onDelete }: ApiKeyListProps) {
-  const router = useRouter()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  const handleDelete = async (id: string) => {
-    try {
-      if (!window.confirm('Are you sure you want to remove this API key?'))
-        return
-      await api.apiKey.delete.mutate({ params: { id } })
-      await onDelete?.(id)
-      toast.success('API key removed successfully')
-      router.refresh()
-    } catch (error) {
-      console.error(error)
-      toast.error('Failed to remove the API key')
-    }
-  }
-
+export function ApiKeyList({ apiKeys }: ApiKeyListProps) {
   return (
     <Annotated>
       <Annotated.Sidebar>
@@ -70,18 +46,9 @@ export function ApiKeyList({ apiKeys, onDelete }: ApiKeyListProps) {
                         No API keys found
                       </AnimatedEmptyState.Title>
                       <AnimatedEmptyState.Description>
-                        You haven't created any API keys yet.
+                        API key is configured in environment variables.
                       </AnimatedEmptyState.Description>
                     </AnimatedEmptyState.Content>
-
-                    <AnimatedEmptyState.Actions>
-                      <AnimatedEmptyState.Action
-                        onClick={() => setIsModalOpen(true)}
-                      >
-                        <Key className="h-4 w-4 mr-2" />
-                        Create API key
-                      </AnimatedEmptyState.Action>
-                    </AnimatedEmptyState.Actions>
                   </AnimatedEmptyState>
                 ) : (
                   <>
@@ -103,34 +70,14 @@ export function ApiKeyList({ apiKeys, onDelete }: ApiKeyListProps) {
                               </p>
                             </div>
                           </div>
-
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDelete(apiKey.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
                         </div>
                       </Lists.Item>
                     ))}
-
-                    <div className="pt-2">
-                      <Button
-                        variant="link"
-                        onClick={() => setIsModalOpen(true)}
-                      >
-                        <PlusSquare className="h-4 w-4 mr-2" />
-                        Create API key
-                      </Button>
-                    </div>
                   </>
                 )
               }
             </Lists.Content>
           </Lists.Root>
-
-          <CreateApiKeyModal open={isModalOpen} onOpenChange={setIsModalOpen} />
         </Annotated.Section>
       </Annotated.Content>
     </Annotated>

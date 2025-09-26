@@ -54,20 +54,25 @@ export function AuthForm({
   const form = useFormWithZod({
     schema: signInSchema,
     onSubmit: async (values) => {
-      const result = await api.auth.sendOTPVerificationCode.mutate({
-        body: {
-          type: 'sign-in',
-          email: values.email,
-        },
-      })
+      try {
+        const result = await (api.auth.sendOTPVerificationCode as any).mutate({
+          body: {
+            type: 'sign-in',
+            email: values.email,
+          },
+        })
 
-      if (result.error) {
+        if (result.error) {
+          toast.error('Erro ao enviar código')
+          return
+        }
+
+        toast.success(`Código OTP enviado para ${values.email}`)
+        setOTPEmail(values.email)
+      } catch (error) {
         toast.error('Erro ao enviar código')
-        return
+        console.error('Error sending OTP:', error)
       }
-
-      toast.success(`Código OTP enviado para ${values.email}`)
-      setOTPEmail(values.email)
     },
   })
 
@@ -82,7 +87,6 @@ export function AuthForm({
       x: 0,
       transition: {
         duration: 0.3,
-        ease: 'easeOut',
       },
     },
     exit: (isOTP: boolean) => ({
@@ -90,15 +94,12 @@ export function AuthForm({
       x: isOTP ? 20 : -20,
       transition: {
         duration: 0.2,
-        ease: 'easeIn',
       },
     }),
   }
 
   return (
-    <section
-      className={cn('space-y-6 relative overflow-hidden', className)}
-    >
+    <section className={cn('space-y-6 relative overflow-hidden', className)}>
       <AnimatePresence mode="wait" initial={false}>
         {OTPEmail ? (
           <motion.div
@@ -111,7 +112,9 @@ export function AuthForm({
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">Verificar código</h1>
+              <h1 className="text-2xl font-bold text-white">
+                Verificar código
+              </h1>
               <p className="text-white/70">
                 Enviamos um código de 6 dígitos para{' '}
                 <span className="font-medium text-white">{OTPEmail}</span>
@@ -134,7 +137,9 @@ export function AuthForm({
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">Entrar na sua conta</h1>
+              <h1 className="text-2xl font-bold text-white">
+                Entrar na sua conta
+              </h1>
               <p className="text-white/70">
                 Bem-vindo de volta! Faça login para continuar.
               </p>
@@ -142,7 +147,7 @@ export function AuthForm({
 
             <SignInWithSocialProviderForm />
 
-            <SeparatorWithText text="ou" className="text-white/50" />
+            <SeparatorWithText className="text-white/50">ou</SeparatorWithText>
 
             <SignInWithCredentialForm form={form} />
           </motion.div>
@@ -155,8 +160,8 @@ export function AuthForm({
 function SignInWithSocialProviderForm() {
   const [socialProviders] = useState(getActiveSocialProviders())
 
-  const signInWithProvider = api.auth.signInWithProvider.useMutation({
-    onRequest: (response) => {
+  const signInWithProvider = (api.auth.signInWithProvider as any).useMutation({
+    onRequest: (response: any) => {
       if (response.error) {
         return toast.error('Erro ao entrar')
       }
@@ -252,8 +257,8 @@ function AuthValidateOTPCodeForm({
   redirectUrl?: string
 }) {
   const router = useRouter()
-  const signIn = api.auth.signInWithOTP.useMutation()
-  const resendOTPCode = api.auth.sendOTPVerificationCode.useMutation()
+  const signIn = (api.auth.signInWithOTP as any).useMutation()
+  const resendOTPCode = (api.auth.sendOTPVerificationCode as any).useMutation()
 
   const form = useFormWithZod({
     schema: otpValidationSchema,
@@ -320,15 +325,35 @@ function AuthValidateOTPCodeForm({
                     className="justify-center"
                   >
                     <InputOTPGroup className="bg-white/10 border-white/20 backdrop-blur-sm">
-                      <InputOTPSlot index={0} className="text-white border-white/20" />
-                      <InputOTPSlot index={1} className="text-white border-white/20" />
-                      <InputOTPSlot index={2} className="text-white border-white/20" />
+                      <InputOTPSlot
+                        index={0}
+                        className="text-white border-white/20"
+                      />
+                      <InputOTPSlot
+                        index={1}
+                        className="text-white border-white/20"
+                      />
+                      <InputOTPSlot
+                        index={2}
+                        className="text-white border-white/20"
+                      />
                     </InputOTPGroup>
-                    <InputOTPSeparator className="text-white/50">-</InputOTPSeparator>
+                    <InputOTPSeparator className="text-white/50">
+                      -
+                    </InputOTPSeparator>
                     <InputOTPGroup className="bg-white/10 border-white/20 backdrop-blur-sm">
-                      <InputOTPSlot index={3} className="text-white border-white/20" />
-                      <InputOTPSlot index={4} className="text-white border-white/20" />
-                      <InputOTPSlot index={5} className="text-white border-white/20" />
+                      <InputOTPSlot
+                        index={3}
+                        className="text-white border-white/20"
+                      />
+                      <InputOTPSlot
+                        index={4}
+                        className="text-white border-white/20"
+                      />
+                      <InputOTPSlot
+                        index={5}
+                        className="text-white border-white/20"
+                      />
                     </InputOTPGroup>
                   </InputOTP>
                 </FormControl>
@@ -349,7 +374,9 @@ function AuthValidateOTPCodeForm({
               className="mr-2 h-4 w-4"
               isLoading={form.formState.isSubmitting}
             />
-            {form.formState.isSubmitting ? 'Verificando...' : 'Verificar código'}
+            {form.formState.isSubmitting
+              ? 'Verificando...'
+              : 'Verificar código'}
           </Button>
 
           <p className="text-sm text-white/70 text-center">

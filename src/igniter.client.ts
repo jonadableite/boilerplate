@@ -11,7 +11,7 @@ import {
  * It uses the createIgniterClient function to create a client instance
  *
  */
-export const api = createIgniterClient(AppRouter)
+export const api = createIgniterClient<typeof AppRouter>(AppRouter)
 
 /**
  * Query client for Igniter

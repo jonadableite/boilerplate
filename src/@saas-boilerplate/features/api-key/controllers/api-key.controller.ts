@@ -40,29 +40,6 @@ export const ApiKeyController = igniter.controller({
       },
     }),
 
-    create: igniter.mutation({
-      method: 'POST',
-      path: '/',
-      use: [ApiKeyFeatureProcedure(), AuthFeatureProcedure()],
-      body: z.object({
-        description: z.string(),
-        enabled: z.boolean().optional().nullable(),
-        neverExpires: z.boolean().optional().nullable(),
-        expiresAt: z.date().optional().nullable(),
-      }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: 'authenticated',
-          roles: ['owner', 'admin'],
-        })
-        const result = await context.apikey.create({
-          ...request.body,
-          organizationId: session.organization.id,
-        })
-        return response.success(result)
-      },
-    }),
-
     update: igniter.mutation({
       method: 'PUT',
       path: '/:id',
@@ -82,23 +59,6 @@ export const ApiKeyController = igniter.controller({
           organizationId: session.organization.id,
         })
         return response.success(result)
-      },
-    }),
-
-    delete: igniter.mutation({
-      method: 'DELETE',
-      path: '/:id' as const,
-      use: [ApiKeyFeatureProcedure(), AuthFeatureProcedure()],
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: 'authenticated',
-          roles: ['owner', 'admin'],
-        })
-        await context.apikey.delete({
-          id: request.params.id,
-          organizationId: session.organization.id,
-        })
-        return response.success({ message: 'Api key deleted' })
       },
     }),
   },

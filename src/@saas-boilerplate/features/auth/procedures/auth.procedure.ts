@@ -57,7 +57,7 @@ export const AuthFeatureProcedure = igniter.procedure({
           return {
             data: {
               redirect: true,
-              url: response.data.url,
+              url: (response.data as any).url,
             },
           };
         },
