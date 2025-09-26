@@ -1,6 +1,6 @@
 import { evolutionApi } from "@/plugins/evolution-api.plugin";
 import { prisma } from "@/providers/prisma";
-import { EventEmitter } from "node:events";
+import { EventEmitter } from "events";
 import { CreateWarmupInput, DEFAULT_PLAN_LIMITS } from "../warmup.types";
 
 // Classe principal do serviço de aquecimento

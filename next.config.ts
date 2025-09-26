@@ -17,22 +17,25 @@ const nextConfig: NextConfig = {
   },
 
   // Only for NON turbopack
-  // webpack: (config, { isServer }) => {
-  //   if (!isServer) {
-  //     config.resolve = {
-  //       ...config.resolve,
-  //       fallback: {
-  //         net: false,
-  //         dns: false,
-  //         tls: false,
-  //         fs: false,
-  //         request: false,
-  //         child_process: false,
-  //       },
-  //     }
-  //   }
-  //   return config
-  // },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          net: false,
+          dns: false,
+          tls: false,
+          fs: false,
+          request: false,
+          child_process: false,
+          'node:fs': false,
+          'node:fs/promises': false,
+          'node:path': false,
+        },
+      }
+    }
+    return config
+  },
 
   turbopack: {
     resolveAlias: {
@@ -41,6 +44,9 @@ const nextConfig: NextConfig = {
       tls: { browser: './empty.js' },
       net: { browser: './empty.js' },
       child_process: { browser: './empty.js' },
+      'node:fs': { browser: './empty.js' },
+      'node:fs/promises': { browser: './empty.js' },
+      'node:path': { browser: './empty.js' },
     },
   },
 }

@@ -49,16 +49,10 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
-
-interface UploadPageProps {
-  params: {
-    id: string
-  }
-}
 
 interface UploadFile {
   id: string
@@ -93,8 +87,10 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-export default function UploadPage({ params }: UploadPageProps) {
+export default function UploadPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -112,7 +108,7 @@ export default function UploadPage({ params }: UploadPageProps) {
   })
 
   // Queries e mutations
-  const kbQuery = api.aiAgents.knowledgeBases.getById.useQuery({ id: params.id })
+  const kbQuery = api.aiAgents.knowledgeBases.getById.useQuery({ id })
   const uploadDocumentMutation = api.aiAgents.knowledgeBases.documents.upload.useMutation()
 
   useEffect(() => {
@@ -214,7 +210,7 @@ export default function UploadPage({ params }: UploadPageProps) {
     try {
       const formData = new FormData()
       formData.append('file', uploadFile.file)
-      formData.append('knowledgeBaseId', params.id)
+      formData.append('knowledgeBaseId', id)
       formData.append('settings', JSON.stringify(processingSettings))
 
       // Simular progresso de upload
@@ -264,7 +260,7 @@ export default function UploadPage({ params }: UploadPageProps) {
     if (successCount > 0 && errorCount === 0) {
       // Redirect back to knowledge base page after successful upload
       setTimeout(() => {
-        router.push(`/app/ai-agents/knowledge-bases/${params.id}`)
+        router.push(`/app/ai-agents/knowledge-bases/${id}`)
       }, 2000)
     }
   }
@@ -390,7 +386,7 @@ export default function UploadPage({ params }: UploadPageProps) {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/app/ai-agents/knowledge-bases/${params.id}`}>
+                <BreadcrumbLink href={`/app/ai-agents/knowledge-bases/${id}`}>
                   {knowledgeBase.name}
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -414,7 +410,7 @@ export default function UploadPage({ params }: UploadPageProps) {
               </p>
             </div>
             
-            <Link href={`/app/ai-agents/knowledge-bases/${params.id}`}>
+            <Link href={`/app/ai-agents/knowledge-bases/${id}`}>
               <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
@@ -708,10 +704,7 @@ export default function UploadPage({ params }: UploadPageProps) {
   )
 }
 
-export const metadata = {
-  title: 'Upload de Documentos',
-  description: 'Enviar documentos para a base de conhecimento',
-}
+
 
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true

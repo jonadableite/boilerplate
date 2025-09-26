@@ -25,14 +25,6 @@ import {
 } from '@/components/ui/page'
 import { Badge } from '@/components/ui/badge'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -74,16 +66,10 @@ import {
   Eye,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
-
-interface KnowledgeBasePageProps {
-  params: {
-    id: string
-  }
-}
 
 interface Document {
   id: string
@@ -139,7 +125,9 @@ const getFileIcon = (type: string) => {
   return '📁'
 }
 
-export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
+export default function KnowledgeBasePage() {
+  const params = useParams()
+  const id = params.id as string
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -151,15 +139,15 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
   const [loading, setLoading] = useState(true)
 
   // Queries e mutations
-  const kbQuery = api.aiAgents.knowledgeBases.getById.useQuery({ id: params.id })
+  const kbQuery = api.aiAgents.knowledgeBases.getById.useQuery({ id })
   const documentsQuery = api.aiAgents.knowledgeBases.documents.list.useQuery({
-    knowledgeBaseId: params.id,
+    knowledgeBaseId: id,
   })
   const uploadDocumentMutation = api.aiAgents.knowledgeBases.documents.upload.useMutation()
   const deleteDocumentMutation = api.aiAgents.knowledgeBases.documents.delete.useMutation()
   const reprocessDocumentMutation = api.aiAgents.knowledgeBases.documents.reprocess.useMutation()
   const deleteKBMutation = api.aiAgents.knowledgeBases.delete.useMutation()
-  const statsQuery = api.aiAgents.knowledgeBases.stats.useQuery({ id: params.id })
+  const statsQuery = api.aiAgents.knowledgeBases.stats.useQuery({ id })
 
   useEffect(() => {
     if (kbQuery.data?.data) {
@@ -725,10 +713,7 @@ export default function KnowledgeBasePage({ params }: KnowledgeBasePageProps) {
   )
 }
 
-export const metadata = {
-  title: 'Base de Conhecimento',
-  description: 'Gerenciar documentos da base de conhecimento',
-}
+
 
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true

@@ -26,7 +26,7 @@ const columns: ColumnDef<Lead>[] = [
           className="text-left px-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Name
+          Nome
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
@@ -73,7 +73,7 @@ const columns: ColumnDef<Lead>[] = [
           className="text-left px-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Phone
+          Telefone
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
@@ -82,7 +82,7 @@ const columns: ColumnDef<Lead>[] = [
   },
   {
     accessorKey: 'createdAt',
-    header: () => <div className="flex justify-end">Created At</div>,
+    header: () => <div className="flex justify-end">Criado em</div>,
     cell: ({ row }) => (
       <div className="flex justify-end items-center gap-2">
         <Clock10Icon className="size-4 text-muted-foreground" />
@@ -92,7 +92,7 @@ const columns: ColumnDef<Lead>[] = [
   },
   {
     accessorKey: 'actions',
-    header: () => <div className="flex justify-end pr-4">Actions</div>,
+    header: () => <div className="flex justify-end pr-4">Ações</div>,
     cell: ({ row }) => {
       const lead = row.original
 
@@ -128,7 +128,7 @@ const columns: ColumnDef<Lead>[] = [
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Send email to {lead.email}</p>
+                  <p>Enviar email para {lead.email}</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -146,13 +146,13 @@ const columns: ColumnDef<Lead>[] = [
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Call {lead.phone}</p>
+                  <p>Ligar para {lead.phone}</p>
                 </TooltipContent>
               </Tooltip>
             )}
 
             <Button variant="outline" size="sm" asChild>
-              <a href={`/app/leads/${lead.id}`}>View details</a>
+              <a href={`/app/leads/${lead.id}`}>Ver detalhes</a>
             </Button>
           </div>
         </TooltipProvider>

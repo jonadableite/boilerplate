@@ -18,9 +18,20 @@ import { LeadController } from './features/lead'
 import { SubmissionController } from './features/submission'
 import { warmupController } from './features/warmup'
 import { WhatsAppInstanceController } from './features/whatsapp-instance/controllers/whatsapp-instance.controller'
-import { AIAgentController } from './features/ai-agents/controllers/ai-agent.controller'
-import { KnowledgeController } from './features/ai-agents/controllers/knowledge.controller'
 import { createIgniterAppContext } from './igniter.context'
+
+// Conditionally import AI controllers only on server-side
+let AIAgentController: any = null
+let KnowledgeController: any = null
+
+if (typeof window === 'undefined') {
+  try {
+    AIAgentController = require('./features/ai-agents/controllers/ai-agent.controller').AIAgentController
+    KnowledgeController = require('./features/ai-agents/controllers/knowledge.controller').KnowledgeController
+  } catch (error) {
+    console.warn('AI Controllers not available:', error)
+  }
+}
 
 export const AppRouter = igniter.router({
   baseURL: AppConfig.url,
@@ -48,7 +59,7 @@ export const AppRouter = igniter.router({
     chat: ChatController,
     warmup: warmupController,
     campaign: CampaignController,
-    aiAgents: AIAgentController,
-  knowledge: KnowledgeController,
+    ...(AIAgentController && { aiAgents: AIAgentController }),
+    ...(KnowledgeController && { knowledge: KnowledgeController }),
   },
 })

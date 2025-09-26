@@ -1,21 +1,28 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { toast } from 'sonner'
+import Link from 'next/link'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+  Bot,
+  Brain,
+  Database,
+  Shield,
+  Save,
+  ArrowLeft,
+  Plus,
+  X,
+} from 'lucide-react'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  PageWrapper,
+  PageHeader,
+  PageBody,
+  PageMainBar,
+} from '@/components/ui/page'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,23 +31,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import {
-  PageBody,
-  PageHeader,
-  PageMainBar,
-  PageWrapper,
-} from '@/components/ui/page'
-import { Textarea } from '@/components/ui/textarea'
-import { api } from '@/igniter.client'
-import { Bot, Save, ArrowLeft, Brain, Database, Settings, Shield, Zap, Upload, FileText, Plus, X } from 'lucide-react'
-import { KnowledgeUpload } from '@/features/ai-agents/components/knowledge-upload'
-import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -50,56 +48,53 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Slider } from '@/components/ui/slider'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AIAgentType } from '@/features/ai-agents/types/ai-agent.types'
+import { api } from '@/igniter.client'
+import { KnowledgeUpload } from '@/features/ai-agents/components/knowledge-upload'
 
 const updateAgentSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
+  name: z.string().min(1, 'Nome é obrigatório'),
   description: z.string().optional(),
-  type: z.nativeEnum(AIAgentType),
-  role: z.string().optional(),
-  goal: z.string().optional(),
-  systemPrompt: z
-    .string()
-    .min(10, 'Prompt do sistema deve ter pelo menos 10 caracteres'),
-  model: z.string(),
+  model: z.string().min(1, 'Modelo é obrigatório'),
   temperature: z.number().min(0).max(2),
-  maxTokens: z.number().min(1).max(8000),
-  topP: z.number().min(0).max(1).optional(),
-  frequencyPenalty: z.number().min(-2).max(2).optional(),
-  presencePenalty: z.number().min(-2).max(2).optional(),
-  enableContentFilter: z.boolean(),
-  enablePiiDetection: z.boolean(),
-  maxResponseLength: z.number().optional(),
-  allowedTopics: z.array(z.string()),
-  blockedTopics: z.array(z.string()),
+  maxTokens: z.number().min(1).max(4000),
+  systemPrompt: z.string().min(1, 'Prompt do sistema é obrigatório'),
   fallbackMessage: z.string().optional(),
-  isActive: z.boolean(),
+  enableContentFilter: z.boolean(),
+  enableRateLimiting: z.boolean(),
+  maxRequestsPerMinute: z.number().min(1).max(100),
+  allowedTopics: z.array(z.string()).optional(),
+  blockedTopics: z.array(z.string()).optional(),
 })
 
 type UpdateAgentFormData = z.infer<typeof updateAgentSchema>
 
 export default function EditAgentPage() {
   const params = useParams()
+  const id = params.id as string
   const router = useRouter()
-  const agentId = params.id as string
   const [activeTab, setActiveTab] = useState('basic')
-  const [knowledgeFiles, setKnowledgeFiles] = useState<string[]>([])
   const [allowedTopics, setAllowedTopics] = useState<string[]>([])
   const [blockedTopics, setBlockedTopics] = useState<string[]>([])
   const [newTopic, setNewTopic] = useState('')
   const [newBlockedTopic, setNewBlockedTopic] = useState('')
 
-  const agentQuery = api.aiAgents.getById.useQuery({
-    params: { id: agentId },
-  })
+  const agentId = params.id
 
-  const agent = agentQuery.data
-  const isLoading = agentQuery.loading
+  const agentQuery = api.aiAgents.getById.useQuery({
+    id: agentId,
+  })
 
   const updateAgentMutation = api.aiAgents.update.useMutation()
 
@@ -108,65 +103,54 @@ export default function EditAgentPage() {
     defaultValues: {
       name: '',
       description: '',
-      type: AIAgentType.LLM_AGENT,
-      role: '',
-      goal: '',
-      systemPrompt: '',
       model: 'gpt-4',
       temperature: 0.7,
       maxTokens: 1000,
+      systemPrompt: '',
+      fallbackMessage: '',
       enableContentFilter: true,
-      enablePiiDetection: true,
+      enableRateLimiting: true,
+      maxRequestsPerMinute: 10,
       allowedTopics: [],
       blockedTopics: [],
-      isActive: true,
     },
   })
+
+  const { data: agent, isLoading } = agentQuery
 
   useEffect(() => {
     if (agent) {
       form.reset({
         name: agent.name,
         description: agent.description || '',
-        type: agent.type,
-        role: agent.role || '',
-        goal: agent.goal || '',
-        systemPrompt: agent.systemPrompt,
         model: agent.model,
         temperature: agent.temperature,
         maxTokens: agent.maxTokens,
-        topP: agent.topP,
-        frequencyPenalty: agent.frequencyPenalty,
-        presencePenalty: agent.presencePenalty,
+        systemPrompt: agent.systemPrompt,
+        fallbackMessage: agent.fallbackMessage || '',
         enableContentFilter: agent.enableContentFilter,
-        enablePiiDetection: agent.enablePiiDetection,
-        maxResponseLength: agent.maxResponseLength,
+        enableRateLimiting: agent.enableRateLimiting,
+        maxRequestsPerMinute: agent.maxRequestsPerMinute,
         allowedTopics: agent.allowedTopics || [],
         blockedTopics: agent.blockedTopics || [],
-        fallbackMessage: agent.fallbackMessage || '',
-        isActive: agent.isActive,
       })
-      
-      // Set topics from agent data
+
       setAllowedTopics(agent.allowedTopics || [])
       setBlockedTopics(agent.blockedTopics || [])
-      
-      // Set knowledge files if available
-      setKnowledgeFiles(agent.knowledgeFiles || [])
     }
   }, [agent, form])
 
   const onSubmit = async (data: UpdateAgentFormData) => {
     try {
       await updateAgentMutation.execute({
-        params: { id: agentId },
+        id: agentId,
         body: {
           ...data,
           allowedTopics,
           blockedTopics,
-          knowledgeFiles,
         },
       })
+
       toast.success('Agente atualizado com sucesso!')
       router.push(`/app/ai-agents/${agentId}`)
     } catch (error: any) {
@@ -244,36 +228,29 @@ export default function EditAgentPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/app/ai-agents/${agentId}`}>
-                {agent.name}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Editar</BreadcrumbPage>
+              <BreadcrumbPage>Editar {agent.name}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
+
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/app/ai-agents/${agentId}`}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <PageBody>
         <PageMainBar>
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">
-                  Editar Agente
-                </h1>
-                <p className="text-muted-foreground">
-                  Modifique as configurações do agente {agent.name}
-                </p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link href={`/app/ai-agents/${agentId}`}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Voltar
-                </Link>
-              </Button>
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold">Editar Agente</h1>
+              <p className="text-muted-foreground">
+                Modifique as configurações do seu agente de IA
+              </p>
             </div>
 
             <Form {...form}>
@@ -306,141 +283,47 @@ export default function EditAgentPage() {
                       <CardHeader>
                         <CardTitle>Informações Básicas</CardTitle>
                         <CardDescription>
-                          Configure as informações principais do agente
+                          Configure as informações básicas do seu agente
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nome do Agente</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Ex: Assistente de Vendas"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Descrição</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Descreva o propósito do agente..."
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Agente</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nome do Agente</FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o tipo" />
-                                </SelectTrigger>
+                                <Input
+                                  placeholder="Ex: Assistente de Vendas"
+                                  {...field}
+                                />
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value={AIAgentType.LLM_AGENT}>
-                                  LLM Agent
-                                </SelectItem>
-                                <SelectItem value={AIAgentType.CREW_AI}>
-                                  Crew AI
-                                </SelectItem>
-                                <SelectItem
-                                  value={AIAgentType.LANGGRAPH_WORKFLOW}
-                                >
-                                  LangGraph Workflow
-                                </SelectItem>
-                                <SelectItem value={AIAgentType.GOOGLE_ADK}>
-                                  Google ADK
-                                </SelectItem>
-                                <SelectItem value={AIAgentType.A2A_PROTOCOL}>
-                                  A2A Protocol
-                                </SelectItem>
-                                <SelectItem value={AIAgentType.MCP_SERVER}>
-                                  MCP Server
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Papel/Função</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Ex: Especialista em vendas"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="goal"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Objetivo</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Ex: Ajudar clientes com dúvidas"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                              <FormDescription>
+                                Nome que será exibido para identificar o agente
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
                           control={form.control}
-                          name="isActive"
+                          name="description"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-base">
-                                  Agente Ativo
-                                </FormLabel>
-                                <FormDescription>
-                                  Ativar ou desativar o agente
-                                </FormDescription>
-                              </div>
+                            <FormItem>
+                              <FormLabel>Descrição</FormLabel>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
+                                <Textarea
+                                  placeholder="Descreva o propósito e funcionalidades do agente..."
+                                  className="resize-none"
+                                  {...field}
                                 />
                               </FormControl>
+                              <FormDescription>
+                                Descrição opcional do agente e suas funcionalidades
+                              </FormDescription>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -449,7 +332,6 @@ export default function EditAgentPage() {
                   </TabsContent>
 
                   <TabsContent value="model" className="space-y-6">
-
                     <Card>
                       <CardHeader>
                         <CardTitle>Configurações do Modelo</CardTitle>
@@ -458,186 +340,95 @@ export default function EditAgentPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="model"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Modelo</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="gpt-4">GPT-4</SelectItem>
-                                <SelectItem value="gpt-4-turbo">
-                                  GPT-4 Turbo
-                                </SelectItem>
-                                <SelectItem value="gpt-3.5-turbo">
-                                  GPT-3.5 Turbo
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="temperature"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Temperatura: {field.value}</FormLabel>
-                            <FormControl>
-                              <Slider
-                                min={0}
-                                max={2}
-                                step={0.1}
-                                value={[field.value]}
+                        <FormField
+                          control={form.control}
+                          name="model"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Modelo</FormLabel>
+                              <Select
                                 onValueChange={(value) =>
-                                  field.onChange(value[0])
+                                  field.onChange(value)
                                 }
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Controla a criatividade das respostas (0 =
-                              conservador, 2 = criativo)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um modelo" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="gpt-4">GPT-4</SelectItem>
+                                  <SelectItem value="gpt-4-turbo">
+                                    GPT-4 Turbo
+                                  </SelectItem>
+                                  <SelectItem value="gpt-3.5-turbo">
+                                    GPT-3.5 Turbo
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                Modelo de IA que será usado pelo agente
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={form.control}
-                        name="maxTokens"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Máximo de Tokens</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min={1}
-                                max={8000}
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(parseInt(e.target.value))
-                                }
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Limite máximo de tokens por resposta
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-1 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="enableContentFilter"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                              <div className="space-y-0.5">
-                                <FormLabel>Filtro de Conteúdo</FormLabel>
-                                <FormDescription className="text-xs">
-                                  Ativar filtros de segurança
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="temperature"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Temperatura</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="2"
+                                    placeholder="0.7"
+                                    onChange={(e) =>
+                                      field.onChange(parseFloat(e.target.value))
+                                    }
+                                    value={field.value}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Controla a criatividade (0-2)
                                 </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <FormField
-                          control={form.control}
-                          name="topP"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Top P</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  max={1}
-                                  step={0.1}
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseFloat(e.target.value))
-                                  }
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Controla a diversidade das respostas
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="frequencyPenalty"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Penalidade de Frequência</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min={-2}
-                                  max={2}
-                                  step={0.1}
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseFloat(e.target.value))
-                                  }
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Reduz repetições de palavras
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="presencePenalty"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Penalidade de Presença</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min={-2}
-                                  max={2}
-                                  step={0.1}
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseFloat(e.target.value))
-                                  }
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Encoraja novos tópicos
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          <FormField
+                            control={form.control}
+                            name="maxTokens"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Máximo de Tokens</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    max="4000"
+                                    placeholder="1000"
+                                    onChange={(e) =>
+                                      field.onChange(parseInt(e.target.value))
+                                    }
+                                    value={field.value}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Limite de tokens por resposta
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -666,8 +457,8 @@ export default function EditAgentPage() {
                               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                 <div className="space-y-0.5">
                                   <FormLabel>Filtro de Conteúdo</FormLabel>
-                                  <FormDescription className="text-xs">
-                                    Ativar filtros de segurança
+                                  <FormDescription>
+                                    Filtra conteúdo inadequado
                                   </FormDescription>
                                 </div>
                                 <FormControl>
@@ -682,13 +473,13 @@ export default function EditAgentPage() {
 
                           <FormField
                             control={form.control}
-                            name="enablePiiDetection"
+                            name="enableRateLimiting"
                             render={({ field }) => (
                               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                 <div className="space-y-0.5">
-                                  <FormLabel>Detecção PII</FormLabel>
-                                  <FormDescription className="text-xs">
-                                    Detectar informações pessoais
+                                  <FormLabel>Limite de Taxa</FormLabel>
+                                  <FormDescription>
+                                    Limita requisições por minuto
                                   </FormDescription>
                                 </div>
                                 <FormControl>
@@ -702,11 +493,39 @@ export default function EditAgentPage() {
                           />
                         </div>
 
-                        <Separator />
+                        {form.watch('enableRateLimiting') && (
+                          <FormField
+                            control={form.control}
+                            name="maxRequestsPerMinute"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Máximo de Requisições por Minuto</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    placeholder="10"
+                                    onChange={(e) =>
+                                      field.onChange(parseInt(e.target.value))
+                                    }
+                                    value={field.value}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Número máximo de requisições permitidas por minuto
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-medium mb-2">Tópicos Permitidos</h4>
+                            <h4 className="text-sm font-medium mb-2">
+                              Tópicos Permitidos
+                            </h4>
                             <div className="flex gap-2 mb-2">
                               <Input
                                 placeholder="Adicionar tópico permitido..."
@@ -722,6 +541,7 @@ export default function EditAgentPage() {
                               <Button
                                 type="button"
                                 variant="outline"
+                                size="sm"
                                 onClick={() => addTopic(newTopic, 'allowed')}
                               >
                                 <Plus className="h-4 w-4" />
@@ -729,13 +549,17 @@ export default function EditAgentPage() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {allowedTopics.map((topic, index) => (
-                                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="flex items-center gap-1"
+                                >
                                   {topic}
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="h-auto p-0 ml-1"
+                                    className="h-auto p-0 hover:bg-transparent"
                                     onClick={() => removeTopic(index, 'allowed')}
                                   >
                                     <X className="h-3 w-3" />
@@ -746,7 +570,9 @@ export default function EditAgentPage() {
                           </div>
 
                           <div>
-                            <h4 className="font-medium mb-2">Tópicos Bloqueados</h4>
+                            <h4 className="text-sm font-medium mb-2">
+                              Tópicos Bloqueados
+                            </h4>
                             <div className="flex gap-2 mb-2">
                               <Input
                                 placeholder="Adicionar tópico bloqueado..."
@@ -762,6 +588,7 @@ export default function EditAgentPage() {
                               <Button
                                 type="button"
                                 variant="outline"
+                                size="sm"
                                 onClick={() => addTopic(newBlockedTopic, 'blocked')}
                               >
                                 <Plus className="h-4 w-4" />
@@ -769,13 +596,17 @@ export default function EditAgentPage() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {blockedTopics.map((topic, index) => (
-                                <Badge key={index} variant="destructive" className="flex items-center gap-1">
+                                <Badge
+                                  key={index}
+                                  variant="destructive"
+                                  className="flex items-center gap-1"
+                                >
                                   {topic}
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="h-auto p-0 ml-1 text-destructive-foreground hover:text-destructive-foreground"
+                                    className="h-auto p-0 hover:bg-transparent"
                                     onClick={() => removeTopic(index, 'blocked')}
                                   >
                                     <X className="h-3 w-3" />
@@ -785,52 +616,6 @@ export default function EditAgentPage() {
                             </div>
                           </div>
                         </div>
-
-                        <Separator />
-
-                        <FormField
-                          control={form.control}
-                          name="maxResponseLength"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Tamanho Máximo da Resposta</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="Ex: 500"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(parseInt(e.target.value))
-                                  }
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Limite de caracteres por resposta (opcional)
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="fallbackMessage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Mensagem de Fallback</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Desculpe, não consegui entender. Pode reformular?"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Mensagem exibida quando o agente não consegue responder
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </CardContent>
                     </Card>
                   </TabsContent>

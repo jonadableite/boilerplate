@@ -12,9 +12,8 @@ import type {
 import type { StandardSchemaV1 } from '@igniter-js/core'
 
 import matter from 'gray-matter'
-import * as path from 'node:path'
-
-import { promises as fs } from 'node:fs'
+import * as path from 'path'
+import { promises as fs } from 'fs'
 
 /**
  * ContentLayerProvider - Uma abstração para trabalhar com conteúdo em markdown

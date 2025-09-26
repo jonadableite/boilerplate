@@ -5,7 +5,17 @@ import { mail } from './providers/mail'
 import { plugins } from './providers/plugin-manager'
 import { payment } from './providers/payment'
 import { prisma } from './providers/prisma'
-import { AIServicesProvider } from './providers/ai-services'
+
+// Conditionally import AI services only on server-side
+let AIServicesProvider: any = null
+if (typeof window === 'undefined') {
+  // Server-side only
+  try {
+    AIServicesProvider = require('./providers/ai-services').AIServicesProvider
+  } catch (error) {
+    console.warn('AI Services not available:', error)
+  }
+}
 
 /**
  * @description Create the context of the application
@@ -19,7 +29,7 @@ export const createIgniterAppContext = cache(() => {
       mail,
       payment,
       plugins,
-      aiServices: AIServicesProvider,
+      ...(AIServicesProvider && { aiServices: AIServicesProvider }),
     },
   }
 })

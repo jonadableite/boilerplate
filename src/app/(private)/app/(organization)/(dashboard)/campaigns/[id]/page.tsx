@@ -1,6 +1,6 @@
 'use client'
 
-import { useOrganization } from '@/@saas-boilerplate/features/organization'
+import { useAuth } from '@/@saas-boilerplate/features/auth/presentation/contexts/auth.context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +25,8 @@ import { useEffect, useState } from 'react'
 export default function CampaignDetailsPage() {
   const params = useParams()
   const router = useRouter()
-  const { organization } = useOrganization()
+  const { session } = useAuth()
+  const organization = session?.organization
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [leads, setLeads] = useState<CampaignLead[]>([])
   const [loading, setLoading] = useState(true)

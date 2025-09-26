@@ -10,7 +10,7 @@ import {
 export function SubmissionDetailsToolbar() {
   return (
     <DataTableToolbar className="flex items-center justify-between">
-      <DataTableSearch placeholder="Search submissions..." />
+      <DataTableSearch placeholder="Buscar submissões..." />
 
       <div className="flex items-center gap-2">
         <DataTableFilterMenu />

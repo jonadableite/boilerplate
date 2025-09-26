@@ -492,10 +492,7 @@ export default function KnowledgeBasesPage() {
   )
 }
 
-export const metadata = {
-  title: 'Bases de Conhecimento',
-  description: 'Gerencie bases de conhecimento para agentes de IA',
-}
+
 
 export const dynamic = 'force-dynamic'
 export const revalidate = false

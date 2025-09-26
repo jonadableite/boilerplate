@@ -25,7 +25,7 @@ export const ApiKeyController = igniter.controller({
 
     findOne: igniter.query({
       method: 'GET',
-      path: '/:id' as const,
+      path: '/:id',
       use: [ApiKeyFeatureProcedure(), AuthFeatureProcedure()],
       handler: async ({ request, response, context }) => {
         const session = await context.auth.getSession({
@@ -65,7 +65,7 @@ export const ApiKeyController = igniter.controller({
 
     update: igniter.mutation({
       method: 'PUT',
-      path: '/:id' as const,
+      path: '/:id',
       use: [ApiKeyFeatureProcedure(), AuthFeatureProcedure()],
       body: z.object({
         description: z.string().optional(),
@@ -95,7 +95,7 @@ export const ApiKeyController = igniter.controller({
           roles: ['owner', 'admin'],
         })
         await context.apikey.delete({
-          ...request.params,
+          id: request.params.id,
           organizationId: session.organization.id,
         })
         return response.success({ message: 'Api key deleted' })

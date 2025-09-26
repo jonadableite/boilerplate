@@ -1,3 +1,10 @@
+---
+title: "Documentação da Plataforma WhatsApp Marketing"
+date: "2024-01-15"
+category: "docs"
+index: 1
+---
+
 # Documentação da Plataforma WhatsApp Marketing
 
 Este diretório contém toda a documentação da plataforma WhatsApp Marketing Profissional, organizada de forma estruturada para facilitar o onboarding e uso da plataforma.

@@ -97,7 +97,7 @@ export function AuthForm({
 
   return (
     <section
-      className={cn('space-y-6 px-8 relative overflow-hidden', className)}
+      className={cn('space-y-6 relative overflow-hidden', className)}
     >
       <AnimatePresence mode="wait" initial={false}>
         {OTPEmail ? (
@@ -108,35 +108,43 @@ export function AuthForm({
             animate="visible"
             exit="exit"
             variants={containerVariants}
-            className="w-full"
+            className="space-y-6"
           >
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold text-white">Verificar código</h1>
+              <p className="text-white/70">
+                Enviamos um código de 6 dígitos para{' '}
+                <span className="font-medium text-white">{OTPEmail}</span>
+              </p>
+            </div>
             <AuthValidateOTPCodeForm
-              redirectUrl={redirectUrl}
               email={OTPEmail}
               onBack={() => setOTPEmail(null)}
+              redirectUrl={redirectUrl}
             />
           </motion.div>
         ) : (
           <motion.div
-            key="auth-form"
+            key="sign-in-form"
             custom={false}
             initial="hidden"
             animate="visible"
             exit="exit"
             variants={containerVariants}
-            className="w-full"
+            className="space-y-6"
           >
-            <header className="space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
-              <p className="text-sm text-muted-foreground">
-                Entre na sua conta usando um dos métodos abaixo
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold text-white">Entrar na sua conta</h1>
+              <p className="text-white/70">
+                Bem-vindo de volta! Faça login para continuar.
               </p>
-            </header>
-            <main className="space-y-6">
-              <SignInWithCredentialForm form={form} />
-              <SeparatorWithText>Ou entre com</SeparatorWithText>
-              <SignInWithSocialProviderForm />
-            </main>
+            </div>
+
+            <SignInWithSocialProviderForm />
+
+            <SeparatorWithText text="ou" className="text-white/50" />
+
+            <SignInWithCredentialForm form={form} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -164,7 +172,7 @@ function SignInWithSocialProviderForm() {
       {socialProviders.map((provider) => (
         <Button
           key={provider.id}
-          className="w-full justify-between"
+          className="w-full justify-between bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
           variant="outline"
           type="button"
           disabled={signInWithProvider.loading}
@@ -201,25 +209,25 @@ function SignInWithCredentialForm({
           name="email"
           render={({ field }) => (
             <FormItem variant="unstyled">
-              <FormLabel>E-mail</FormLabel>
+              <FormLabel className="text-white">E-mail</FormLabel>
               <FormControl>
                 <Input
                   type="email"
                   variant="outline"
                   placeholder="nome@exemplo.com"
-                  className="h-10"
+                  className="h-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40 backdrop-blur-sm"
                   disabled={form.formState.isSubmitting}
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-red-300" />
             </FormItem>
           )}
         />
 
         <Button
           type="submit"
-          className="w-full h-10 justify-between"
+          className="w-full h-10 justify-between bg-white text-black hover:bg-white/90"
           disabled={form.formState.isSubmitting}
         >
           Enviar código de verificação
@@ -285,27 +293,20 @@ function AuthValidateOTPCodeForm({
   return (
     <Form {...form}>
       <form onSubmit={form.onSubmit} className="space-y-6">
-        <header className="space-y-2">
+        <div className="space-y-4">
           <Button
             variant="ghost"
             size="sm"
-            className="p-0 h-8 mb-2 hover:bg-transparent"
+            className="p-0 h-8 mb-2 text-white/70 hover:text-white hover:bg-white/10"
             onClick={onBack}
             type="button"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar ao login
           </Button>
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Verifique seu e-mail
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Enviamos um código de verificação para{' '}
-            <span className="font-medium">{email}</span>
-          </p>
-        </header>
+        </div>
 
-        <main className="space-y-4">
+        <div className="space-y-4">
           <FormField
             control={form.control}
             name="code"
@@ -316,29 +317,30 @@ function AuthValidateOTPCodeForm({
                     value={field.value}
                     onChange={field.onChange}
                     maxLength={6}
+                    className="justify-center"
                   >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
+                    <InputOTPGroup className="bg-white/10 border-white/20 backdrop-blur-sm">
+                      <InputOTPSlot index={0} className="text-white border-white/20" />
+                      <InputOTPSlot index={1} className="text-white border-white/20" />
+                      <InputOTPSlot index={2} className="text-white border-white/20" />
                     </InputOTPGroup>
-                    <InputOTPSeparator>-</InputOTPSeparator>
-                    <InputOTPGroup>
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
+                    <InputOTPSeparator className="text-white/50">-</InputOTPSeparator>
+                    <InputOTPGroup className="bg-white/10 border-white/20 backdrop-blur-sm">
+                      <InputOTPSlot index={3} className="text-white border-white/20" />
+                      <InputOTPSlot index={4} className="text-white border-white/20" />
+                      <InputOTPSlot index={5} className="text-white border-white/20" />
                     </InputOTPGroup>
                   </InputOTP>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-red-300" />
               </FormItem>
             )}
           />
-        </main>
+        </div>
 
-        <footer className="flex flex-col justify-center">
+        <div className="flex flex-col items-center space-y-4">
           <Button
-            className="w-fit h-10"
+            className="w-full h-10 bg-white text-black hover:bg-white/90"
             type="submit"
             disabled={form.formState.isSubmitting}
           >
@@ -347,21 +349,21 @@ function AuthValidateOTPCodeForm({
               className="mr-2 h-4 w-4"
               isLoading={form.formState.isSubmitting}
             />
-            {form.formState.isSubmitting ? 'Verificando...' : 'Verificar E-mail'}
+            {form.formState.isSubmitting ? 'Verificando...' : 'Verificar código'}
           </Button>
 
-          <p className="text-sm text-muted-foreground/80 mt-2">
+          <p className="text-sm text-white/70 text-center">
             Não recebeu o código?{' '}
             <Button
               variant="link"
-              className="p-0 h-auto font-normal"
+              className="p-0 h-auto font-normal text-white hover:text-white/80 underline"
               onClick={handleResendCode}
               disabled={resendOTPCode.loading}
             >
               {resendOTPCode.loading ? 'Enviando...' : 'Clique para reenviar'}
             </Button>
           </p>
-        </footer>
+        </div>
       </form>
     </Form>
   )

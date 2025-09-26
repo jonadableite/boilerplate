@@ -13,10 +13,9 @@ export function LeadDataTableEmpty() {
       </AnimatedEmptyState.Carousel>
 
       <AnimatedEmptyState.Content>
-        <AnimatedEmptyState.Title>No leads found</AnimatedEmptyState.Title>
+        <AnimatedEmptyState.Title>Nenhum lead encontrado</AnimatedEmptyState.Title>
         <AnimatedEmptyState.Description>
-          It looks like no one has interacted with your bot yet. Check back
-          later!
+          Parece que ninguém interagiu com seu bot ainda. Volte mais tarde!
         </AnimatedEmptyState.Description>
       </AnimatedEmptyState.Content>
 
@@ -25,12 +24,12 @@ export function LeadDataTableEmpty() {
           triggerButton={
             <AnimatedEmptyState.Action variant="default" className="gap-2">
               <PlusIcon className="size-4" />
-              Add your first lead
+              Adicionar seu primeiro lead
             </AnimatedEmptyState.Action>
           }
         />
         <AnimatedEmptyState.Action variant="outline" asChild>
-          <Link href="/help/getting-started/">Learn more</Link>
+          <Link href="/help/getting-started/">Saiba mais</Link>
         </AnimatedEmptyState.Action>
       </AnimatedEmptyState.Actions>
     </AnimatedEmptyState>

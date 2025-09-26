@@ -51,7 +51,7 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PageWrapper, PageHeader, PageBody } from '@/components/layouts/page'
+import { PageWrapper, PageHeader, PageBody, PageMainBar } from '@/components/ui/page'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -87,8 +87,8 @@ const createAgentSchema = z.object({
   ttsEnabled: z.boolean().default(false),
   ttsVoice: z.enum(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']).default('alloy'),
   ttsModel: z.enum(['tts-1', 'tts-1-hd']).default('tts-1'),
-  ttsSpeed: z.number().min(0.25).max(4.0).default(1.0)
-  
+  ttsSpeed: z.number().min(0.25).max(4.0).default(1.0),
+
   // Guardrails
   enableContentFilter: z.boolean().default(true),
   enablePiiDetection: z.boolean().default(true),
