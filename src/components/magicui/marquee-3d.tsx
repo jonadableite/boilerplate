@@ -2,7 +2,7 @@
 'use client'
 
 import { cn } from '@/utils/cn'
-import { Marquee } from '@/components/magicui/marquee'
+import Marquee from '@/components/magicui/marquee'
 import { motion } from 'framer-motion'
 
 const reviews = [

@@ -58,7 +58,7 @@ export function WhatsAppInstanceActions({
         instance.id,
       )
 
-      const result = await api.whatsAppInstances.connect.mutate({
+      const result = await (api.whatsAppInstances.connect as any).mutate({
         params: { id: instance.id },
       })
 
@@ -102,7 +102,7 @@ export function WhatsAppInstanceActions({
   const handleSync = async () => {
     try {
       setIsLoading(true)
-      await api.whatsAppInstances.syncStatus.mutate({
+      await (api.whatsAppInstances.syncStatus as any).mutate({
         params: { id: instance.id },
       })
       toast.success('Status sincronizado com sucesso!')
@@ -118,7 +118,7 @@ export function WhatsAppInstanceActions({
   const handleReconnect = async () => {
     try {
       setIsLoading(true)
-      await api.whatsAppInstances.update.mutate({
+      await (api.whatsAppInstances.update as any).mutate({
         params: { id: instance.id },
         body: { status: InstanceConnectionStatus.CONNECTING },
       })
@@ -135,7 +135,7 @@ export function WhatsAppInstanceActions({
   const handleDelete = async () => {
     try {
       setIsLoading(true)
-      await api.whatsAppInstances.delete.mutate({
+      await (api.whatsAppInstances.delete as any).mutate?.({
         params: { id: instance.id },
       })
       toast.success('Instância deletada com sucesso')

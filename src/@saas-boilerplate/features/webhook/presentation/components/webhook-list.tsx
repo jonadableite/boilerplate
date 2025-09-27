@@ -35,7 +35,7 @@ export function WebhookList({
     try {
       if (!window.confirm('Are you sure you want to remove this webhook?'))
         return
-      await api.webhook.delete.mutate({ params: { id } })
+      await (api.webhook.delete as any).mutate({ params: { id } })
       await onDelete?.(id)
       toast.success('Webhook removed successfully')
       router.refresh()

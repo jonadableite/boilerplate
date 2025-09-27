@@ -113,7 +113,7 @@ export default function NewAgentPage() {
   const [newTopic, setNewTopic] = useState('')
   const [newBlockedTopic, setNewBlockedTopic] = useState('')
 
-  const createAgentMutation = api.aiAgent.create.useMutation()
+  const createAgentMutation = (api.aiAgent.create as any).useMutation()
 
   const form = useForm<CreateAgentFormData>({
     resolver: zodResolver(createAgentSchema),

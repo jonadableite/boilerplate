@@ -17,7 +17,7 @@ export const fetchCache = 'auto'
 export default function Layout({ children }: LayoutProps) {
   async function signOut() {
     'use server'
-    await api.auth.signOut.mutate()
+    await (api.auth.signOut as any).mutate()
   }
 
   return (

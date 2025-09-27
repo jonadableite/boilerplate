@@ -14,7 +14,7 @@ export function WhatsAppInstanceDebug() {
       setIsDebugging(true)
       setDebugLogs(['🔄 Iniciando sincronização...'])
 
-      const result = await api.whatsAppInstances.syncAll.mutate()
+      const result = await (api.whatsAppInstances.syncAll as any).mutate()
 
       setDebugLogs(prev => [
         ...prev,

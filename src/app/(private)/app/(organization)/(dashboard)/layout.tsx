@@ -14,7 +14,7 @@ export const fetchCache = 'auto'
 
 export default async function Layout({ children }: PropsWithChildren) {
   // Business Rule: Get the current session
-  const session = await api.auth.getSession.query()
+  const session = await (api.auth.getSession as any).query()
 
   // Business Rule: If the user is not authenticated, redirect to the login page
   if (session.error || !session.data) redirect('/auth')

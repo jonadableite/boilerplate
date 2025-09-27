@@ -30,7 +30,9 @@ export const generateMetadata = async ({
   params,
 }: IntegrationDetailsPageProps) => {
   const { slug } = await params
-  const integration = await api.integration.findOne.query({ params: { slug } })
+  const integration = await (api.integration as any).findOne.query({
+    params: { slug },
+  })
 
   if (!integration.data) return notFound()
 
@@ -41,7 +43,9 @@ export const generateMetadata = async ({
 }
 export default async function Page({ params }: IntegrationDetailsPageProps) {
   const { slug } = await params
-  const integration = await api.integration.findOne.query({ params: { slug } })
+  const integration = await (api.integration as any).findOne.query({
+    params: { slug },
+  })
 
   if (!integration.data) return notFound()
 

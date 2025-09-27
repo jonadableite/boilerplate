@@ -11,7 +11,7 @@ import { useCallback, useState, useRef, useEffect } from 'react'
 export const useClipboard = (defaultVal: string) => {
   const [value, setValue] = useState(defaultVal)
   const [isCopied, setIsCopied] = useState(false)
-  const timeoutRef = useRef<NodeJS.Timeout>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   /**
    * Cleanup timeout on unmount
@@ -47,7 +47,7 @@ export const useClipboard = (defaultVal: string) => {
 
     timeoutRef.current = setTimeout(() => {
       setIsCopied(false)
-    }, 2000)
+    }, 2000) as NodeJS.Timeout
   }, [value])
 
   return {

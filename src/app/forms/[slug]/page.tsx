@@ -9,7 +9,7 @@ interface FormsPageProps {
 
 export default async function FormsPage({ params }: FormsPageProps) {
   const { slug } = await params
-  const organization = await api.organization.getBySlug.query({
+  const organization = await (api.organization as any).getBySlug.query({
     params: { slug },
   })
 

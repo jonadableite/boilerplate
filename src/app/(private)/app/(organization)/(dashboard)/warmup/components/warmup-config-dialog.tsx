@@ -428,7 +428,7 @@ export function WarmupConfigDialog({
         config: DEFAULT_WARMUP_CONFIG,
       }
 
-      await api.warmup.startWarmup.mutate({
+      await (api.warmup.startWarmup as any).mutate({
         body: payload as any, // Cast temporário para resolver incompatibilidade de tipos
       })
 

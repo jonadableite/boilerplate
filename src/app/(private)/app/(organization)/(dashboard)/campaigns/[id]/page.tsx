@@ -3,7 +3,13 @@
 import { useAuth } from '@/@saas-boilerplate/features/auth/presentation/contexts/auth.context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Campaign, CampaignLead } from '@/features/campaign'
@@ -16,7 +22,7 @@ import {
   Pause,
   Play,
   RefreshCw,
-  Users
+  Users,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -58,12 +64,13 @@ export default function CampaignDetailsPage() {
         updatedAt: new Date('2024-01-15'),
         organizationId: organization?.id || '',
         createdById: '',
-        message: 'Bem-vindo à nossa empresa! Estamos muito felizes em tê-lo conosco. Nossa equipe está sempre disponível para ajudar.',
+        message:
+          'Bem-vindo à nossa empresa! Estamos muito felizes em tê-lo conosco. Nossa equipe está sempre disponível para ajudar.',
         minDelay: 30,
         maxDelay: 120,
         useInstanceRotation: true,
         selectedInstances: ['instance1', 'instance2'],
-        timezone: 'America/Sao_Paulo'
+        timezone: 'America/Sao_Paulo',
       })
 
       setLeads([
@@ -76,9 +83,9 @@ export default function CampaignDetailsPage() {
           sentAt: new Date('2024-01-15T10:00:00'),
           deliveredAt: new Date('2024-01-15T10:01:00'),
           readAt: new Date('2024-01-15T10:05:00'),
+          retryCount: 0,
           createdAt: new Date('2024-01-15'),
           updatedAt: new Date('2024-01-15'),
-          campaignId: params.id as string
         },
         {
           id: '2',
@@ -88,10 +95,10 @@ export default function CampaignDetailsPage() {
           status: 'DELIVERED',
           sentAt: new Date('2024-01-15T10:30:00'),
           deliveredAt: new Date('2024-01-15T10:31:00'),
+          retryCount: 0,
           createdAt: new Date('2024-01-15'),
           updatedAt: new Date('2024-01-15'),
-          campaignId: params.id as string
-        }
+        },
       ])
     } catch (error) {
       console.error('Erro ao buscar detalhes da campanha:', error)
@@ -104,7 +111,7 @@ export default function CampaignDetailsPage() {
     try {
       setActionLoading(true)
       // Aqui você faria a chamada para a API
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       await fetchCampaignDetails() // Recarregar dados
     } catch (error) {
       console.error('Erro ao iniciar campanha:', error)
@@ -117,7 +124,7 @@ export default function CampaignDetailsPage() {
     try {
       setActionLoading(true)
       // Aqui você faria a chamada para a API
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       await fetchCampaignDetails() // Recarregar dados
     } catch (error) {
       console.error('Erro ao parar campanha:', error)
@@ -134,10 +141,11 @@ export default function CampaignDetailsPage() {
       PAUSED: { variant: 'destructive', label: 'Pausada' },
       COMPLETED: { variant: 'default', label: 'Concluída' },
       CANCELLED: { variant: 'destructive', label: 'Cancelada' },
-      ERROR: { variant: 'destructive', label: 'Erro' }
+      ERROR: { variant: 'destructive', label: 'Erro' },
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT
     return <Badge variant={config.variant as any}>{config.label}</Badge>
   }
 
@@ -149,10 +157,11 @@ export default function CampaignDetailsPage() {
       DELIVERED: { variant: 'default', label: 'Entregue' },
       READ: { variant: 'default', label: 'Lida' },
       FAILED: { variant: 'destructive', label: 'Falhou' },
-      BLOCKED: { variant: 'destructive', label: 'Bloqueada' }
+      BLOCKED: { variant: 'destructive', label: 'Bloqueada' },
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING
     return <Badge variant={config.variant as any}>{config.label}</Badge>
   }
 
@@ -175,8 +184,14 @@ export default function CampaignDetailsPage() {
     )
   }
 
-  const deliveryRate = campaign.totalLeads > 0 ? (campaign.deliveredCount / campaign.totalLeads) * 100 : 0
-  const readRate = campaign.deliveredCount > 0 ? (campaign.readCount / campaign.deliveredCount) * 100 : 0
+  const deliveryRate =
+    campaign.totalLeads > 0
+      ? (campaign.deliveredCount / campaign.totalLeads) * 100
+      : 0
+  const readRate =
+    campaign.deliveredCount > 0
+      ? (campaign.readCount / campaign.deliveredCount) * 100
+      : 0
 
   return (
     <div className="space-y-6">
@@ -201,7 +216,11 @@ export default function CampaignDetailsPage() {
             </Button>
           )}
           {campaign.status === 'RUNNING' && (
-            <Button variant="destructive" onClick={handleStopCampaign} disabled={actionLoading}>
+            <Button
+              variant="destructive"
+              onClick={handleStopCampaign}
+              disabled={actionLoading}
+            >
               <Pause className="mr-2 h-4 w-4" />
               {actionLoading ? 'Parando...' : 'Parar'}
             </Button>
@@ -219,7 +238,9 @@ export default function CampaignDetailsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total de Leads
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -233,9 +254,14 @@ export default function CampaignDetailsPage() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{campaign.sentCount}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {campaign.sentCount}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {campaign.totalLeads > 0 ? ((campaign.sentCount / campaign.totalLeads) * 100).toFixed(1) : 0}% do total
+              {campaign.totalLeads > 0
+                ? ((campaign.sentCount / campaign.totalLeads) * 100).toFixed(1)
+                : 0}
+              % do total
             </p>
           </CardContent>
         </Card>
@@ -246,7 +272,9 @@ export default function CampaignDetailsPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{campaign.deliveredCount}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {campaign.deliveredCount}
+            </div>
             <p className="text-xs text-muted-foreground">
               Taxa de entrega: {deliveryRate.toFixed(1)}%
             </p>
@@ -259,7 +287,9 @@ export default function CampaignDetailsPage() {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{campaign.readCount}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {campaign.readCount}
+            </div>
             <p className="text-xs text-muted-foreground">
               Taxa de leitura: {readRate.toFixed(1)}%
             </p>
@@ -297,27 +327,39 @@ export default function CampaignDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Delay entre mensagens:</span>
+              <span className="text-sm text-muted-foreground">
+                Delay entre mensagens:
+              </span>
               <span className="text-sm font-medium">
                 {campaign.minDelay}s - {campaign.maxDelay}s
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Rotação de instâncias:</span>
-              <Badge variant={campaign.useInstanceRotation ? 'default' : 'secondary'}>
+              <span className="text-sm text-muted-foreground">
+                Rotação de instâncias:
+              </span>
+              <Badge
+                variant={campaign.useInstanceRotation ? 'default' : 'secondary'}
+              >
                 {campaign.useInstanceRotation ? 'Ativada' : 'Desativada'}
               </Badge>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Instâncias selecionadas:</span>
-              <span className="text-sm font-medium">{campaign.selectedInstances.length}</span>
+              <span className="text-sm text-muted-foreground">
+                Instâncias selecionadas:
+              </span>
+              <span className="text-sm font-medium">
+                {campaign.selectedInstances.length}
+              </span>
             </div>
 
             {campaign.scheduledAt && (
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Agendada para:</span>
+                <span className="text-sm text-muted-foreground">
+                  Agendada para:
+                </span>
                 <span className="text-sm font-medium">
                   {new Date(campaign.scheduledAt).toLocaleString('pt-BR')}
                 </span>
@@ -334,7 +376,9 @@ export default function CampaignDetailsPage() {
         </CardHeader>
         <CardContent>
           <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-gray-800 whitespace-pre-wrap">{campaign.message}</p>
+            <p className="text-gray-800 whitespace-pre-wrap">
+              {campaign.message}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -367,13 +411,20 @@ export default function CampaignDetailsPage() {
             <CardContent>
               <div className="space-y-3">
                 {leads.map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={lead.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <div>
                         <p className="font-medium">{lead.name || 'Sem nome'}</p>
-                        <p className="text-sm text-muted-foreground">{lead.phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {lead.phone}
+                        </p>
                         {lead.email && (
-                          <p className="text-sm text-muted-foreground">{lead.email}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {lead.email}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -386,7 +437,9 @@ export default function CampaignDetailsPage() {
                           <p>Enviada: {lead.sentAt.toLocaleString('pt-BR')}</p>
                         )}
                         {lead.deliveredAt && (
-                          <p>Entregue: {lead.deliveredAt.toLocaleString('pt-BR')}</p>
+                          <p>
+                            Entregue: {lead.deliveredAt.toLocaleString('pt-BR')}
+                          </p>
                         )}
                         {lead.readAt && (
                           <p>Lida: {lead.readAt.toLocaleString('pt-BR')}</p>
@@ -419,15 +472,21 @@ export default function CampaignDetailsPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Mensagens enviadas:</span>
+                        <span className="text-muted-foreground">
+                          Mensagens enviadas:
+                        </span>
                         <p className="font-medium">45</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Taxa de entrega:</span>
+                        <span className="text-muted-foreground">
+                          Taxa de entrega:
+                        </span>
                         <p className="font-medium">96%</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Última atividade:</span>
+                        <span className="text-muted-foreground">
+                          Última atividade:
+                        </span>
                         <p className="font-medium">2 min atrás</p>
                       </div>
                     </div>

@@ -21,7 +21,7 @@ interface LeadDetailsPageInfoProps {
 
 export function LeadDetailsPageInfo({ lead }: LeadDetailsPageInfoProps) {
   const router = useRouter()
-  const deleteLead = api.lead.delete.useMutation()
+  const deleteLead = (api.lead.delete as any).useMutation()
 
   /**
    * Handles lead deletion with confirmation

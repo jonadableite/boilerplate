@@ -38,7 +38,6 @@ export const InvitationFeatureProcedure = igniter.procedure({
             },
           })
 
-          // @ts-expect-error - expected
           return createdInvite
         },
 

@@ -45,10 +45,10 @@ export default function CampaignsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
 
   // Queries e mutations
-  const campaignsQuery = api.campaign.list.useQuery()
-  const pauseCampaignMutation = api.campaign.pause.useMutation()
-  const resumeCampaignMutation = api.campaign.resume.useMutation()
-  const cancelCampaignMutation = api.campaign.cancel.useMutation()
+  const campaignsQuery = (api.campaign.list as any).useQuery()
+  const pauseCampaignMutation = (api.campaign.pause as any).useMutation()
+  const resumeCampaignMutation = (api.campaign.resume as any).useMutation()
+  const cancelCampaignMutation = (api.campaign.cancel as any).useMutation()
 
   useEffect(() => {
     if (session?.organization?.id) {

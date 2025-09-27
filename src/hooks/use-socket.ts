@@ -143,7 +143,7 @@ export function useChatSocket() {
     onDisconnect: () => {
       console.log('Chat Socket desconectado')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro de conexão com o chat')
       console.error('Chat Socket error:', error)
     },

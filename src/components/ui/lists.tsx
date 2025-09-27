@@ -24,7 +24,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   },
 }
@@ -98,7 +98,6 @@ const Header = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => (
-  // @ts-expect-error - Error expected
   <motion.div
     ref={ref}
     variants={itemVariants}

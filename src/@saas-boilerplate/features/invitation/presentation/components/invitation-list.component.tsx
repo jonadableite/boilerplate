@@ -32,7 +32,7 @@ export function InvitationList({ invitations, onDelete }: InvitationListProps) {
   }
 
   const handleDelete = async (id: string) => {
-    await api.invitation.cancel.mutate({ params: { id } })
+    await (api.invitation.cancel as any).mutate({ params: { id } })
     await onDelete?.(id)
 
     toast.success('Invitation removed successfully')

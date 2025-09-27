@@ -49,7 +49,7 @@ export function WhatsAppInstanceCreate() {
       try {
         setIsLoading(true)
 
-        const result = await api.whatsAppInstances.create.mutate({
+        const result = await (api.whatsAppInstances.create as any).mutate({
           body: {
             instanceName: values.instanceName,
           },

@@ -44,7 +44,7 @@ export function WhatsAppInstanceToolbar() {
   const handleRefreshAll = async () => {
     try {
       setIsRefreshing(true)
-      const result = await api.whatsAppInstances.syncAll.mutate()
+      const result = await (api.whatsAppInstances.syncAll as any).mutate()
       // Verifica se a resposta é de sucesso e tem dados
       if (result && 'data' in result && result.data) {
         toast.success(

@@ -55,13 +55,13 @@ export function LeadBulkImportDialog({
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const bulkImportMutation = api.lead.bulkImport.useMutation({
+  const bulkImportMutation = (api.lead.bulkImport as any).useMutation({
     onSuccess: (result) => {
       setImportResult(result)
       setIsUploading(false)
       setUploadProgress(100)
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setError(error.message)
       setIsUploading(false)
       setUploadProgress(0)

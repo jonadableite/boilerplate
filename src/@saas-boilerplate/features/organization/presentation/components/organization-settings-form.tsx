@@ -62,7 +62,7 @@ export function OrganizationSettingsForm() {
 
       // Using try-catch with the tryCatch utility
       const result = await tryCatch(
-        api.organization.update.mutate({
+        (api.organization.update as any).mutate({
           body: {
             name: values.name,
             logo: values.logo,
@@ -159,7 +159,7 @@ export function OrganizationSettingsForm() {
                             const toastId = toast.loading('Uploading...')
 
                             const result = await tryCatch(
-                              api.organization.update.mutate({
+                              (api.organization.update as any).mutate({
                                 body: {
                                   logo: file.url,
                                 },

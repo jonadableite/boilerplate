@@ -107,7 +107,7 @@ export function UserDashboardMobileDrawer() {
               variant="ghost"
               className="justify-between"
               onClick={() => {
-                api.auth.signOut.mutate()
+                ; (api.auth.signOut as any).mutate()
                 router.push('/auth')
                 toast.success('You have signed out')
               }}

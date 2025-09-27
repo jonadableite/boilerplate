@@ -99,7 +99,9 @@ export function AuthForm({
   }
 
   return (
-    <section className={cn('space-y-6 relative overflow-hidden', className)}>
+    <section
+      className={cn('space-y-6 relative overflow-hidden', className)}
+    >
       <AnimatePresence mode="wait" initial={false}>
         {OTPEmail ? (
           <motion.div
@@ -112,9 +114,7 @@ export function AuthForm({
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">
-                Verificar código
-              </h1>
+              <h1 className="text-2xl font-bold text-white">Verificar código</h1>
               <p className="text-white/70">
                 Enviamos um código de 6 dígitos para{' '}
                 <span className="font-medium text-white">{OTPEmail}</span>
@@ -137,9 +137,7 @@ export function AuthForm({
             className="space-y-6"
           >
             <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">
-                Entrar na sua conta
-              </h1>
+              <h1 className="text-2xl font-bold text-white">Entrar na sua conta</h1>
               <p className="text-white/70">
                 Bem-vindo de volta! Faça login para continuar.
               </p>
@@ -325,35 +323,15 @@ function AuthValidateOTPCodeForm({
                     className="justify-center"
                   >
                     <InputOTPGroup className="bg-white/10 border-white/20 backdrop-blur-sm">
-                      <InputOTPSlot
-                        index={0}
-                        className="text-white border-white/20"
-                      />
-                      <InputOTPSlot
-                        index={1}
-                        className="text-white border-white/20"
-                      />
-                      <InputOTPSlot
-                        index={2}
-                        className="text-white border-white/20"
-                      />
+                      <InputOTPSlot index={0} className="text-white border-white/20" />
+                      <InputOTPSlot index={1} className="text-white border-white/20" />
+                      <InputOTPSlot index={2} className="text-white border-white/20" />
                     </InputOTPGroup>
-                    <InputOTPSeparator className="text-white/50">
-                      -
-                    </InputOTPSeparator>
+                    <InputOTPSeparator className="text-white/50">-</InputOTPSeparator>
                     <InputOTPGroup className="bg-white/10 border-white/20 backdrop-blur-sm">
-                      <InputOTPSlot
-                        index={3}
-                        className="text-white border-white/20"
-                      />
-                      <InputOTPSlot
-                        index={4}
-                        className="text-white border-white/20"
-                      />
-                      <InputOTPSlot
-                        index={5}
-                        className="text-white border-white/20"
-                      />
+                      <InputOTPSlot index={3} className="text-white border-white/20" />
+                      <InputOTPSlot index={4} className="text-white border-white/20" />
+                      <InputOTPSlot index={5} className="text-white border-white/20" />
                     </InputOTPGroup>
                   </InputOTP>
                 </FormControl>
@@ -374,9 +352,7 @@ function AuthValidateOTPCodeForm({
               className="mr-2 h-4 w-4"
               isLoading={form.formState.isSubmitting}
             />
-            {form.formState.isSubmitting
-              ? 'Verificando...'
-              : 'Verificar código'}
+            {form.formState.isSubmitting ? 'Verificando...' : 'Verificar código'}
           </Button>
 
           <p className="text-sm text-white/70 text-center">

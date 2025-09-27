@@ -47,7 +47,7 @@ export function BillingChangeEmailSection() {
       },
     },
     onSubmit: async (values) => {
-      await api.organization.update.mutate({
+      await (api.organization.update as any).mutate({
         body: {
           metadata: values.metadata,
         },

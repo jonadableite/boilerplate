@@ -47,7 +47,7 @@ export function ChatLayout({
     data: conversationsData,
     isLoading: loadingConversations,
     refetch: refetchConversations,
-  } = api.chat.listConversations.useQuery({
+  } = (api.chat.listConversations as any).useQuery({
     search: searchTerm,
     page: 1,
     limit: 50,
@@ -60,7 +60,7 @@ export function ChatLayout({
     data: contactsData,
     isLoading: loadingContacts,
     refetch: refetchContacts,
-  } = api.chat.listContacts.useQuery({
+  } = (api.chat.listContacts as any).useQuery({
     search: searchTerm,
     page: 1,
     limit: 50,

@@ -32,8 +32,8 @@ export const metadata = {
 }
 
 export default async function Page() {
-  const apiKeys = await api.apiKey.findManyByOrganization.query()
-  const webhooks = await api.webhook.findMany.query()
+  const apiKeys = await (api.apiKey.findManyByOrganization as any).query()
+  const webhooks = await (api.webhook.findMany as any).query()
 
   if (apiKeys.error || webhooks.error) return null
 

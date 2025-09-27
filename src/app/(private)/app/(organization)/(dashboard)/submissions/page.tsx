@@ -24,7 +24,7 @@ export const metadata = {
 }
 
 export default async function ContactsPage() {
-  const submission = await api.submission.findMany.query()
+  const submission = await (api.submission.findMany as any).query()
 
   return (
     <SubmissionsDataTableProvider initialData={submission.data ?? []}>

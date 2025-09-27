@@ -18,10 +18,10 @@ export const fetchCache = 'auto'
 
 export default async function Layout({ children }: PropsWithChildren) {
   // Business Rule: Get the current session
-  const session = await api.auth.getSession.query()
+  const session = await (api.auth.getSession as any).query()
 
   // Business Rule: If the session is valid, redirect to the app
-  if (!session.error) redirect('/app')
+  if (!session.error && session.data) redirect('/app')
 
   return (
     <div className="relative min-h-screen flex overflow-hidden">

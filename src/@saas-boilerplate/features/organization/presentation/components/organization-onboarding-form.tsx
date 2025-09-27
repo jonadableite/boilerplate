@@ -47,8 +47,10 @@ export function OnboardingForm() {
   const form = useFormWithZod({
     schema: organizationSchema,
     onSubmit: async (values) => {
-      const orgResult = await api.organization.create.mutate({ body: values })
-      await api.user.update.mutate({ body: values.owner })
+      const orgResult = await (api.organization.create as any).mutate({
+        body: values,
+      })
+      await (api.user.update as any).mutate({ body: values.owner })
 
       if (orgResult.error) {
         toast.error('An error occurred while creating your company', {

@@ -41,11 +41,11 @@ export const SiteMainHeader = () => {
   ]
 
   const navIcons = {
-    'Preços': CreditCardIcon,
-    'Ajuda': HelpCircleIcon,
-    'Blog': BookOpenIcon,
-    'Documentação': Code2Icon,
-    'Novidades': BellIcon,
+    Preços: CreditCardIcon,
+    Ajuda: HelpCircleIcon,
+    Blog: BookOpenIcon,
+    Documentação: Code2Icon,
+    Novidades: BellIcon,
   }
 
   return (
@@ -73,10 +73,10 @@ export const SiteMainHeader = () => {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <HoverBorderGradient
                 as={Link}
-                href="/auth"
                 containerClassName="rounded-full shadow-lg hover:shadow-xl"
                 className="bg-black dark:bg-black flex items-center gap-2"
                 duration={1.5}
+                {...({ href: '/auth' } as any)}
               >
                 <span className="font-semibold">Entrar</span>
                 <motion.div
@@ -95,14 +95,16 @@ export const SiteMainHeader = () => {
           <MobileNavHeader>
             <Link href="/" className="flex items-center gap-2">
               <Logo />
-              <span className="font-medium text-black dark:text-white">SaaS Boilerplate</span>
+              <span className="font-medium text-black dark:text-white">
+                SaaS Boilerplate
+              </span>
             </Link>
             <MobileNavToggle isOpen={isOpen} onClick={() => setOpen(!isOpen)} />
           </MobileNavHeader>
 
           <MobileNavMenu isOpen={isOpen} onClose={() => setOpen(false)}>
             {navItems.map((item, idx) => {
-              const Icon = navIcons[item.name];
+              const Icon = navIcons[item.name as keyof typeof navIcons]
               return (
                 <Link
                   key={idx}
@@ -113,19 +115,21 @@ export const SiteMainHeader = () => {
                   {Icon && <Icon className="w-5 h-5" />}
                   <span>{item.name}</span>
                 </Link>
-              );
+              )
             })}
 
             <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
               <HoverBorderGradient
                 as={Link}
-                href="/auth"
                 containerClassName="w-full rounded-md shadow-lg hover:shadow-xl"
                 className="bg-black dark:bg-black flex items-center justify-center gap-2 w-full"
                 duration={1.5}
                 onClick={() => setOpen(false)}
+                {...({ href: '/auth' } as any)}
               >
-                <span className="font-medium text-black dark:text-white">Entrar na SaaS Boilerplate</span>
+                <span className="font-medium text-black dark:text-white">
+                  Entrar na SaaS Boilerplate
+                </span>
                 <ArrowUpRightIcon className="w-4 h-4" />
               </HoverBorderGradient>
             </div>

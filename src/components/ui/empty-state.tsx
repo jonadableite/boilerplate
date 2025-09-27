@@ -13,7 +13,7 @@ const emptyStateVariants = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
       staggerChildren: 0.1,
     },
   },
@@ -26,12 +26,16 @@ const contentVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   },
 }
 
-interface EmptyStateProps extends React.HTMLAttributes<HTMLElement> {
+interface EmptyStateProps
+  extends Omit<
+    React.HTMLAttributes<HTMLElement>,
+    'onDrag' | 'onDragEnd' | 'onDragStart'
+  > {
   children?: React.ReactNode
 }
 
@@ -42,7 +46,6 @@ interface EmptyStateActionProps extends ButtonProps {
 // Root component
 function EmptyState({ className, children, ...props }: EmptyStateProps) {
   return (
-    // @ts-expect-error - `motion` props are not yet typed
     <motion.div
       variants={emptyStateVariants}
       initial="hidden"
@@ -51,7 +54,7 @@ function EmptyState({ className, children, ...props }: EmptyStateProps) {
         'flex flex-col items-center justify-center min-h-[400px] p-8 border-dashed border-2 border-muted rounded-lg',
         className,
       )}
-      {...props}
+      {...(props as any)}
     >
       {children}
     </motion.div>

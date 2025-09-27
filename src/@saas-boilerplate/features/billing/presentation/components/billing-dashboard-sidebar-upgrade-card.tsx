@@ -42,22 +42,25 @@ export function BillingDashboardSidebarUpgradeCard() {
   })
 
   // Buscar contadores de uso
-  const { data: whatsappInstancesData, isLoading: isLoadingWhatsApp } =
-    api.whatsAppInstances.list.useQuery({
-      limit: 100, // Limite máximo permitido
-    })
+  const { data: whatsappInstancesData, isLoading: isLoadingWhatsApp } = (
+    api.whatsAppInstances.list as any
+  ).useQuery({
+    limit: 100, // Limite máximo permitido
+  })
 
   // Buscar contadores de leads
-  const { data: leadsData, isLoading: isLoadingLeads } =
-    api.lead.findMany.useQuery({
-      limit: 100,
-    })
+  const { data: leadsData, isLoading: isLoadingLeads } = (
+    api.lead.findMany as any
+  ).useQuery({
+    limit: 100,
+  })
 
   // Buscar contadores de submissions
-  const { data: submissionsData, isLoading: isLoadingSubmissions } =
-    api.submission.findMany.useQuery({
-      limit: 100,
-    })
+  const { data: submissionsData, isLoading: isLoadingSubmissions } = (
+    api.submission.findMany as any
+  ).useQuery({
+    limit: 100,
+  })
 
   useEffect(() => {
     if (whatsappInstancesData?.data) {
@@ -179,54 +182,61 @@ export function BillingDashboardSidebarUpgradeCard() {
         )}
 
         {/* Features de uso */}
-        {!isLoading && featureUsages.map((feature) => (
-          <div key={feature.slug} className="space-y-2 border-b last:border-b-0 pb-3">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                {feature.slug === 'whatsapp-instances' && (
-                  <Smartphone className="w-3 h-3 text-blue-600" />
-                )}
-                {feature.slug === 'leads' && (
-                  <Users className="w-3 h-3 text-green-600" />
-                )}
-                {feature.slug === 'submissions' && (
-                  <Send className="w-3 h-3 text-purple-600" />
-                )}
-                <span>{feature.name}</span>
+        {!isLoading &&
+          featureUsages.map((feature) => (
+            <div
+              key={feature.slug}
+              className="space-y-2 border-b last:border-b-0 pb-3"
+            >
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  {feature.slug === 'whatsapp-instances' && (
+                    <Smartphone className="w-3 h-3 text-blue-600" />
+                  )}
+                  {feature.slug === 'leads' && (
+                    <Users className="w-3 h-3 text-green-600" />
+                  )}
+                  {feature.slug === 'submissions' && (
+                    <Send className="w-3 h-3 text-purple-600" />
+                  )}
+                  <span>{feature.name}</span>
+                </div>
+                <span
+                  className={`text-xs ${feature.isOverLimit
+                      ? 'text-red-600 font-medium'
+                      : feature.isNearLimit
+                        ? 'text-orange-600 font-medium'
+                        : 'text-muted-foreground'
+                    }`}
+                >
+                  {feature.current} / {feature.limit > 0 ? feature.limit : '∞'}
+                </span>
               </div>
-              <span className={`text-xs ${feature.isOverLimit
-                ? 'text-red-600 font-medium'
-                : feature.isNearLimit
-                  ? 'text-orange-600 font-medium'
-                  : 'text-muted-foreground'
-                }`}>
-                {feature.current} / {feature.limit > 0 ? feature.limit : '∞'}
-              </span>
+
+              <Progress
+                value={feature.percentage}
+                className={`h-1 ${feature.isOverLimit
+                    ? 'bg-red-200'
+                    : feature.isNearLimit
+                      ? 'bg-orange-200'
+                      : ''
+                  }`}
+              />
+
+              {/* Alertas de limite */}
+              {feature.isOverLimit && (
+                <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                  Limite de {feature.name.toLowerCase()} atingido! Upgrade
+                  necessário.
+                </div>
+              )}
+              {feature.isNearLimit && !feature.isOverLimit && (
+                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                  Você está próximo do limite de {feature.name.toLowerCase()}.
+                </div>
+              )}
             </div>
-
-            <Progress
-              value={feature.percentage}
-              className={`h-1 ${feature.isOverLimit
-                ? 'bg-red-200'
-                : feature.isNearLimit
-                  ? 'bg-orange-200'
-                  : ''
-                }`}
-            />
-
-            {/* Alertas de limite */}
-            {feature.isOverLimit && (
-              <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
-                Limite de {feature.name.toLowerCase()} atingido! Upgrade necessário.
-              </div>
-            )}
-            {feature.isNearLimit && !feature.isOverLimit && (
-              <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                Você está próximo do limite de {feature.name.toLowerCase()}.
-              </div>
-            )}
-          </div>
-        ))}
+          ))}
 
         {/* Uso do plano atual - mostrar outras features se existirem */}
         {subscription?.usage && subscription.usage.length > 0 && (
@@ -235,12 +245,12 @@ export function BillingDashboardSidebarUpgradeCard() {
               Outros recursos
             </div>
             {subscription.usage
-              .filter(
-                (item) =>
-                  !mainFeatures.includes(item.slug),
-              )
+              .filter((item) => !mainFeatures.includes(item.slug))
               .map((item) => (
-                <div key={item.slug} className="space-y-2 border-b last:border-b-0 pb-3">
+                <div
+                  key={item.slug}
+                  className="space-y-2 border-b last:border-b-0 pb-3"
+                >
                   <div className="flex items-center justify-between text-xs">
                     <span>{item.name}</span>
                     <span className="text-muted-foreground">

@@ -1,7 +1,7 @@
 'use client'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -9,17 +9,23 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { ChartConfig, ChartContainer } from "@/components/ui/chart"
-import { AlertTriangle, Heart, Shield, TrendingDown, TrendingUp } from "lucide-react"
-import { useEffect, useState } from "react"
+} from '@/components/ui/card'
+import { ChartConfig, ChartContainer } from '@/components/ui/chart'
+import {
+  AlertTriangle,
+  Heart,
+  Shield,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 import {
   Label,
   PolarGrid,
   PolarRadiusAxis,
   RadialBar,
   RadialBarChart,
-} from "recharts"
+} from 'recharts'
 
 interface HealthRadialChartProps {
   instances: Array<{
@@ -51,7 +57,10 @@ interface HealthData {
   }
 }
 
-export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialChartProps) {
+export function HealthRadialChart({
+  instances,
+  onAnalyzeHealth,
+}: HealthRadialChartProps) {
   const [healthData, setHealthData] = useState<HealthData | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
@@ -70,12 +79,12 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
           activeInstances: 0,
           healthyInstances: 0,
           criticalInstances: 0,
-          totalInstances: 0
-        }
+          totalInstances: 0,
+        },
       }
     }
 
-    const activeInstances = instances.filter(i => i.status === 'ACTIVE')
+    const activeInstances = instances.filter((i) => i.status === 'ACTIVE')
 
     if (activeInstances.length === 0) {
       return {
@@ -90,8 +99,8 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
           activeInstances: 0,
           healthyInstances: 0,
           criticalInstances: 0,
-          totalInstances: instances.length
-        }
+          totalInstances: instances.length,
+        },
       }
     }
 
@@ -107,22 +116,22 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
       const timeFactor = calculateTimeFactor(instance)
 
       // Score ponderado
-      const score = (
-        progressFactor * 0.4 +
-        stabilityFactor * 0.3 +
-        timeFactor * 0.3
-      ) * 100
+      const score =
+        (progressFactor * 0.4 + stabilityFactor * 0.3 + timeFactor * 0.3) * 100
 
       return {
         instanceName: instance.instanceName,
         score: Math.min(Math.max(score, 0), 100),
-        riskLevel: determineRiskLevel(score)
+        riskLevel: determineRiskLevel(score),
       }
     })
 
-    const averageScore = healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
-    const healthyInstances = healthScores.filter(h => h.score >= 70).length
-    const criticalInstances = healthScores.filter(h => h.riskLevel === 'CRITICAL').length
+    const averageScore =
+      healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
+    const healthyInstances = healthScores.filter((h) => h.score >= 70).length
+    const criticalInstances = healthScores.filter(
+      (h) => h.riskLevel === 'CRITICAL',
+    ).length
 
     // Determinar status, cor e trend baseado no score
     let status: string
@@ -188,22 +197,22 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
         activeInstances: activeInstances.length,
         healthyInstances,
         criticalInstances,
-        totalInstances: instances.length
-      }
+        totalInstances: instances.length,
+      },
     }
   }
 
   // Funções auxiliares de cálculo
   const calculateStabilityFactor = (instance: any): number => {
     const statusMap = {
-      'ACTIVE': 1.0,
-      'PAUSED': 0.6,
-      'ERROR': 0.2,
-      'COMPLETED': 0.9,
-      'INACTIVE': 0.1
+      ACTIVE: 1.0,
+      PAUSED: 0.6,
+      ERROR: 0.2,
+      COMPLETED: 0.9,
+      INACTIVE: 0.1,
     }
 
-    let factor = statusMap[instance.status] || 0.5
+    let factor = statusMap[instance.status as keyof typeof statusMap] || 0.5
 
     // Penalizar por pausas
     if (instance.pauseTime) {
@@ -225,7 +234,8 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
 
     // Verificar consistência
     const lastActiveHours = instance.lastActive
-      ? (now.getTime() - new Date(instance.lastActive).getTime()) / (1000 * 60 * 60)
+      ? (now.getTime() - new Date(instance.lastActive).getTime()) /
+      (1000 * 60 * 60)
       : 24
 
     const consistencyPenalty = lastActiveHours > 4 ? 0.7 : 1.0
@@ -233,7 +243,9 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
     return Math.min(completion * 1.2, 1) * consistencyPenalty
   }
 
-  const determineRiskLevel = (score: number): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
+  const determineRiskLevel = (
+    score: number,
+  ): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
     if (score >= 75) return 'LOW'
     if (score >= 60) return 'MEDIUM'
     if (score >= 40) return 'HIGH'
@@ -256,21 +268,23 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
   }, [instances, autoRefresh])
 
   // Configuração do gráfico
-  const chartData = healthData ? [
-    {
-      category: "health",
-      score: healthData.score,
-      fill: healthData.color
-    }
-  ] : []
+  const chartData = healthData
+    ? [
+      {
+        category: 'health',
+        score: healthData.score,
+        fill: healthData.color,
+      },
+    ]
+    : []
 
   const chartConfig = {
     score: {
-      label: "Score de Saúde",
+      label: 'Score de Saúde',
     },
     health: {
-      label: "Saúde do Sistema",
-      color: healthData?.color || "var(--chart-2)",
+      label: 'Saúde do Sistema',
+      color: healthData?.color || 'var(--chart-2)',
     },
   } satisfies ChartConfig
 
@@ -279,11 +293,16 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
     if (!healthData) return <Heart className="h-5 w-5" />
 
     switch (healthData.riskLevel) {
-      case 'LOW': return <Shield className="h-5 w-5 text-green-600" />
-      case 'MEDIUM': return <AlertTriangle className="h-5 w-5 text-yellow-600" />
-      case 'HIGH': return <AlertTriangle className="h-5 w-5 text-orange-600" />
-      case 'CRITICAL': return <AlertTriangle className="h-5 w-5 text-red-600" />
-      default: return <Heart className="h-5 w-5" />
+      case 'LOW':
+        return <Shield className="h-5 w-5 text-green-600" />
+      case 'MEDIUM':
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />
+      case 'HIGH':
+        return <AlertTriangle className="h-5 w-5 text-orange-600" />
+      case 'CRITICAL':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />
+      default:
+        return <Heart className="h-5 w-5" />
     }
   }
 
@@ -291,9 +310,12 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
     if (!healthData) return null
 
     switch (healthData.trend) {
-      case 'UP': return <TrendingUp className="h-4 w-4 text-green-600" />
-      case 'DOWN': return <TrendingDown className="h-4 w-4 text-red-600" />
-      default: return null
+      case 'UP':
+        return <TrendingUp className="h-4 w-4 text-green-600" />
+      case 'DOWN':
+        return <TrendingDown className="h-4 w-4 text-red-600" />
+      default:
+        return null
     }
   }
 
@@ -315,7 +337,9 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
       <CardHeader className="items-center pb-0 relative">
         <div className="flex items-center gap-2">
           {getStatusIcon()}
-          <CardTitle className="text-lg font-semibold">Saúde do Sistema</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            Saúde do Sistema
+          </CardTitle>
         </div>
         <CardDescription className="text-center">
           Análise em tempo real das instâncias WhatsApp
@@ -356,7 +380,7 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
               <Label
                 content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                  if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                     return (
                       <text
                         x={viewBox.cx}
@@ -421,7 +445,8 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
         <div className="flex items-center gap-2 leading-none font-medium">
           {healthData.trend !== 'STABLE' && (
             <>
-              {healthData.trend === 'UP' ? 'Melhorando' : 'Degradando'} em {Math.abs(healthData.trendPercentage)}% este período
+              {healthData.trend === 'UP' ? 'Melhorando' : 'Degradando'} em{' '}
+              {Math.abs(healthData.trendPercentage)}% este período
               {getTrendIcon()}
             </>
           )}
@@ -437,19 +462,22 @@ export function HealthRadialChart({ instances, onAnalyzeHealth }: HealthRadialCh
         <div className="text-muted-foreground leading-none text-center">
           {healthData.details.activeInstances > 0
             ? `Monitorando ${healthData.details.activeInstances} instância(s) ativa(s) em tempo real`
-            : 'Nenhuma instância ativa para monitorar'
-          }
+            : 'Nenhuma instância ativa para monitorar'}
         </div>
 
         {/* Botão de ação */}
         {healthData.details.activeInstances > 0 && (
           <Button
             size="sm"
-            variant={healthData.riskLevel === 'CRITICAL' ? 'destructive' : 'outline'}
+            variant={
+              healthData.riskLevel === 'CRITICAL' ? 'destructive' : 'outline'
+            }
             className="mt-2"
             onClick={() => onAnalyzeHealth?.()}
           >
-            {healthData.riskLevel === 'CRITICAL' ? 'Ação Urgente' : 'Análise Detalhada'}
+            {healthData.riskLevel === 'CRITICAL'
+              ? 'Ação Urgente'
+              : 'Análise Detalhada'}
           </Button>
         )}
 

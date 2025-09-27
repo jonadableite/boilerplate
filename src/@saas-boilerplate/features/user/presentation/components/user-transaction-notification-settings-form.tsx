@@ -45,7 +45,7 @@ export function UserTransactionNotificationSettingsForm() {
     },
     onSubmit: async (values) => {
       const result = await tryCatch(
-        api.user.update.mutate({
+        (api.user.update as any).mutate({
           body: {
             metadata: values.metadata,
           },

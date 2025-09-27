@@ -14,7 +14,7 @@ export default async function InvitePage(props: {
   const { params } = props
   const { id } = await params
 
-  const invitation = await api.invitation.findOne.query({
+  const invitation = await (api.invitation as any).findOne.query({
     params: { id },
   })
 
@@ -29,7 +29,7 @@ export default async function InvitePage(props: {
 
     if (!invitation.data) return
 
-    const { error } = await api.invitation.accept.mutate({
+    const { error } = await (api.invitation.accept as any).mutate({
       params: { id: invitation.data.id },
     })
 
@@ -49,7 +49,7 @@ export default async function InvitePage(props: {
 
     if (!invitation.data) return
 
-    const { error } = await api.invitation.reject.mutate({
+    const { error } = await (api.invitation.reject as any).mutate({
       params: { id: invitation.data.id },
     })
 

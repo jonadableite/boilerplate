@@ -26,7 +26,7 @@ export function useKnowledgeUpload(agentId: string) {
   const [isUploading, setIsUploading] = useState(false);
 
   // Upload mutation
-  const uploadMutation = api.knowledge.upload.useMutation({
+  const uploadMutation = (api.knowledge.upload as any).useMutation({
     onSuccess: (data) => {
       setUploadProgress((prev) => ({
         ...prev,
@@ -36,7 +36,7 @@ export function useKnowledgeUpload(agentId: string) {
       // Refresh knowledge files list
       queryClient.invalidateQueries({ queryKey: ["knowledge", agentId] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Upload failed:", error);
       // Update progress to show error
       Object.keys(uploadProgress).forEach((fileId) => {
@@ -51,13 +51,13 @@ export function useKnowledgeUpload(agentId: string) {
   });
 
   // Query to get knowledge files
-  const { data: knowledgeFiles = [], isLoading } = api.knowledge.list.useQuery(
+  const { data: knowledgeFiles = [], isLoading } = (api.knowledge.list as any).useQuery(
     agentId,
     { enabled: !!agentId },
   );
 
   // Remove file mutation
-  const removeMutation = api.knowledge.delete.useMutation({
+  const removeMutation = (api.knowledge.delete as any).useMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["knowledge", agentId] });
     },

@@ -3,10 +3,22 @@
 import { useAuth } from '@/@saas-boilerplate/features/auth/presentation/contexts/auth.context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -24,7 +36,7 @@ import {
   Smile,
   Upload,
   Video,
-  XCircle
+  XCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -35,7 +47,9 @@ export default function NewCampaignPage() {
   const router = useRouter()
   const { session } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [instancesHealth, setInstancesHealth] = useState<InstanceHealthInfo[]>([])
+  const [instancesHealth, setInstancesHealth] = useState<InstanceHealthInfo[]>(
+    [],
+  )
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string>('')
   const [mediaType, setMediaType] = useState<string>('')
@@ -53,7 +67,7 @@ export default function NewCampaignPage() {
     selectedInstances: [] as string[],
     scheduledAt: '',
     timezone: 'America/Sao_Paulo',
-    type: 'IMMEDIATE' as 'IMMEDIATE' | 'SCHEDULED' | 'RECURRING'
+    type: 'IMMEDIATE' as 'IMMEDIATE' | 'SCHEDULED' | 'RECURRING',
   })
 
   useEffect(() => {
@@ -65,7 +79,7 @@ export default function NewCampaignPage() {
   const fetchInstancesHealth = async () => {
     try {
       // Buscar dados reais das instâncias via API
-      const response = await api.warmup.getInstanceHealth.query()
+      const response = await (api.warmup.getInstanceHealth as any).query()
 
       if (response.error) {
         toast.error('Erro ao buscar saúde das instâncias')
@@ -106,17 +120,21 @@ export default function NewCampaignPage() {
   }
 
   const handleInstanceToggle = (instanceName: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       selectedInstances: prev.selectedInstances.includes(instanceName)
-        ? prev.selectedInstances.filter(name => name !== instanceName)
-        : [...prev.selectedInstances, instanceName]
+        ? prev.selectedInstances.filter((name) => name !== instanceName)
+        : [...prev.selectedInstances, instanceName],
     }))
   }
 
   const getHealthBadge = (instance: InstanceHealthInfo) => {
     if (instance.riskLevel === 'LOW' && instance.healthScore >= 80) {
-      return <Badge variant="default" className="bg-green-600">Recomendada</Badge>
+      return (
+        <Badge variant="default" className="bg-green-600">
+          Recomendada
+        </Badge>
+      )
     } else if (instance.riskLevel === 'MEDIUM' && instance.healthScore >= 60) {
       return <Badge variant="secondary">Aceitável</Badge>
     } else {
@@ -165,17 +183,18 @@ export default function NewCampaignPage() {
         type: formData.type,
         ...(mediaBase64 && {
           mediaType: mediaType as 'image' | 'video' | 'audio' | 'sticker',
-          mediaBase64: mediaBase64,
-          mediaCaption: formData.mediaCaption
+          mediaBase64,
+          mediaCaption: formData.mediaCaption,
         }),
-        ...(formData.type === 'SCHEDULED' && formData.scheduledAt && {
-          scheduledAt: new Date(formData.scheduledAt)
-        })
+        ...(formData.type === 'SCHEDULED' &&
+          formData.scheduledAt && {
+          scheduledAt: new Date(formData.scheduledAt),
+        }),
       }
 
       // Criar campanha via API
-      const response = await api.campaign.create.mutate({
-        body: campaignData
+      const response = await (api.campaign.create as any).mutate({
+        body: campaignData,
       })
 
       if (response.error) {
@@ -209,13 +228,13 @@ export default function NewCampaignPage() {
         type: 'DRAFT' as any,
         ...(mediaBase64 && {
           mediaType: mediaType as 'image' | 'video' | 'audio' | 'sticker',
-          mediaBase64: mediaBase64,
-          mediaCaption: formData.mediaCaption
-        })
+          mediaBase64,
+          mediaCaption: formData.mediaCaption,
+        }),
       }
 
-      const response = await api.campaign.create.mutate({
-        body: campaignData
+      const response = await (api.campaign.create as any).mutate({
+        body: campaignData,
       })
 
       if (response.error) {
@@ -276,7 +295,12 @@ export default function NewCampaignPage() {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
                       placeholder="Ex: Campanha de Boas-vindas"
                       required
                     />
@@ -286,7 +310,9 @@ export default function NewCampaignPage() {
                     <Label htmlFor="type">Tipo de Campanha</Label>
                     <Select
                       value={formData.type}
-                      onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}
+                      onValueChange={(value: any) =>
+                        setFormData((prev) => ({ ...prev, type: value }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -305,7 +331,12 @@ export default function NewCampaignPage() {
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     placeholder="Descreva o objetivo da campanha..."
                     rows={3}
                   />
@@ -320,7 +351,12 @@ export default function NewCampaignPage() {
                       min="5"
                       max="300"
                       value={formData.minDelay}
-                      onChange={(e) => setFormData(prev => ({ ...prev, minDelay: parseInt(e.target.value) }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          minDelay: parseInt(e.target.value),
+                        }))
+                      }
                       required
                     />
                     <p className="text-sm text-muted-foreground">
@@ -336,7 +372,12 @@ export default function NewCampaignPage() {
                       min="5"
                       max="600"
                       value={formData.maxDelay}
-                      onChange={(e) => setFormData(prev => ({ ...prev, maxDelay: parseInt(e.target.value) }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          maxDelay: parseInt(e.target.value),
+                        }))
+                      }
                       required
                     />
                     <p className="text-sm text-muted-foreground">
@@ -363,7 +404,12 @@ export default function NewCampaignPage() {
                   <Textarea
                     id="message"
                     value={formData.message}
-                    onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        message: e.target.value,
+                      }))
+                    }
                     placeholder="Digite sua mensagem aqui..."
                     rows={6}
                     required
@@ -400,7 +446,8 @@ export default function NewCampaignPage() {
                         Clique para fazer upload ou arraste o arquivo
                       </p>
                       <p className="text-xs text-gray-500">
-                        Suporta: Imagens, Vídeos, Áudios e Figurinhas (Máx: 16MB)
+                        Suporta: Imagens, Vídeos, Áudios e Figurinhas (Máx:
+                        16MB)
                       </p>
                     </label>
                   </div>
@@ -410,22 +457,33 @@ export default function NewCampaignPage() {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{mediaType}</Badge>
                         <span className="text-sm text-muted-foreground">
-                          {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                          {selectedFile.name} (
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                         </span>
                       </div>
 
                       {mediaPreview && (
                         <div className="max-w-xs">
                           {mediaType === 'image' && (
-                            <img src={mediaPreview} alt="Preview" className="rounded-lg" />
+                            <img
+                              src={mediaPreview}
+                              alt="Preview"
+                              className="rounded-lg"
+                            />
                           )}
                           {mediaType === 'video' && (
-                            <video src={mediaPreview} controls className="rounded-lg" />
+                            <video
+                              src={mediaPreview}
+                              controls
+                              className="rounded-lg"
+                            />
                           )}
                           {mediaType === 'audio' && (
                             <div className="flex items-center gap-2 p-4 bg-gray-100 rounded-lg">
                               <Music className="h-6 w-6" />
-                              <span className="text-sm">{selectedFile.name}</span>
+                              <span className="text-sm">
+                                {selectedFile.name}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -436,7 +494,12 @@ export default function NewCampaignPage() {
                         <Textarea
                           id="mediaCaption"
                           value={formData.mediaCaption}
-                          onChange={(e) => setFormData(prev => ({ ...prev, mediaCaption: e.target.value }))}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              mediaCaption: e.target.value,
+                            }))
+                          }
                           placeholder="Adicione uma legenda para a mídia..."
                           rows={2}
                         />
@@ -462,7 +525,12 @@ export default function NewCampaignPage() {
                   <Switch
                     id="instance-rotation"
                     checked={formData.useInstanceRotation}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, useInstanceRotation: checked }))}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        useInstanceRotation: checked,
+                      }))
+                    }
                   />
                   <Label htmlFor="instance-rotation">
                     Usar rotação inteligente de instâncias
@@ -470,8 +538,9 @@ export default function NewCampaignPage() {
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  A rotação inteligente distribui a carga entre as instâncias selecionadas,
-                  considerando saúde, aquecimento e uso recente para evitar bloqueios.
+                  A rotação inteligente distribui a carga entre as instâncias
+                  selecionadas, considerando saúde, aquecimento e uso recente
+                  para evitar bloqueios.
                 </p>
 
                 <Separator />
@@ -483,23 +552,31 @@ export default function NewCampaignPage() {
                     <div className="text-center py-8 text-muted-foreground">
                       <AlertCircle className="mx-auto h-12 w-12 mb-4" />
                       <p>Nenhuma instância disponível</p>
-                      <p className="text-sm">Configure suas instâncias do WhatsApp primeiro</p>
+                      <p className="text-sm">
+                        Configure suas instâncias do WhatsApp primeiro
+                      </p>
                     </div>
                   ) : (
                     <div className="grid gap-3">
                       {instancesHealth.map((instance) => (
                         <div
                           key={instance.instanceName}
-                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.selectedInstances.includes(instance.instanceName)
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.selectedInstances.includes(
+                            instance.instanceName,
+                          )
+                              ? 'border-primary bg-primary/5'
+                              : 'border-gray-200 hover:border-gray-300'
                             }`}
-                          onClick={() => handleInstanceToggle(instance.instanceName)}
+                          onClick={() =>
+                            handleInstanceToggle(instance.instanceName)
+                          }
                         >
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <Smartphone className="h-4 w-4" />
-                              <span className="font-medium">{instance.instanceName}</span>
+                              <span className="font-medium">
+                                {instance.instanceName}
+                              </span>
                             </div>
                             {getHealthBadge(instance)}
                           </div>
@@ -507,17 +584,33 @@ export default function NewCampaignPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-muted-foreground">Status:</span>
-                                <Badge variant={instance.status === 'open' ? 'default' : 'secondary'}>
-                                  {instance.status === 'open' ? 'Conectada' : 'Desconectada'}
+                                <span className="text-muted-foreground">
+                                  Status:
+                                </span>
+                                <Badge
+                                  variant={
+                                    instance.status === 'open'
+                                      ? 'default'
+                                      : 'secondary'
+                                  }
+                                >
+                                  {instance.status === 'open'
+                                    ? 'Conectada'
+                                    : 'Desconectada'}
                                 </Badge>
                               </div>
                             </div>
 
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-muted-foreground">Aquecimento:</span>
-                                <span className={getWarmupColor(instance.warmupProgress)}>
+                                <span className="text-muted-foreground">
+                                  Aquecimento:
+                                </span>
+                                <span
+                                  className={getWarmupColor(
+                                    instance.warmupProgress,
+                                  )}
+                                >
                                   {instance.warmupProgress}%
                                 </span>
                               </div>
@@ -525,8 +618,14 @@ export default function NewCampaignPage() {
 
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-muted-foreground">Saúde:</span>
-                                <span className={getHealthColor(instance.healthScore)}>
+                                <span className="text-muted-foreground">
+                                  Saúde:
+                                </span>
+                                <span
+                                  className={getHealthColor(
+                                    instance.healthScore,
+                                  )}
+                                >
                                   {instance.healthScore}%
                                 </span>
                               </div>
@@ -534,7 +633,9 @@ export default function NewCampaignPage() {
 
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-muted-foreground">Mensagens 24h:</span>
+                                <span className="text-muted-foreground">
+                                  Mensagens 24h:
+                                </span>
                                 <span>{instance.messagesSent24h}</span>
                               </div>
                             </div>
@@ -556,12 +657,13 @@ export default function NewCampaignPage() {
                     </div>
                   )}
 
-                  {formData.selectedInstances.length === 0 && instancesHealth.length > 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <AlertCircle className="mx-auto h-12 w-12 mb-4" />
-                      <p>Selecione pelo menos uma instância para continuar</p>
-                    </div>
-                  )}
+                  {formData.selectedInstances.length === 0 &&
+                    instancesHealth.length > 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="mx-auto h-12 w-12 mb-4" />
+                        <p>Selecione pelo menos uma instância para continuar</p>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>
@@ -585,7 +687,12 @@ export default function NewCampaignPage() {
                         id="scheduledAt"
                         type="datetime-local"
                         value={formData.scheduledAt}
-                        onChange={(e) => setFormData(prev => ({ ...prev, scheduledAt: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            scheduledAt: e.target.value,
+                          }))
+                        }
                         required
                       />
                     </div>
@@ -594,15 +701,23 @@ export default function NewCampaignPage() {
                       <Label htmlFor="timezone">Fuso Horário</Label>
                       <Select
                         value={formData.timezone}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, timezone: value }))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
-                          <SelectItem value="America/New_York">Nova York (GMT-5)</SelectItem>
-                          <SelectItem value="Europe/London">Londres (GMT+0)</SelectItem>
+                          <SelectItem value="America/Sao_Paulo">
+                            São Paulo (GMT-3)
+                          </SelectItem>
+                          <SelectItem value="America/New_York">
+                            Nova York (GMT-5)
+                          </SelectItem>
+                          <SelectItem value="Europe/London">
+                            Londres (GMT+0)
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -642,7 +757,9 @@ export default function NewCampaignPage() {
                 {formData.type === 'IMMEDIATE' && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Clock className="mx-auto h-12 w-12 mb-4" />
-                    <p>A campanha será executada imediatamente após a criação</p>
+                    <p>
+                      A campanha será executada imediatamente após a criação
+                    </p>
                   </div>
                 )}
               </CardContent>

@@ -27,7 +27,7 @@ export const generateMetadata = async ({
   params,
 }: PageProps): Promise<Metadata> => {
   const { id } = await params
-  const lead = await api.lead.findOne.query({ params: { id } })
+  const lead = await (api.lead as any).findOne.query({ params: { id } })
 
   if (lead.error || !lead.data) notFound()
 
@@ -38,11 +38,11 @@ export const generateMetadata = async ({
 
 export default async function Page({ params }: PageProps) {
   const { id } = await params
-  const lead = await api.lead.findOne.query({ params: { id } })
+  const lead = await (api.lead as any).findOne.query({ params: { id } })
 
   if (lead.error || !lead.data) return notFound()
 
-  const submissions = await api.submission.findMany.query({
+  const submissions = await (api.submission as any).findMany.query({
     query: { leadId: id },
   })
 

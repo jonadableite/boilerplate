@@ -72,7 +72,7 @@ export function LeadUpsertSheet({
         }
 
         if (isEditMode) {
-          const response = await api.lead.update.mutate({
+          const response = await (api.lead.update as any).mutate({
             body: {
               email: values.email,
               name: values.name,
@@ -91,7 +91,7 @@ export function LeadUpsertSheet({
 
           toast.success('Lead updated successfully')
         } else {
-          const response = await api.lead.create.mutate({
+          const response = await (api.lead.create as any).mutate({
             body: {
               email: values.email,
               name: values.name,

@@ -67,25 +67,25 @@ export default function AgentDetailsPage() {
     data: agent,
     isLoading,
     error,
-  } = api.aiAgents.getById.useQuery({
+  } = (api.aiAgents.getById as any).useQuery({
     params: { id: agentId },
   })
 
-  const { data: stats } = api.aiAgents.getStats.useQuery({
+  const { data: stats } = (api.aiAgents.getStats as any).useQuery({
     agentId,
   })
 
-  const { data: tokenUsage } = api.tokenUsage.getTokenUsageHistory.useQuery({
+  const { data: tokenUsage } = (api.tokenUsage.getTokenUsageHistory as any).useQuery({
     agentId,
     limit: 10,
   })
 
   // Mutations
-  const toggleStatusMutation = api.aiAgents.update.useMutation({
+  const toggleStatusMutation = (api.aiAgents.update as any).useMutation({
     onSuccess: () => {
       toast.success('Status do agente atualizado!')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao atualizar status: ' + error.message)
     },
   })
@@ -470,7 +470,7 @@ export default function AgentDetailsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {tokenUsage.map((usage) => (
+                          {tokenUsage.map((usage: any) => (
                             <TableRow key={usage.id}>
                               <TableCell>
                                 {new Date(usage.createdAt).toLocaleString('pt-BR')}

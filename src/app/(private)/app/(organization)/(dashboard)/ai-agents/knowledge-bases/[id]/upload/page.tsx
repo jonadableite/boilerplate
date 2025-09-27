@@ -98,18 +98,21 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false)
   const [knowledgeBase, setKnowledgeBase] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>({
-    chunkSize: 1000,
-    chunkOverlap: 200,
-    enableOCR: false,
-    language: 'pt',
-    extractMetadata: true,
-    autoProcess: true,
-  })
+  const [processingSettings, setProcessingSettings] =
+    useState<ProcessingSettings>({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+      enableOCR: false,
+      language: 'pt',
+      extractMetadata: true,
+      autoProcess: true,
+    })
 
   // Queries e mutations
-  const kbQuery = api.aiAgents.knowledgeBases.getById.useQuery({ id })
-  const uploadDocumentMutation = api.aiAgents.knowledgeBases.documents.upload.useMutation()
+  const kbQuery = (api.aiAgents as any).knowledgeBases.getById.useQuery({ id })
+  const uploadDocumentMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.documents.upload.useMutation()
 
   useEffect(() => {
     if (kbQuery.data?.data) {
@@ -162,17 +165,18 @@ export default function UploadPage() {
         'text/markdown',
         'text/csv',
       ]
-      
+
       if (!validTypes.includes(file.type)) {
         toast.error(`Tipo de arquivo não suportado: ${file.name}`)
         return false
       }
-      
-      if (file.size > 10 * 1024 * 1024) { // 10MB
+
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB
         toast.error(`Arquivo muito grande: ${file.name} (máx. 10MB)`)
         return false
       }
-      
+
       return true
     })
 
@@ -196,11 +200,16 @@ export default function UploadPage() {
     }
   }
 
-  const updateFileStatus = (fileId: string, status: UploadFile['status'], progress = 0, error?: string) => {
+  const updateFileStatus = (
+    fileId: string,
+    status: UploadFile['status'],
+    progress = 0,
+    error?: string,
+  ) => {
     setUploadFiles((prev) =>
       prev.map((f) =>
-        f.id === fileId ? { ...f, status, progress, error } : f
-      )
+        f.id === fileId ? { ...f, status, progress, error } : f,
+      ),
     )
   }
 
@@ -215,17 +224,26 @@ export default function UploadPage() {
 
       // Simular progresso de upload
       const progressInterval = setInterval(() => {
-        updateFileStatus(uploadFile.id, 'uploading', Math.min(uploadFile.progress + 10, 90))
+        updateFileStatus(
+          uploadFile.id,
+          'uploading',
+          Math.min(uploadFile.progress + 10, 90),
+        )
       }, 200)
 
       await uploadDocumentMutation.mutateAsync(formData as any)
-      
+
       clearInterval(progressInterval)
       updateFileStatus(uploadFile.id, 'completed', 100)
-      
+
       return true
     } catch (error: any) {
-      updateFileStatus(uploadFile.id, 'error', 0, error.message || 'Erro no upload')
+      updateFileStatus(
+        uploadFile.id,
+        'error',
+        0,
+        error.message || 'Erro no upload',
+      )
       return false
     }
   }
@@ -238,7 +256,7 @@ export default function UploadPage() {
     let errorCount = 0
 
     // Upload files sequentially to avoid overwhelming the server
-    for (const file of uploadFiles.filter(f => f.status === 'pending')) {
+    for (const file of uploadFiles.filter((f) => f.status === 'pending')) {
       const success = await uploadSingleFile(file)
       if (success) {
         successCount++
@@ -252,7 +270,7 @@ export default function UploadPage() {
     if (successCount > 0) {
       toast.success(`${successCount} arquivo(s) enviado(s) com sucesso!`)
     }
-    
+
     if (errorCount > 0) {
       toast.error(`${errorCount} arquivo(s) falharam no upload`)
     }
@@ -266,9 +284,11 @@ export default function UploadPage() {
   }
 
   const totalFiles = uploadFiles.length
-  const completedFiles = uploadFiles.filter(f => f.status === 'completed').length
-  const errorFiles = uploadFiles.filter(f => f.status === 'error').length
-  const pendingFiles = uploadFiles.filter(f => f.status === 'pending').length
+  const completedFiles = uploadFiles.filter(
+    (f) => f.status === 'completed',
+  ).length
+  const errorFiles = uploadFiles.filter((f) => f.status === 'error').length
+  const pendingFiles = uploadFiles.filter((f) => f.status === 'pending').length
 
   if (loading) {
     return (
@@ -282,7 +302,9 @@ export default function UploadPage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                  <BreadcrumbLink href="/app/ai-agents">
+                    Agentes de IA
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -325,7 +347,9 @@ export default function UploadPage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                  <BreadcrumbLink href="/app/ai-agents">
+                    Agentes de IA
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -347,7 +371,9 @@ export default function UploadPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold mb-2">Base de conhecimento não encontrada</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  Base de conhecimento não encontrada
+                </h2>
                 <p className="text-muted-foreground mb-4">
                   A base de conhecimento solicitada não existe ou foi removida.
                 </p>
@@ -376,7 +402,9 @@ export default function UploadPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                <BreadcrumbLink href="/app/ai-agents">
+                  Agentes de IA
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -404,12 +432,15 @@ export default function UploadPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Upload de Documentos</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Upload de Documentos
+              </h1>
               <p className="text-muted-foreground">
-                Adicione documentos à base de conhecimento "{knowledgeBase.name}"
+                Adicione documentos à base de conhecimento "{knowledgeBase.name}
+                "
               </p>
             </div>
-            
+
             <Link href={`/app/ai-agents/knowledge-bases/${id}`}>
               <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -432,11 +463,10 @@ export default function UploadPage() {
             <CardContent>
               <div
                 ref={dropZoneRef}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragOver
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragOver
                     ? 'border-primary bg-primary/5'
                     : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-                }`}
+                  }`}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
@@ -445,7 +475,9 @@ export default function UploadPage() {
               >
                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">
-                  {isDragOver ? 'Solte os arquivos aqui' : 'Selecione ou arraste arquivos'}
+                  {isDragOver
+                    ? 'Solte os arquivos aqui'
+                    : 'Selecione ou arraste arquivos'}
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   Suporte para PDF, DOC, DOCX, TXT, MD, CSV
@@ -453,7 +485,7 @@ export default function UploadPage() {
                 <p className="text-sm text-muted-foreground">
                   Tamanho máximo: 10MB por arquivo
                 </p>
-                
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -530,7 +562,10 @@ export default function UploadPage() {
                   <Select
                     value={processingSettings.language}
                     onValueChange={(value) =>
-                      setProcessingSettings((prev) => ({ ...prev, language: value }))
+                      setProcessingSettings((prev) => ({
+                        ...prev,
+                        language: value,
+                      }))
                     }
                   >
                     <SelectTrigger>
@@ -558,7 +593,9 @@ export default function UploadPage() {
                       }))
                     }
                   />
-                  <Label htmlFor="enableOCR">Habilitar OCR para imagens e PDFs escaneados</Label>
+                  <Label htmlFor="enableOCR">
+                    Habilitar OCR para imagens e PDFs escaneados
+                  </Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -572,7 +609,9 @@ export default function UploadPage() {
                       }))
                     }
                   />
-                  <Label htmlFor="extractMetadata">Extrair metadados dos documentos</Label>
+                  <Label htmlFor="extractMetadata">
+                    Extrair metadados dos documentos
+                  </Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -586,7 +625,9 @@ export default function UploadPage() {
                       }))
                     }
                   />
-                  <Label htmlFor="autoProcess">Processar automaticamente após upload</Label>
+                  <Label htmlFor="autoProcess">
+                    Processar automaticamente após upload
+                  </Label>
                 </div>
               </div>
             </CardContent>
@@ -603,13 +644,19 @@ export default function UploadPage() {
                 </CardTitle>
                 <CardDescription>
                   {completedFiles > 0 && (
-                    <span className="text-green-600">{completedFiles} concluído(s)</span>
+                    <span className="text-green-600">
+                      {completedFiles} concluído(s)
+                    </span>
                   )}
                   {errorFiles > 0 && (
-                    <span className="text-red-600 ml-2">{errorFiles} com erro</span>
+                    <span className="text-red-600 ml-2">
+                      {errorFiles} com erro
+                    </span>
                   )}
                   {pendingFiles > 0 && (
-                    <span className="text-muted-foreground ml-2">{pendingFiles} pendente(s)</span>
+                    <span className="text-muted-foreground ml-2">
+                      {pendingFiles} pendente(s)
+                    </span>
                   )}
                 </CardDescription>
               </CardHeader>
@@ -620,11 +667,15 @@ export default function UploadPage() {
                       key={uploadFile.id}
                       className="flex items-center gap-4 p-4 border rounded-lg"
                     >
-                      <div className="text-2xl">{getFileIcon(uploadFile.file.type)}</div>
-                      
+                      <div className="text-2xl">
+                        {getFileIcon(uploadFile.file.type)}
+                      </div>
+
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">{uploadFile.file.name}</h3>
+                          <h3 className="font-medium">
+                            {uploadFile.file.name}
+                          </h3>
                           {uploadFile.status === 'completed' && (
                             <CheckCircle className="h-4 w-4 text-green-500" />
                           )}
@@ -632,21 +683,28 @@ export default function UploadPage() {
                             <AlertCircle className="h-4 w-4 text-red-500" />
                           )}
                         </div>
-                        
+
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                           <span>{formatFileSize(uploadFile.file.size)}</span>
-                          <span className="capitalize">{uploadFile.status}</span>
+                          <span className="capitalize">
+                            {uploadFile.status}
+                          </span>
                         </div>
-                        
+
                         {uploadFile.status === 'uploading' && (
-                          <Progress value={uploadFile.progress} className="h-2" />
+                          <Progress
+                            value={uploadFile.progress}
+                            className="h-2"
+                          />
                         )}
-                        
+
                         {uploadFile.error && (
-                          <p className="text-sm text-red-500 mt-1">{uploadFile.error}</p>
+                          <p className="text-sm text-red-500 mt-1">
+                            {uploadFile.error}
+                          </p>
                         )}
                       </div>
-                      
+
                       {uploadFile.status === 'pending' && (
                         <Button
                           variant="ghost"
@@ -659,14 +717,15 @@ export default function UploadPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
-                    Total: {totalFiles} arquivo(s) • {formatFileSize(
-                      uploadFiles.reduce((acc, f) => acc + f.file.size, 0)
+                    Total: {totalFiles} arquivo(s) •{' '}
+                    {formatFileSize(
+                      uploadFiles.reduce((acc, f) => acc + f.file.size, 0),
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -675,7 +734,7 @@ export default function UploadPage() {
                     >
                       Limpar Lista
                     </Button>
-                    
+
                     <Button
                       onClick={handleUploadAll}
                       disabled={isUploading || pendingFiles === 0}
@@ -703,8 +762,6 @@ export default function UploadPage() {
     </PageWrapper>
   )
 }
-
-
 
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true

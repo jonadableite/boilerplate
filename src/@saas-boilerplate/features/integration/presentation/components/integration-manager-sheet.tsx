@@ -76,7 +76,7 @@ export function IntegrationManagerSheet({
       try {
         if (integration.state) {
           // If already installed, update the integration
-          await api.integration.update.mutate({
+          await (api.integration.update as any).mutate({
             params: { slug: integration.slug },
             body: {
               metadata: values,
@@ -89,7 +89,7 @@ export function IntegrationManagerSheet({
 
         if (!integration.state) {
           // Try to install the integration
-          await api.integration.install.mutate({
+          await (api.integration.install as any).mutate({
             params: { slug: integration.slug },
             body: { metadata: values },
           })

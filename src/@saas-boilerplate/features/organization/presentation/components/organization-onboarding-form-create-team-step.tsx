@@ -40,7 +40,7 @@ export function OrganizationOnboardingFormCreateTeamStep({
   form,
 }: OrganizationOnboardingFormCreateTeamStepProps) {
   const handleVerifySlug = async (slug: string) => {
-    const disponibility = await api.organization.verify.mutate({
+    const disponibility = await (api.organization.verify as any).mutate({
       body: { slug },
     })
     if (disponibility.error) {

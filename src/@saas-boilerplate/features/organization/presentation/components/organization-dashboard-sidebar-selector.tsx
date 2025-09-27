@@ -20,13 +20,15 @@ import { CreateOrganizationDialog } from '@/@saas-boilerplate/features/organizat
 
 export function OrganizationDashboardSidebarSelector() {
   const auth = useAuth()
-  const organizations = api.user.listMemberships.useQuery()
+  const organizations = (api.user.listMemberships as any).useQuery()
 
   const organization = auth.session.organization
 
   const handleSetActiveOrganization = async (organizationId: string) => {
     toast.loading('Changing team...')
-    await api.auth.setActiveOrganization.mutate({ body: { organizationId } })
+    await (api.auth.setActiveOrganization as any).mutate({
+      body: { organizationId },
+    })
     toast.success('Team changed successfully')
     window.location.href = '/app'
   }
@@ -61,7 +63,7 @@ export function OrganizationDashboardSidebarSelector() {
           My organizations ({organizations.data?.length})
         </DropdownMenuLabel>
         {!organizations.error &&
-          organizations.data?.map((item) => (
+          organizations.data?.map((item: any) => (
             <DropdownMenuItem
               key={item.name}
               onClick={() => handleSetActiveOrganization(item.id)}

@@ -92,11 +92,11 @@ export default function EditAgentPage() {
 
   const agentId = params.id
 
-  const agentQuery = api.aiAgents.getById.useQuery({
+  const agentQuery = (api.aiAgents.getById as any).useQuery({
     id: agentId,
   })
 
-  const updateAgentMutation = api.aiAgents.update.useMutation()
+  const updateAgentMutation = (api.aiAgents.update as any).useMutation()
 
   const form = useForm<UpdateAgentFormData>({
     resolver: zodResolver(updateAgentSchema),
@@ -434,7 +434,7 @@ export default function EditAgentPage() {
                   </TabsContent>
 
                   <TabsContent value="knowledge" className="space-y-6">
-                    <KnowledgeUpload agentId={params.id} />
+                    <KnowledgeUpload agentId={id} />
                   </TabsContent>
 
                   <TabsContent value="guardrails" className="space-y-6">

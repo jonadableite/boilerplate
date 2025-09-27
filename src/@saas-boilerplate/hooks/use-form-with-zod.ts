@@ -50,7 +50,7 @@ export function useFormWithZod<TSchema extends ZodSchema>({
         clearTimeout(timeoutId)
         timeoutId = setTimeout(() => {
           form.handleSubmit(onSubmit || (() => {}))()
-        }, 2000)
+        }, 2000) as NodeJS.Timeout
       })
 
       return () => {

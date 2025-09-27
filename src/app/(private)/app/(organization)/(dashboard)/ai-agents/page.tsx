@@ -144,7 +144,7 @@ export default function AIAgentsPage() {
     data: agentsData,
     isLoading,
     refetch,
-  } = api.aiAgents.list.useQuery({
+  } = (api.aiAgents.list as any).useQuery({
     search: searchTerm || undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     isActive:
@@ -158,23 +158,23 @@ export default function AIAgentsPage() {
   })
 
   // Mutations
-  const createAgentMutation = api.aiAgents.create.useMutation({
+  const createAgentMutation = (api.aiAgents.create as any).useMutation({
     onSuccess: () => {
       toast.success('Agente criado com sucesso!')
       setIsCreateDialogOpen(false)
       refetch()
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao criar agente: ' + error.message)
     },
   })
 
-  const deleteAgentMutation = api.aiAgents.delete.useMutation({
+  const deleteAgentMutation = (api.aiAgents.delete as any).useMutation({
     onSuccess: () => {
       toast.success('Agente excluído com sucesso!')
       refetch()
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao excluir agente: ' + error.message)
     },
   })
@@ -291,7 +291,10 @@ export default function AIAgentsPage() {
                   </div>
                 </div>
                 <Link href="/app/ai-agents/new">
-                  <Button size="lg" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Button
+                    size="lg"
+                    className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
                     <IconPlus className="h-5 w-5" />
                     Novo Agente
                   </Button>
@@ -301,7 +304,11 @@ export default function AIAgentsPage() {
                   onOpenChange={setIsCreateDialogOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button size="lg" className="gap-2" style={{display: 'none'}}>
+                    <Button
+                      size="lg"
+                      className="gap-2"
+                      style={{ display: 'none' }}
+                    >
                       <IconPlus className="h-5 w-5" />
                       Criar Agente
                     </Button>
@@ -660,8 +667,9 @@ export default function AIAgentsPage() {
                         Agentes Ativos
                       </p>
                       <p className="text-3xl font-bold text-green-900 dark:text-green-100">
-                        {agentsData?.data?.filter((agent) => agent.isActive)
-                          .length || 0}
+                        {agentsData?.data?.filter(
+                          (agent: any) => agent.isActive,
+                        ).length || 0}
                       </p>
                     </div>
                     <div className="p-3 bg-green-200 dark:bg-green-800 rounded-full transform hover:rotate-12 transition-transform duration-300">
@@ -679,8 +687,9 @@ export default function AIAgentsPage() {
                         Agentes Inativos
                       </p>
                       <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-                        {agentsData?.data?.filter((agent) => !agent.isActive)
-                          .length || 0}
+                        {agentsData?.data?.filter(
+                          (agent: any) => !agent.isActive,
+                        ).length || 0}
                       </p>
                     </div>
                     <div className="p-3 bg-orange-200 dark:bg-orange-800 rounded-full transform hover:rotate-12 transition-transform duration-300">
@@ -843,206 +852,210 @@ export default function AIAgentsPage() {
               </div>
             ) : agentsData?.data && agentsData.data.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {agentsData.data.map((agent, index) => (
+                {agentsData.data.map((agent: any, index: number) => (
                   <Card
                     key={agent.id}
                     className="relative overflow-hidden group hover:shadow-xl hover:scale-105 transition-all duration-500 border rounded-xl"
                   >
-                    <MagicCard gradientColor={theme === "dark" ? "#262626" : "#D9D9D955"}>
-                    <CardHeader>
-                      <div className="flex items-start gap-4">
-                        {/* Avatar */}
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
-                            <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center overflow-hidden">
-                              <Image
-                                src="/cyborg.png"
-                                alt={`Avatar do ${agent.name}`}
-                                width={56}
-                                height={56}
-                                className="rounded-full object-cover"
-                              />
-                            </div>
-                          </div>
-                          {agent.isActive && (
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center">
-                              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors truncate">
-                              {agent.name}
-                            </CardTitle>
-                            <div className="flex items-center gap-2 ml-2">
-                              <div className="flex items-center gap-1">
-                                <IconStar className="h-4 w-4 text-yellow-500 fill-current" />
-                                <span className="text-sm text-muted-foreground">
-                                  4.8
-                                </span>
+                    <MagicCard
+                      gradientColor={theme === 'dark' ? '#262626' : '#D9D9D955'}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start gap-4">
+                          {/* Avatar */}
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
+                              <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center overflow-hidden">
+                                <Image
+                                  src="/cyborg.png"
+                                  alt={`Avatar do ${agent.name}`}
+                                  width={56}
+                                  height={56}
+                                  className="rounded-full object-cover"
+                                />
                               </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <IconDots className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem asChild>
-                                    <Link href={`/app/ai-agents/${agent.id}`}>
-                                      <IconEye className="mr-2 h-4 w-4" />
-                                      Visualizar
-                                    </Link>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem asChild>
-                                    <Link
-                                      href={`/app/ai-agents/${agent.id}/edit`}
-                                    >
-                                      <IconEdit className="mr-2 h-4 w-4" />
-                                      Editar
-                                    </Link>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem asChild>
-                                    <Link
-                                      href={`/app/ai-agents/${agent.id}/chat`}
-                                    >
-                                      <IconMessageCircle className="mr-2 h-4 w-4" />
-                                      Chat
-                                    </Link>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onClick={() => handleDeleteAgent(agent.id)}
-                                  >
-                                    <IconTrash className="mr-2 h-4 w-4" />
-                                    Excluir
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 mb-3">
-                            {getTypeBadge(agent.type)}
-                            {getStatusBadge(agent.isActive)}
-                          </div>
-
-                          {/* Informações adicionais */}
-                          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <IconClock className="h-3 w-3" />
-                              <span>
-                                Criado:{' '}
-                                {new Date(agent.createdAt).toLocaleDateString(
-                                  'pt-BR',
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <IconActivity className="h-3 w-3" />
-                              <span>
-                                Atualizado:{' '}
-                                {agent.updatedAt
-                                  ? new Date(
-                                    agent.updatedAt,
-                                  ).toLocaleDateString('pt-BR')
-                                  : 'Nunca'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                          {agent.description || 'Sem descrição disponível'}
-                        </p>
-
-                        {/* Métricas do agente */}
-                        <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                              127
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Conversas
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-                              98%
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Precisão
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
-                              2.3s
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Resposta
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Modelo: {agent.model}</span>
-                          <span>Temp: {agent.temperature}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              asChild
-                              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 transform hover:scale-105 transition-all duration-200"
-                            >
-                              <Link href={`/app/ai-agents/${agent.id}/chat`}>
-                                <IconMessageCircle className="mr-2 h-3 w-3" />
-                                Conversar
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              asChild
-                              className="hover:bg-gray-50 dark:hover:bg-gray-800 transform hover:scale-105 transition-all duration-200"
-                            >
-                              <Link href={`/app/ai-agents/${agent.id}`}>
-                                <IconEye className="mr-2 h-3 w-3" />
-                                Detalhes
-                              </Link>
-                            </Button>
-                          </div>
-
-                          {/* Status indicator */}
-                          <div className="flex items-center gap-2">
-                            {agent.isActive ? (
-                              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                Online
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                                Offline
+                            {agent.isActive && (
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                               </div>
                             )}
                           </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors truncate">
+                                {agent.name}
+                              </CardTitle>
+                              <div className="flex items-center gap-2 ml-2">
+                                <div className="flex items-center gap-1">
+                                  <IconStar className="h-4 w-4 text-yellow-500 fill-current" />
+                                  <span className="text-sm text-muted-foreground">
+                                    4.8
+                                  </span>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <IconDots className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                      <Link href={`/app/ai-agents/${agent.id}`}>
+                                        <IconEye className="mr-2 h-4 w-4" />
+                                        Visualizar
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                      <Link
+                                        href={`/app/ai-agents/${agent.id}/edit`}
+                                      >
+                                        <IconEdit className="mr-2 h-4 w-4" />
+                                        Editar
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                      <Link
+                                        href={`/app/ai-agents/${agent.id}/chat`}
+                                      >
+                                        <IconMessageCircle className="mr-2 h-4 w-4" />
+                                        Chat
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() =>
+                                        handleDeleteAgent(agent.id)
+                                      }
+                                    >
+                                      <IconTrash className="mr-2 h-4 w-4" />
+                                      Excluir
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-3">
+                              {getTypeBadge(agent.type)}
+                              {getStatusBadge(agent.isActive)}
+                            </div>
+
+                            {/* Informações adicionais */}
+                            <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground mb-3">
+                              <div className="flex items-center gap-1">
+                                <IconClock className="h-3 w-3" />
+                                <span>
+                                  Criado:{' '}
+                                  {new Date(agent.createdAt).toLocaleDateString(
+                                    'pt-BR',
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <IconActivity className="h-3 w-3" />
+                                <span>
+                                  Atualizado:{' '}
+                                  {agent.updatedAt
+                                    ? new Date(
+                                      agent.updatedAt,
+                                    ).toLocaleDateString('pt-BR')
+                                    : 'Nunca'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                            {agent.description || 'Sem descrição disponível'}
+                          </p>
+
+                          {/* Métricas do agente */}
+                          <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                                127
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Conversas
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+                                98%
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Precisão
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
+                                2.3s
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Resposta
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Modelo: {agent.model}</span>
+                            <span>Temp: {agent.temperature}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                asChild
+                                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white border-0 transform hover:scale-105 transition-all duration-200"
+                              >
+                                <Link href={`/app/ai-agents/${agent.id}/chat`}>
+                                  <IconMessageCircle className="mr-2 h-3 w-3" />
+                                  Conversar
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="hover:bg-gray-50 dark:hover:bg-gray-800 transform hover:scale-105 transition-all duration-200"
+                              >
+                                <Link href={`/app/ai-agents/${agent.id}`}>
+                                  <IconEye className="mr-2 h-3 w-3" />
+                                  Detalhes
+                                </Link>
+                              </Button>
+                            </div>
+
+                            {/* Status indicator */}
+                            <div className="flex items-center gap-2">
+                              {agent.isActive ? (
+                                <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                  Online
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                  <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                                  Offline
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
                       <BorderBeam
                         size={300}
                         duration={4}

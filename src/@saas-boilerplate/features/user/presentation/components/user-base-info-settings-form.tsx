@@ -48,7 +48,7 @@ export function UserBaseInfoSettingsForm() {
       const toastId = toast.loading('Saving...')
 
       const result = await tryCatch(
-        api.user.update.mutate({
+        (api.user.update as any).mutate({
           body: {
             name: values.name,
             image: values.image,
@@ -105,7 +105,7 @@ export function UserBaseInfoSettingsForm() {
                             const toastId = toast.loading('Uploading...')
 
                             const result = await tryCatch(
-                              api.user.update.mutate({
+                              (api.user.update as any).mutate({
                                 body: {
                                   image: file.url,
                                 },

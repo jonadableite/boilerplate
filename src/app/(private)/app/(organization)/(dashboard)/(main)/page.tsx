@@ -32,7 +32,7 @@ function SummarySectionSkeleton() {
 }
 
 export default async function Page() {
-  const stats = await api.organization.stats.query()
+  const stats = await (api.organization.stats as any).query()
 
   if (stats.error || !stats.data) {
     return (

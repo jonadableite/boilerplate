@@ -47,7 +47,7 @@ export function CreateWebhookModal({
   availableEvents,
 }: CreateWebhookModalProps) {
   const router = useRouter()
-  const createWebhookMutation = api.webhook.create.useMutation()
+  const createWebhookMutation = (api.webhook.create as any).useMutation()
 
   const form = useFormWithZod({
     schema: createWebhookSchema,

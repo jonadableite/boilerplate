@@ -125,7 +125,7 @@ export function WhatsAppInstanceProxySetup({
   const onSubmit = async (data: SetProxyDTO) => {
     try {
       setIsLoading(true)
-      await api.whatsAppInstances.setProxy.mutate({
+      await (api.whatsAppInstances.setProxy as any).mutate({
         params: { id: instance.id },
         body: data,
       })

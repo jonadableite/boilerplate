@@ -186,7 +186,7 @@ export function useContentLayer(
 
           timeoutRef.current = setTimeout(() => {
             setActiveId(entry.target.id)
-          }, updateDelay)
+          }, updateDelay) as NodeJS.Timeout
         }
       })
     }, observerOptions)

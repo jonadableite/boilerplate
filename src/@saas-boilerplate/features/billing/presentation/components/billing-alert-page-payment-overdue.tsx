@@ -10,7 +10,7 @@ export function BillingAlertPagePaymentOverdue() {
     const toastId = toast.loading('Redirecting to payment portal...')
 
     try {
-      const response = await api.billing.createSessionManager.mutate({
+      const response = await (api.billing.createSessionManager as any).mutate({
         body: { returnUrl: window.location.href },
       })
 

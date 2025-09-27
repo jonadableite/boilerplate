@@ -6,7 +6,7 @@ import { BillingAlertPageTrialExpiredView } from '@/@saas-boilerplate/features/b
 import { redirect } from 'next/navigation'
 
 export default async function UpgradePage() {
-  const session = await api.auth.getSession.query()
+  const session = await (api.auth.getSession as any).query()
 
   if (!session.data) redirect('/auth')
 

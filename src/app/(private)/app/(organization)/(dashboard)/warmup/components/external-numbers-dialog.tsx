@@ -47,7 +47,7 @@ export function ExternalNumbersDialog({
     const fetchNumbers = async () => {
       try {
         setIsLoadingNumbers(true)
-        const result = await api.warmup.manageExternalNumbers.mutate({
+        const result = await (api.warmup.manageExternalNumbers as any).mutate({
           body: { action: 'list' },
         })
 
@@ -88,7 +88,7 @@ export function ExternalNumbersDialog({
 
     try {
       setLoading(true)
-      const result = await api.warmup.manageExternalNumbers.mutate({
+      const result = await (api.warmup.manageExternalNumbers as any).mutate({
         body: {
           action: 'add',
           phoneNumber: cleanNumber,
@@ -123,7 +123,7 @@ export function ExternalNumbersDialog({
   const removeExternalNumber = async (phoneNumber: string) => {
     try {
       setLoading(true)
-      const result = await api.warmup.manageExternalNumbers.mutate({
+      const result = await (api.warmup.manageExternalNumbers as any).mutate({
         body: {
           action: 'remove',
           phoneNumber,
@@ -154,7 +154,7 @@ export function ExternalNumbersDialog({
 
   const toggleNumberStatus = async (phoneNumber: string, active: boolean) => {
     try {
-      const result = await api.warmup.manageExternalNumbers.mutate({
+      const result = await (api.warmup.manageExternalNumbers as any).mutate({
         body: {
           action: 'toggle',
           phoneNumber,
@@ -194,7 +194,7 @@ export function ExternalNumbersDialog({
 
       const addPromises = EXTERNAL_NUMBERS.map(async (number) => {
         try {
-          await api.warmup.manageExternalNumbers.mutate({
+          await (api.warmup.manageExternalNumbers as any).mutate({
             body: {
               action: 'add',
               phoneNumber: number,
@@ -223,7 +223,7 @@ export function ExternalNumbersDialog({
 
   const fetchNumbers = async () => {
     try {
-      const result = await api.warmup.manageExternalNumbers.mutate({
+      const result = await (api.warmup.manageExternalNumbers as any).mutate({
         body: { action: 'list' },
       })
 

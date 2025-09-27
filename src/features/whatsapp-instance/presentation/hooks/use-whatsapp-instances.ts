@@ -50,7 +50,7 @@ export function useWhatsAppInstances(
     ...(statusFilter && { status: statusFilter }),
   };
 
-  const query = api.whatsAppInstances.list.useQuery(queryParams);
+  const query = (api.whatsAppInstances.list as any).useQuery(queryParams);
 
   // Filtrar instâncias no frontend se necessário
   const filteredInstances =

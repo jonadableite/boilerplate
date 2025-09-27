@@ -24,7 +24,7 @@ export const metadata = {
   title: 'Integrations',
 }
 export default async function Page() {
-  const integrations = await api.integration.findMany.query()
+  const integrations = await (api.integration.findMany as any).query()
 
   return (
     <PageWrapper>

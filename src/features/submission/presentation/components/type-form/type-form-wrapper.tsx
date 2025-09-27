@@ -31,7 +31,7 @@ export function TypeFormWrapper({ formTitle }: TypeFormWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Mutation for submitting the form
-  const submitForm = api.submission.create.useMutation()
+  const submitForm = (api.submission.create as any).useMutation()
 
   // Form fields configuration - in a real app, this would be fetched from an API
   const formFields: FormField[] = [

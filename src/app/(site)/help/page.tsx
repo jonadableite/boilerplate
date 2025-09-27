@@ -27,7 +27,8 @@ export default async function Page() {
             te ajudar hoje? 👋
           </h1>
           <p className="text-muted-foreground max-w-2xl">
-            Encontre respostas, tutoriais e guias para aproveitar ao máximo nossa plataforma de WhatsApp Marketing.
+            Encontre respostas, tutoriais e guias para aproveitar ao máximo
+            nossa plataforma de WhatsApp Marketing.
           </p>
         </div>
       </section>
@@ -36,10 +37,7 @@ export default async function Page() {
           <div className="grid md:grid-cols-3 border rounded-md divide-x bg-secondary">
             {helpCategoriesMenu.map((category) => (
               <div key={category.id} className="group w-full">
-                <Link
-                  href={category.href}
-                  className="group w-full block"
-                >
+                <Link href={category.href} className="group w-full block">
                   <div className="p-6 w-full h-72 flex flex-col justify-between hover:bg-accent transition-all duration-200">
                     <div className="rounded-full bg-primary/10 mb-4 size-10 flex items-center justify-center text-primary">
                       {category.icon}
@@ -79,7 +77,8 @@ export default async function Page() {
                   <div>
                     <h3 className="text-sm font-medium">{post.data.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {post.data.description || 'Saiba mais sobre este tópico'}
+                      {(post.data as any).description ||
+                        'Saiba mais sobre este tópico'}
                     </p>
                   </div>
                   <ChevronRightIcon className="size-4" />
@@ -97,7 +96,8 @@ export default async function Page() {
               Ainda precisa de ajuda?
             </h2>
             <p className="text-muted-foreground mb-6">
-              Nossa equipe de suporte está sempre pronta para ajudar você a alcançar seus objetivos com WhatsApp Marketing.
+              Nossa equipe de suporte está sempre pronta para ajudar você a
+              alcançar seus objetivos com WhatsApp Marketing.
             </p>
             <div className="flex gap-4 justify-center">
               <LinkPreview

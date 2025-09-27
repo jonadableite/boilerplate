@@ -139,15 +139,25 @@ export default function KnowledgeBasePage() {
   const [loading, setLoading] = useState(true)
 
   // Queries e mutations
-  const kbQuery = api.aiAgents.knowledgeBases.getById.useQuery({ id })
-  const documentsQuery = api.aiAgents.knowledgeBases.documents.list.useQuery({
+  const kbQuery = (api.aiAgents as any).knowledgeBases.getById.useQuery({ id })
+  const documentsQuery = (
+    api.aiAgents as any
+  ).knowledgeBases.documents.list.useQuery({
     knowledgeBaseId: id,
   })
-  const uploadDocumentMutation = api.aiAgents.knowledgeBases.documents.upload.useMutation()
-  const deleteDocumentMutation = api.aiAgents.knowledgeBases.documents.delete.useMutation()
-  const reprocessDocumentMutation = api.aiAgents.knowledgeBases.documents.reprocess.useMutation()
-  const deleteKBMutation = api.aiAgents.knowledgeBases.delete.useMutation()
-  const statsQuery = api.aiAgents.knowledgeBases.stats.useQuery({ id })
+  const uploadDocumentMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.documents.upload.useMutation()
+  const deleteDocumentMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.documents.delete.useMutation()
+  const reprocessDocumentMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.documents.reprocess.useMutation()
+  const deleteKBMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.delete.useMutation()
+  const statsQuery = (api.aiAgents as any).knowledgeBases.stats.useQuery({ id })
 
   useEffect(() => {
     if (kbQuery.data?.data) {
@@ -167,7 +177,9 @@ export default function KnowledgeBasePage() {
 
   // Filtrar documentos
   const filteredDocuments = documents.filter((doc: Document) => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = doc.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || doc.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -183,7 +195,7 @@ export default function KnowledgeBasePage() {
         const file = files[i]
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('knowledgeBaseId', params.id)
+        formData.append('knowledgeBaseId', id)
 
         await uploadDocumentMutation.mutateAsync(formData as any)
         setUploadProgress(((i + 1) / files.length) * 100)
@@ -239,7 +251,7 @@ export default function KnowledgeBasePage() {
     }
 
     try {
-      await deleteKBMutation.mutateAsync({ id: params.id })
+      await deleteKBMutation.mutateAsync({ id })
       toast.success('Base de conhecimento excluída com sucesso')
       router.push('/app/ai-agents/knowledge-bases')
     } catch (error) {
@@ -259,7 +271,9 @@ export default function KnowledgeBasePage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                  <BreadcrumbLink href="/app/ai-agents">
+                    Agentes de IA
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -285,7 +299,7 @@ export default function KnowledgeBasePage() {
               </div>
               <Skeleton className="h-10 w-24" />
             </div>
-            
+
             <div className="grid gap-6 md:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i}>
@@ -298,7 +312,7 @@ export default function KnowledgeBasePage() {
                 </Card>
               ))}
             </div>
-            
+
             <Card>
               <CardHeader>
                 <Skeleton className="h-6 w-48" />
@@ -306,7 +320,10 @@ export default function KnowledgeBasePage() {
               <CardContent>
                 <div className="space-y-4">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 p-4 border rounded-lg"
+                    >
                       <Skeleton className="h-8 w-8" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-48" />
@@ -337,7 +354,9 @@ export default function KnowledgeBasePage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                  <BreadcrumbLink href="/app/ai-agents">
+                    Agentes de IA
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -359,7 +378,9 @@ export default function KnowledgeBasePage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold mb-2">Base de conhecimento não encontrada</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  Base de conhecimento não encontrada
+                </h2>
                 <p className="text-muted-foreground mb-4">
                   A base de conhecimento solicitada não existe ou foi removida.
                 </p>
@@ -388,7 +409,9 @@ export default function KnowledgeBasePage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                <BreadcrumbLink href="/app/ai-agents">
+                  Agentes de IA
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -415,7 +438,9 @@ export default function KnowledgeBasePage() {
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-3xl font-bold tracking-tight">{knowledgeBase.name}</h1>
+                  <h1 className="text-3xl font-bold tracking-tight">
+                    {knowledgeBase.name}
+                  </h1>
                   <Badge className={getStatusColor(knowledgeBase.status)}>
                     {knowledgeBase.status === 'active' && 'Ativo'}
                     {knowledgeBase.status === 'processing' && 'Processando'}
@@ -423,13 +448,18 @@ export default function KnowledgeBasePage() {
                   </Badge>
                 </div>
                 {knowledgeBase.description && (
-                  <p className="text-muted-foreground">{knowledgeBase.description}</p>
+                  <p className="text-muted-foreground">
+                    {knowledgeBase.description}
+                  </p>
                 )}
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
-              <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+              <Dialog
+                open={isUploadDialogOpen}
+                onOpenChange={setIsUploadDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button>
                     <Upload className="mr-2 h-4 w-4" />
@@ -440,10 +470,11 @@ export default function KnowledgeBasePage() {
                   <DialogHeader>
                     <DialogTitle>Enviar Documentos</DialogTitle>
                     <DialogDescription>
-                      Selecione os arquivos que deseja adicionar à base de conhecimento.
+                      Selecione os arquivos que deseja adicionar à base de
+                      conhecimento.
                     </DialogDescription>
                   </DialogHeader>
-                  
+
                   <div className="space-y-4">
                     <div
                       className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
@@ -457,7 +488,7 @@ export default function KnowledgeBasePage() {
                         Suporte para PDF, DOC, DOCX, TXT (máx. 10MB por arquivo)
                       </p>
                     </div>
-                    
+
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -470,7 +501,7 @@ export default function KnowledgeBasePage() {
                         }
                       }}
                     />
-                    
+
                     {isUploading && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
@@ -481,7 +512,7 @@ export default function KnowledgeBasePage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <DialogFooter>
                     <Button
                       variant="outline"
@@ -493,7 +524,7 @@ export default function KnowledgeBasePage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              
+
               <Button
                 variant="outline"
                 onClick={handleDeleteKB}
@@ -503,7 +534,7 @@ export default function KnowledgeBasePage() {
                 <Trash2 className="mr-2 h-4 w-4" />
                 Excluir Base
               </Button>
-              
+
               <Link href="/app/ai-agents/knowledge-bases">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -517,31 +548,43 @@ export default function KnowledgeBasePage() {
           <div className="grid gap-6 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total de Documentos
+                </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {statsQuery.data?.data?.totalDocuments || knowledgeBase.documentCount || 0}
+                  {statsQuery.data?.data?.totalDocuments ||
+                    knowledgeBase.documentCount ||
+                    0}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tamanho Total</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Tamanho Total
+                </CardTitle>
                 <Database className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatFileSize(statsQuery.data?.data?.totalSize || knowledgeBase.totalSize || 0)}
+                  {formatFileSize(
+                    statsQuery.data?.data?.totalSize ||
+                    knowledgeBase.totalSize ||
+                    0,
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Chunks Processados</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Chunks Processados
+                </CardTitle>
                 <Brain className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -553,12 +596,16 @@ export default function KnowledgeBasePage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Agentes Conectados</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Agentes Conectados
+                </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {statsQuery.data?.data?.connectedAgents || knowledgeBase.agentCount || 0}
+                  {statsQuery.data?.data?.connectedAgents ||
+                    knowledgeBase.agentCount ||
+                    0}
                 </div>
               </CardContent>
             </Card>
@@ -596,7 +643,10 @@ export default function KnowledgeBasePage() {
               {documentsQuery.isLoading ? (
                 <div className="space-y-4">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 p-4 border rounded-lg"
+                    >
                       <Skeleton className="h-8 w-8" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-48" />
@@ -635,7 +685,7 @@ export default function KnowledgeBasePage() {
                       className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="text-2xl">{getFileIcon(doc.type)}</div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-medium">{doc.name}</h3>
@@ -646,25 +696,27 @@ export default function KnowledgeBasePage() {
                             {doc.status === 'error' && 'Erro'}
                           </Badge>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{formatFileSize(doc.size)}</span>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+                            <span>
+                              {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </span>
                           </div>
                           {doc.chunkCount && (
                             <span>{doc.chunkCount} chunks</span>
                           )}
                         </div>
-                        
+
                         {doc.errorMessage && (
                           <p className="text-sm text-destructive mt-1">
                             {doc.errorMessage}
                           </p>
                         )}
                       </div>
-                      
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -684,7 +736,9 @@ export default function KnowledgeBasePage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleReprocessDocument(doc.id, doc.name)}
+                            onClick={() =>
+                              handleReprocessDocument(doc.id, doc.name)
+                            }
                             disabled={reprocessDocumentMutation.isPending}
                           >
                             <RefreshCw className="mr-2 h-4 w-4" />
@@ -692,7 +746,9 @@ export default function KnowledgeBasePage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDeleteDocument(doc.id, doc.name)}
+                            onClick={() =>
+                              handleDeleteDocument(doc.id, doc.name)
+                            }
                             className="text-destructive focus:text-destructive"
                             disabled={deleteDocumentMutation.isPending}
                           >
@@ -712,8 +768,6 @@ export default function KnowledgeBasePage() {
     </PageWrapper>
   )
 }
-
-
 
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true

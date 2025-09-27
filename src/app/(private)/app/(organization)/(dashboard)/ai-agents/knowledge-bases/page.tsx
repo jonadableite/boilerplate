@@ -138,10 +138,18 @@ export default function KnowledgeBasesPage() {
   const [selectedKB, setSelectedKB] = useState<KnowledgeBase | null>(null)
 
   // Queries e mutations
-  const knowledgeBasesQuery = api.aiAgents.knowledgeBases.list.useQuery()
-  const createKBMutation = api.aiAgents.knowledgeBases.create.useMutation()
-  const deleteKBMutation = api.aiAgents.knowledgeBases.delete.useMutation()
-  const reprocessKBMutation = api.aiAgents.knowledgeBases.reprocess.useMutation()
+  const knowledgeBasesQuery = (
+    api.aiAgents as any
+  ).knowledgeBases.list.useQuery()
+  const createKBMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.create.useMutation()
+  const deleteKBMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.delete.useMutation()
+  const reprocessKBMutation = (
+    api.aiAgents as any
+  ).knowledgeBases.reprocess.useMutation()
 
   const form = useForm<KnowledgeBaseFormData>({
     resolver: zodResolver(knowledgeBaseSchema),
@@ -155,7 +163,9 @@ export default function KnowledgeBasesPage() {
 
   // Filtrar bases de conhecimento
   const filteredKnowledgeBases = knowledgeBases.filter((kb: KnowledgeBase) => {
-    const matchesSearch = kb.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = kb.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || kb.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -163,7 +173,7 @@ export default function KnowledgeBasesPage() {
   const onSubmit = async (data: KnowledgeBaseFormData) => {
     try {
       const result = await createKBMutation.mutateAsync(data)
-      
+
       if (result.success) {
         toast.success('Base de conhecimento criada com sucesso!')
         setIsCreateDialogOpen(false)
@@ -215,7 +225,9 @@ export default function KnowledgeBasesPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/app/ai-agents">Agentes de IA</BreadcrumbLink>
+                <BreadcrumbLink href="/app/ai-agents">
+                  Agentes de IA
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -231,13 +243,18 @@ export default function KnowledgeBasesPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Bases de Conhecimento</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Bases de Conhecimento
+              </h1>
               <p className="text-muted-foreground">
                 Gerencie as bases de conhecimento para seus agentes de IA
               </p>
             </div>
-            
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
@@ -251,9 +268,12 @@ export default function KnowledgeBasesPage() {
                     Crie uma nova base de conhecimento para seus agentes de IA.
                   </DialogDescription>
                 </DialogHeader>
-                
+
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={form.control}
                       name="name"
@@ -261,7 +281,10 @@ export default function KnowledgeBasesPage() {
                         <FormItem>
                           <FormLabel>Nome</FormLabel>
                           <FormControl>
-                            <Input placeholder="Ex: Documentação do Produto" {...field} />
+                            <Input
+                              placeholder="Ex: Documentação do Produto"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -285,7 +308,7 @@ export default function KnowledgeBasesPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <DialogFooter>
                       <Button
                         type="button"
@@ -294,7 +317,10 @@ export default function KnowledgeBasesPage() {
                       >
                         Cancelar
                       </Button>
-                      <Button type="submit" disabled={createKBMutation.isPending}>
+                      <Button
+                        type="submit"
+                        disabled={createKBMutation.isPending}
+                      >
                         {createKBMutation.isPending ? (
                           <>
                             <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -324,7 +350,7 @@ export default function KnowledgeBasesPage() {
                     className="pl-10"
                   />
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[180px]">
@@ -350,14 +376,18 @@ export default function KnowledgeBasesPage() {
                 Bases de Conhecimento
               </CardTitle>
               <CardDescription>
-                {filteredKnowledgeBases.length} de {knowledgeBases.length} bases de conhecimento
+                {filteredKnowledgeBases.length} de {knowledgeBases.length} bases
+                de conhecimento
               </CardDescription>
             </CardHeader>
             <CardContent>
               {knowledgeBasesQuery.isLoading ? (
                 <div className="space-y-4">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 p-4 border rounded-lg"
+                    >
                       <Skeleton className="h-10 w-10 rounded-lg" />
                       <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-48" />
@@ -401,7 +431,7 @@ export default function KnowledgeBasesPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                         <Brain className="h-5 w-5" />
                       </div>
-                      
+
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-medium">{kb.name}</h3>
@@ -411,13 +441,13 @@ export default function KnowledgeBasesPage() {
                             {kb.status === 'error' && 'Erro'}
                           </Badge>
                         </div>
-                        
+
                         {kb.description && (
                           <p className="text-sm text-muted-foreground mb-2">
                             {kb.description}
                           </p>
                         )}
-                        
+
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <FileText className="h-3 w-3" />
@@ -435,11 +465,13 @@ export default function KnowledgeBasesPage() {
                           )}
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{new Date(kb.createdAt).toLocaleDateString()}</span>
+                            <span>
+                              {new Date(kb.createdAt).toLocaleDateString()}
+                            </span>
                           </div>
                         </div>
                       </div>
-                      
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -450,13 +482,17 @@ export default function KnowledgeBasesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuItem asChild>
-                            <Link href={`/app/ai-agents/knowledge-bases/${kb.id}`}>
+                            <Link
+                              href={`/app/ai-agents/knowledge-bases/${kb.id}`}
+                            >
                               <Eye className="mr-2 h-4 w-4" />
                               Visualizar
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/app/ai-agents/knowledge-bases/${kb.id}/edit`}>
+                            <Link
+                              href={`/app/ai-agents/knowledge-bases/${kb.id}/edit`}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Editar
                             </Link>
@@ -491,8 +527,6 @@ export default function KnowledgeBasesPage() {
     </PageWrapper>
   )
 }
-
-
 
 export const dynamic = 'force-dynamic'
 export const revalidate = false

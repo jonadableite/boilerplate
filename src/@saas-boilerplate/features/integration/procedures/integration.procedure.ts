@@ -1,21 +1,22 @@
-import { igniter } from '@/igniter'
+import { igniter } from "@/igniter";
 import type {
   Integration,
   CreateIntegrationDTO,
   UpdateIntegrationDTO,
-} from '../integration.interface'
+} from "../integration.interface";
 
 export const IntegrationFeatureProcedure = igniter.procedure({
-  name: 'IntegrationFeatureProcedure',
+  name: "IntegrationFeatureProcedure",
   handler: async (_, { context }) => {
     return {
       integration: {
         findMany: async ({
           organizationId,
         }: {
-          organizationId: string
+          organizationId: string;
         }): Promise<Integration[]> => {
-          const integrations = context.providers.plugins.list() as Integration[]
+          const integrations =
+            context.providers.plugins.list() as Integration[];
 
           if (organizationId) {
             for (const integration of integrations) {
@@ -28,7 +29,7 @@ export const IntegrationFeatureProcedure = igniter.procedure({
                   include: {
                     webhook: true,
                   },
-                })
+                });
 
               if (integrationOnDb) {
                 integration.state = {
@@ -37,26 +38,25 @@ export const IntegrationFeatureProcedure = igniter.procedure({
                   metadata: integrationOnDb.metadata,
                   webhook: integrationOnDb.webhook,
                   updatedAt: integrationOnDb.updatedAt,
-                }
+                };
               }
             }
           }
 
-          return integrations
+          return integrations;
         },
 
         findOne: async (
           slug: string,
           organizationId: string,
         ): Promise<Integration | null> => {
-          let integration: Integration | null = null
+          let integration: Integration | null = null;
 
-          // @ts-expect-error - slug is a string
-          const result = context.providers.plugins.get(slug)
+          const result = context.providers.plugins.get(slug);
 
-          if (!result) return null
+          if (!result) return null;
 
-          integration = result
+          integration = result;
 
           const integrationOnDb =
             await context.providers.database.integration.findFirst({
@@ -67,28 +67,29 @@ export const IntegrationFeatureProcedure = igniter.procedure({
               include: {
                 webhook: true,
               },
-            })
+            });
 
           if (!integrationOnDb) {
-            return result
+            return result;
           }
 
-          integration.state = {
-            id: integrationOnDb.id,
-            enabled: integrationOnDb.enabled,
-            metadata: integrationOnDb.metadata,
-            webhook: integrationOnDb.webhook,
-            updatedAt: integrationOnDb.updatedAt,
+          if (integration) {
+            integration.state = {
+              id: integrationOnDb.id,
+              enabled: integrationOnDb.enabled,
+              metadata: integrationOnDb.metadata,
+              webhook: integrationOnDb.webhook,
+              updatedAt: integrationOnDb.updatedAt,
+            };
           }
 
-          return result as Integration | null
+          return result as Integration | null;
         },
 
         install: async (input: CreateIntegrationDTO): Promise<Integration> => {
-          // @ts-expect-error - slug is a string
-          const result = context.providers.plugins.get(input.integrationSlug)
+          const result = context.providers.plugins.get(input.integrationSlug);
 
-          if (!result) throw new Error('Integration not found')
+          if (!result) throw new Error("Integration not found");
 
           const integration =
             await context.providers.database.integration.create({
@@ -98,7 +99,7 @@ export const IntegrationFeatureProcedure = igniter.procedure({
                 enabled: true,
                 metadata: input.metadata,
               },
-            })
+            });
 
           return {
             ...result,
@@ -108,16 +109,15 @@ export const IntegrationFeatureProcedure = igniter.procedure({
               metadata: integration.metadata,
               updatedAt: integration.updatedAt,
             },
-          }
+          };
         },
 
         update: async (params: UpdateIntegrationDTO): Promise<Integration> => {
           const integration = context.providers.plugins.get(
-            // @ts-expect-error - slug is a string
             params.integrationSlug,
-          )
+          );
 
-          if (!integration) throw new Error('Integration not found')
+          if (!integration) throw new Error("Integration not found");
 
           const integrationOnDb =
             await context.providers.database.integration.findUnique({
@@ -127,13 +127,13 @@ export const IntegrationFeatureProcedure = igniter.procedure({
                   organizationId: params.organizationId,
                 },
               },
-            })
+            });
 
-          if (!integrationOnDb) throw new Error('Integration not found')
+          if (!integrationOnDb) throw new Error("Integration not found");
           if (integrationOnDb.provider !== params.integrationSlug)
-            throw new Error('Integration not found')
+            throw new Error("Integration not found");
           if (integrationOnDb.organizationId !== params.organizationId)
-            throw new Error('Integration not found')
+            throw new Error("Integration not found");
 
           if (integrationOnDb.enabled !== params.enabled) {
             await context.providers.database.integration.update({
@@ -142,7 +142,7 @@ export const IntegrationFeatureProcedure = igniter.procedure({
                 enabled: params.enabled,
                 metadata: params.metadata,
               },
-            })
+            });
           }
 
           const updatedIntegration =
@@ -155,7 +155,7 @@ export const IntegrationFeatureProcedure = igniter.procedure({
               include: {
                 webhook: true,
               },
-            })
+            });
 
           return {
             name: integration.name,
@@ -170,7 +170,7 @@ export const IntegrationFeatureProcedure = igniter.procedure({
               webhook: updatedIntegration.webhook,
               updatedAt: updatedIntegration.updatedAt,
             },
-          }
+          };
         },
 
         uninstall: async (
@@ -184,11 +184,11 @@ export const IntegrationFeatureProcedure = igniter.procedure({
                 organizationId,
               },
             },
-          })
+          });
 
-          return { id: organizationId }
+          return { id: organizationId };
         },
       },
-    }
+    };
   },
-})
+});

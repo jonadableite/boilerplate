@@ -65,7 +65,7 @@ export default function WhatsAppInstancesPage() {
     ...(search && search.trim() && { search: search.trim() }),
   }
 
-  const { data } = api.whatsAppInstances.list.useQuery(queryParams)
+  const { data } = (api.whatsAppInstances.list as any).useQuery(queryParams)
 
   return (
     <PageWrapper className="bg-gradient-to-br from-background via-background/95 to-background/90">

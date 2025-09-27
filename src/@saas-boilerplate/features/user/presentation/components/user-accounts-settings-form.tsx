@@ -13,12 +13,12 @@ import { delay } from '@/@saas-boilerplate/utils/delay'
 
 export function UserAccountsSettingsForm() {
   const socialProviders = getActiveSocialProviders()
-  const accounts = api.account.findManyByCurrentUser.useQuery()
+  const accounts = (api.account.findManyByCurrentUser as any).query()
 
   const handleLinkAccount = async (provider: AccountProvider) => {
     toast.loading('Connecting account...')
 
-    const response = await api.account.link.mutate({
+    const response = await (api.account.link as any).mutate({
       body: {
         provider,
         callbackURL: window.location.href,
@@ -42,7 +42,7 @@ export function UserAccountsSettingsForm() {
   const handleUnlinkAccount = async (provider: AccountProvider) => {
     toast.loading('Disconnecting account...')
 
-    const response = await api.account.unlink.mutate({
+    const response = await (api.account.unlink as any).mutate({
       body: {
         provider,
       },
@@ -86,14 +86,16 @@ export function UserAccountsSettingsForm() {
                 <div className="text-sm flex items-center space-x-4">
                   {!accounts.error &&
                     accounts.data?.find(
-                      (account) => account.provider === provider.id,
+                      (account: { provider: AccountProvider }) =>
+                        account.provider === provider.id,
                     ) && (
                       <span className="text-muted-foreground">Connected</span>
                     )}
 
                   {!accounts.error &&
                     !accounts.data?.find(
-                      (account) => account.provider === provider.id,
+                      (account: { provider: AccountProvider }) =>
+                        account.provider === provider.id,
                     ) && (
                       <span className="text-muted-foreground">
                         Not connected
@@ -102,7 +104,8 @@ export function UserAccountsSettingsForm() {
 
                   {!accounts.error &&
                     !accounts.data?.find(
-                      (account) => account.provider === provider.id,
+                      (account: { provider: AccountProvider }) =>
+                        account.provider === provider.id,
                     ) && (
                       <Button
                         size="sm"
@@ -116,7 +119,8 @@ export function UserAccountsSettingsForm() {
 
                   {!accounts.error &&
                     accounts.data?.find(
-                      (account) => account.provider === provider.id,
+                      (account: { provider: AccountProvider }) =>
+                        account.provider === provider.id,
                     ) && (
                       <Button
                         size="sm"

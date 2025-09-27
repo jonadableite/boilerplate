@@ -51,7 +51,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   } = useChatSocket()
 
   // Buscar dados da conversa
-  const { data: conversation } = api.chat.getConversation.useQuery(
+  const { data: conversation } = (api.chat.getConversation as any).useQuery(
     { id: conversationId },
     { enabled: !!conversationId },
   )
@@ -61,7 +61,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
     data: messagesData,
     isLoading: loadingMessages,
     refetch: refetchMessages,
-  } = api.chat.listMessages.useQuery(
+  } = (api.chat.listMessages as any).useQuery(
     {
       conversationId,
       page: 1,
@@ -71,10 +71,10 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   )
 
   // Marcar conversa como lida
-  const markAsReadMutation = api.chat.markConversationAsRead.useMutation()
+  const markAsReadMutation = (api.chat.markConversationAsRead as any).useMutation()
 
   // Enviar mensagem
-  const sendMessageMutation = api.chat.sendMessage.useMutation({
+  const sendMessageMutation = (api.chat.sendMessage as any).useMutation({
     onSuccess: () => {
       setMessageText('')
       refetchMessages()
@@ -85,7 +85,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
         }
       }, 100)
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao enviar mensagem')
       console.error('Erro ao enviar mensagem:', error)
     },

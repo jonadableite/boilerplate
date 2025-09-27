@@ -24,7 +24,7 @@ export const metadata = {
 }
 
 export default async function ContactsPage() {
-  const contacts = await api.lead.findMany.query()
+  const contacts = await (api.lead.findMany as any).query()
 
   return (
     <LeadDataTableProvider initialData={contacts.data ?? []}>

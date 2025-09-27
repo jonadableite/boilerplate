@@ -62,7 +62,7 @@ export function InvitationDialog({ children }: InvitationDialogProps) {
   const form = useFormWithZod({
     schema: inviteMemberSchema,
     onSubmit: async (params) => {
-      const result = await api.invitation.create.mutate({
+      const result = await (api.invitation.create as any).mutate({
         body: {
           email: params.email,
           role: params.role,

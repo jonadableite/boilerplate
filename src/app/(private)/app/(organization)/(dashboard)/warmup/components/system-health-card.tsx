@@ -2,7 +2,13 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import {
   Activity,
@@ -14,7 +20,7 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  Zap
+  Zap,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -53,7 +59,10 @@ interface HealthSummary {
   }
 }
 
-export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthProps) {
+export function SystemHealthCard({
+  instances,
+  onAnalyzeHealth,
+}: SystemHealthProps) {
   const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(null)
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
@@ -74,12 +83,12 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
           healthyInstances: 0,
           criticalInstances: 0,
           averageScore: 0,
-          trends: { direction: 'STABLE', change: 0 }
-        }
+          trends: { direction: 'STABLE', change: 0 },
+        },
       }
     }
 
-    const activeInstances = instances.filter(i => i.status === 'ACTIVE')
+    const activeInstances = instances.filter((i) => i.status === 'ACTIVE')
 
     if (activeInstances.length === 0) {
       return {
@@ -95,13 +104,13 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
           healthyInstances: 0,
           criticalInstances: 0,
           averageScore: 0,
-          trends: { direction: 'DOWN', change: -10 }
-        }
+          trends: { direction: 'DOWN', change: -10 },
+        },
       }
     }
 
     // Algoritmo avançado de saúde baseado em múltiplos fatores
-    const healthScores = activeInstances.map(instance => {
+    const healthScores = activeInstances.map((instance) => {
       // 1. Fator de Progresso (30% do peso)
       const progressFactor = Math.min(instance.progress / 100, 1)
 
@@ -115,24 +124,29 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
       const consistencyFactor = calculateConsistencyFactor(instance)
 
       // Score ponderado
-      const score = (
-        progressFactor * 0.3 +
-        stabilityFactor * 0.25 +
-        timeFactor * 0.25 +
-        consistencyFactor * 0.2
-      ) * 100
+      const score =
+        (progressFactor * 0.3 +
+          stabilityFactor * 0.25 +
+          timeFactor * 0.25 +
+          consistencyFactor * 0.2) *
+        100
 
       return {
         instanceName: instance.instanceName,
         score: Math.min(Math.max(score, 0), 100),
-        riskLevel: determineRiskLevel(score)
+        riskLevel: determineRiskLevel(score),
       }
     })
 
-    const averageScore = healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
-    const healthyInstances = healthScores.filter(h => h.score >= 70).length
-    const criticalInstances = healthScores.filter(h => h.riskLevel === 'CRITICAL').length
-    const highRiskInstances = healthScores.filter(h => h.riskLevel === 'HIGH').length
+    const averageScore =
+      healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
+    const healthyInstances = healthScores.filter((h) => h.score >= 70).length
+    const criticalInstances = healthScores.filter(
+      (h) => h.riskLevel === 'CRITICAL',
+    ).length
+    const highRiskInstances = healthScores.filter(
+      (h) => h.riskLevel === 'HIGH',
+    ).length
 
     // Determinar status geral
     let status: string
@@ -192,22 +206,22 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
         healthyInstances,
         criticalInstances,
         averageScore,
-        trends: calculateTrends(healthScores)
-      }
+        trends: calculateTrends(healthScores),
+      },
     }
   }
 
   // Fatores de cálculo de saúde
   const calculateStabilityFactor = (instance: any): number => {
     const statusMap = {
-      'ACTIVE': 1.0,
-      'PAUSED': 0.6,
-      'ERROR': 0.2,
-      'COMPLETED': 0.9,
-      'INACTIVE': 0.1
+      ACTIVE: 1.0,
+      PAUSED: 0.6,
+      ERROR: 0.2,
+      COMPLETED: 0.9,
+      INACTIVE: 0.1,
     }
 
-    let factor = statusMap[instance.status] || 0.5
+    let factor = statusMap[instance.status as keyof typeof statusMap] || 0.5
 
     // Penalizar por pausas frequentes
     if (instance.pauseTime) {
@@ -237,7 +251,8 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
 
     const now = new Date()
     const lastActive = new Date(instance.lastActive)
-    const hoursSinceActive = (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60)
+    const hoursSinceActive =
+      (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60)
 
     if (hoursSinceActive <= 1) return 1.0
     if (hoursSinceActive <= 4) return 0.9
@@ -246,7 +261,9 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
     return 0.3
   }
 
-  const determineRiskLevel = (score: number): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
+  const determineRiskLevel = (
+    score: number,
+  ): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
     if (score >= 80) return 'LOW'
     if (score >= 60) return 'MEDIUM'
     if (score >= 40) return 'HIGH'
@@ -255,7 +272,8 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
 
   const calculateTrends = (healthScores: any[]) => {
     // Simular tendências baseadas nos scores atuais
-    const avgScore = healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
+    const avgScore =
+      healthScores.reduce((sum, h) => sum + h.score, 0) / healthScores.length
 
     if (avgScore >= 80) {
       return { direction: 'UP' as const, change: 5 }
@@ -285,7 +303,7 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
     setLoading(true)
     try {
       const response = await fetch(`/api/v1/health/analyze/${instanceName}`, {
-        method: 'POST'
+        method: 'POST',
       })
 
       if (response.ok) {
@@ -304,19 +322,27 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
 
   const getRiskIcon = (riskLevel: string) => {
     switch (riskLevel) {
-      case 'LOW': return <CheckCircle className="h-5 w-5 text-green-600" />
-      case 'MEDIUM': return <AlertTriangle className="h-5 w-5 text-yellow-600" />
-      case 'HIGH': return <AlertTriangle className="h-5 w-5 text-orange-600" />
-      case 'CRITICAL': return <Shield className="h-5 w-5 text-red-600" />
-      default: return <Activity className="h-5 w-5" />
+      case 'LOW':
+        return <CheckCircle className="h-5 w-5 text-green-600" />
+      case 'MEDIUM':
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />
+      case 'HIGH':
+        return <AlertTriangle className="h-5 w-5 text-orange-600" />
+      case 'CRITICAL':
+        return <Shield className="h-5 w-5 text-red-600" />
+      default:
+        return <Activity className="h-5 w-5" />
     }
   }
 
   const getTrendIcon = (direction: string) => {
     switch (direction) {
-      case 'UP': return <TrendingUp className="h-4 w-4 text-green-600" />
-      case 'DOWN': return <TrendingDown className="h-4 w-4 text-red-600" />
-      default: return <Activity className="h-4 w-4 text-gray-600" />
+      case 'UP':
+        return <TrendingUp className="h-4 w-4 text-green-600" />
+      case 'DOWN':
+        return <TrendingDown className="h-4 w-4 text-red-600" />
+      default:
+        return <Activity className="h-4 w-4 text-gray-600" />
     }
   }
 
@@ -359,7 +385,9 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={autoRefresh ? 'bg-green-50 border-green-200' : ''}
             >
-              <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin text-green-600' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${autoRefresh ? 'animate-spin text-green-600' : ''}`}
+              />
               {autoRefresh ? 'Auto' : 'Manual'}
             </Button>
           </div>
@@ -374,7 +402,9 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
               {healthSummary.overallScore}
             </div>
             <div className="text-sm text-muted-foreground">/ 100</div>
-            <Badge className={`${healthSummary.bgColor} ${healthSummary.color} border-0`}>
+            <Badge
+              className={`${healthSummary.bgColor} ${healthSummary.color} border-0`}
+            >
               {healthSummary.status}
             </Badge>
           </div>
@@ -416,7 +446,8 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
             <div className="flex items-center justify-center gap-1">
               {getTrendIcon(healthSummary.details.trends.direction)}
               <span className="text-sm font-medium">
-                {healthSummary.details.trends.change > 0 ? '+' : ''}{healthSummary.details.trends.change}%
+                {healthSummary.details.trends.change > 0 ? '+' : ''}
+                {healthSummary.details.trends.change}%
               </span>
             </div>
             <div className="text-xs text-muted-foreground">Tendência</div>
@@ -430,7 +461,9 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
               size="sm"
               variant="outline"
               onClick={() => {
-                const activeInstance = instances.find(i => i.status === 'ACTIVE')
+                const activeInstance = instances.find(
+                  (i) => i.status === 'ACTIVE',
+                )
                 if (activeInstance) {
                   analyzeSpecificInstance(activeInstance.instanceName)
                 }
@@ -458,8 +491,9 @@ export function SystemHealthCard({ instances, onAnalyzeHealth }: SystemHealthPro
               <span className="font-medium">Atenção Necessária</span>
             </div>
             <p className="text-sm text-red-700 mt-1">
-              {healthSummary.details.criticalInstances} instância(s) com problemas críticos detectados.
-              Recomendamos análise imediata para evitar suspensão da conta.
+              {healthSummary.details.criticalInstances} instância(s) com
+              problemas críticos detectados. Recomendamos análise imediata para
+              evitar suspensão da conta.
             </p>
           </div>
         )}

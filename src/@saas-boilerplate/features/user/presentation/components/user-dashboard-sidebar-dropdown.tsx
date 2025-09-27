@@ -30,7 +30,7 @@ export function UserDashboardSidebarDropdown() {
 
   const handleSignOut = async () => {
     try {
-      await api.auth.signOut.mutate()
+      await (api.auth.signOut as any).mutate()
       router.push('/auth')
       toast.success('You have signed out')
     } catch (err) {

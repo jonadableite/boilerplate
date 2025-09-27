@@ -24,7 +24,7 @@ export const metadata = {
 }
 
 export default async function Page() {
-  const session = await api.auth.getSession.query()
+  const session = await (api.auth.getSession as any).query()
   if (session.error || !session.data) return null
 
   return (

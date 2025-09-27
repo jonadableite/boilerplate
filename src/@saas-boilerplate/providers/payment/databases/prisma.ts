@@ -1,5 +1,5 @@
-import type { PrismaClient } from '@prisma/client'
-import { PaymentProvider } from '../payment.provider'
+import type { PrismaClient } from "@prisma/client";
+import { PaymentProvider } from "../payment.provider";
 import type {
   CustomerDTO,
   PlanDTO,
@@ -12,9 +12,9 @@ import type {
   Subscription,
   PlanMetadata,
   Price,
-} from '../types'
-import type { DatabaseAdapterQueryParams } from './database-adapter.interface'
-import { String } from '@/@saas-boilerplate/utils'
+} from "../types";
+import type { DatabaseAdapterQueryParams } from "./database-adapter.interface";
+import { String } from "@/@saas-boilerplate/utils";
 
 export const prismaAdapter = PaymentProvider.database<PrismaClient>(
   (prisma) => {
@@ -23,7 +23,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
       return {
         ...prismaCustomer,
         subscription: prismaCustomer.subscription ?? [],
-      }
+      };
     }
 
     async function getCustomerUsageByRefId(
@@ -41,13 +41,11 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               },
             ],
           },
-        })
-
-        
+        });
 
         if (!customer) {
-          console.warn(`Customer ${customerId} not found`)
-          return []
+          console.warn(`Customer ${customerId} not found`);
+          return [];
         }
 
         // 1. Get customer's active subscription with plan details
@@ -55,12 +53,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           where: {
             customerId: customer.id,
             status: {
-              in: [
-                'active',
-                'trialing',
-                'past_due',
-                'unpaid',
-              ]
+              in: ["active", "trialing", "past_due", "unpaid"],
             },
           },
           include: {
@@ -70,74 +63,74 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               },
             },
           },
-        })
+        });
 
         if (!subscription) {
           console.warn(
             `No active subscription found for customer ${customerId}`,
-          )
-          return []
+          );
+          return [];
         }
 
         // 2. Get plan features from metadata
-        const metadata = subscription.price.plan.metadata as PlanMetadata
+        const metadata = subscription.price.plan.metadata as PlanMetadata;
         if (!metadata?.features || !Array.isArray(metadata.features)) {
           console.warn(
             `No features found in plan metadata for subscription ${subscription.id}`,
-          )
-          return []
+          );
+          return [];
         }
 
         // 3. Create usage array and process each feature
-        const usage: Usage[] = []
-        const now = new Date()
+        const usage: Usage[] = [];
+        const now = new Date();
 
         for (const feature of metadata.features) {
           // Skip disabled features
-          if (!feature.enabled || !feature.limit) continue
+          if (!feature.enabled || !feature.limit) continue;
 
           // Calculate reset dates based on cycle
-          let lastReset = new Date()
-          let nextReset = new Date()
+          let lastReset = new Date();
+          let nextReset = new Date();
 
           switch (feature.cycle) {
-            case 'day':
-              lastReset.setHours(0, 0, 0, 0)
-              nextReset = new Date(lastReset)
-              nextReset.setDate(nextReset.getDate() + 1)
-              break
-            case 'week':
-              lastReset.setDate(lastReset.getDate() - lastReset.getDay())
-              lastReset.setHours(0, 0, 0, 0)
-              nextReset = new Date(lastReset)
-              nextReset.setDate(nextReset.getDate() + 7)
-              break
-            case 'month':
-              lastReset.setDate(1)
-              lastReset.setHours(0, 0, 0, 0)
-              nextReset = new Date(lastReset)
-              nextReset.setMonth(nextReset.getMonth() + 1)
-              break
-            case 'year':
-              lastReset = new Date(now.getFullYear(), 0, 1)
-              nextReset = new Date(now.getFullYear() + 1, 0, 1)
-              break
+            case "day":
+              lastReset.setHours(0, 0, 0, 0);
+              nextReset = new Date(lastReset);
+              nextReset.setDate(nextReset.getDate() + 1);
+              break;
+            case "week":
+              lastReset.setDate(lastReset.getDate() - lastReset.getDay());
+              lastReset.setHours(0, 0, 0, 0);
+              nextReset = new Date(lastReset);
+              nextReset.setDate(nextReset.getDate() + 7);
+              break;
+            case "month":
+              lastReset.setDate(1);
+              lastReset.setHours(0, 0, 0, 0);
+              nextReset = new Date(lastReset);
+              nextReset.setMonth(nextReset.getMonth() + 1);
+              break;
+            case "year":
+              lastReset = new Date(now.getFullYear(), 0, 1);
+              nextReset = new Date(now.getFullYear() + 1, 0, 1);
+              break;
             default:
-              lastReset = new Date(0)
-              nextReset = new Date(8640000000000000)
+              lastReset = new Date(0);
+              nextReset = new Date(8640000000000000);
           }
 
           try {
             // Get actual usage count from database if table is specified
-            let usageCount = 0
+            let usageCount = 0;
 
             if (feature.table) {
-              const model = String.toCamelCase(feature.table)
+              const model = String.toCamelCase(feature.table);
 
               // Verify if the table exists in the Prisma client
               if (!model || !(prisma as any)[model]) {
-                console.warn(`Table ${model} not found in Prisma client`)
-                continue
+                console.warn(`Table ${model} not found in Prisma client`);
+                continue;
               }
 
               // Get the count using dynamic table access
@@ -145,7 +138,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
                 where: {
                   organizationId: customer.organizationId,
                 },
-              })
+              });
             }
 
             usage.push({
@@ -154,15 +147,15 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               description: feature.description,
               limit: feature.limit,
               usage: usageCount,
-              cycle: feature.cycle || 'month',
+              cycle: feature.cycle || "month",
               lastReset,
               nextReset,
-            })
+            });
           } catch (error) {
             console.error(
               `Error getting usage for feature ${feature.slug}:`,
               error,
-            )
+            );
             // Add feature with zero usage to not break the UI
             usage.push({
               slug: feature.slug,
@@ -170,19 +163,19 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               description: feature.description,
               limit: feature.limit,
               usage: 0,
-              cycle: feature.cycle || 'month',
+              cycle: feature.cycle || "month",
               lastReset,
               nextReset,
-            })
+            });
           }
         }
 
-        return usage
+        return usage;
       } catch (error) {
-        console.error('Error in getCustomerUsageByRefId:', error)
+        console.error("Error in getCustomerUsageByRefId:", error);
         throw new Error(
           `Failed to get customer usage: ${(error as Error).message}`,
-        )
+        );
       }
     }
 
@@ -190,7 +183,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
       // Customer Management
       async createCustomer(params: CustomerDTO): Promise<Customer> {
         if (!params.referenceId) {
-          throw new Error('referenceId é obrigatório')
+          throw new Error("referenceId é obrigatório");
         }
         const newCustomer = await prisma.customer.create({
           data: {
@@ -200,8 +193,8 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             metadata: params.metadata,
             organizationId: params.referenceId,
           },
-        })
-        return mapCustomer(newCustomer)
+        });
+        return mapCustomer(newCustomer);
       },
 
       async updateCustomer(
@@ -218,34 +211,34 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               ? { metadata: params.metadata }
               : {}),
           },
-        })
-        return mapCustomer(updatedCustomer)
+        });
+        return mapCustomer(updatedCustomer);
       },
 
       async deleteCustomer(customerId: string): Promise<void> {
         await prisma.customer.delete({
           where: { id: customerId },
-        })
+        });
       },
 
       async listCustomers(
         search: DatabaseAdapterQueryParams<Customer>,
       ): Promise<Customer[]> {
-        const where = search?.where ? search.where : {}
+        const where = search?.where ? search.where : {};
         const orderBy = search?.orderBy
           ? { [search.orderBy]: search.orderDirection }
-          : {}
-        const limit = search?.limit || 10
-        const offset = search?.offset || 0
+          : {};
+        const limit = search?.limit || 10;
+        const offset = search?.offset || 0;
 
         const result = await prisma.customer.findMany({
           where,
           orderBy,
           take: limit,
           skip: offset,
-        })
+        });
 
-        return result as Customer[]
+        return result as Customer[];
       },
 
       async getPlanById(planId: string): Promise<Plan | null> {
@@ -256,9 +249,9 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           include: {
             prices: true,
           },
-        })
+        });
 
-        return plan as Plan | null
+        return plan as unknown as Plan | null;
       },
 
       async getPriceById(priceId: string): Promise<Price | null> {
@@ -271,11 +264,11 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               {
                 providerId: priceId,
               },
-            ]
+            ],
           },
-        })
+        });
 
-        return price as Price | null
+        return price as Price | null;
       },
 
       async getCustomerById(customerRefId: string): Promise<Customer | null> {
@@ -297,16 +290,11 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             subscriptions: {
               where: {
                 status: {
-                  in: [
-                    'active',
-                    'trialing',
-                    'past_due',
-                    'unpaid',
-                  ]
+                  in: ["active", "trialing", "past_due", "unpaid"],
                 },
               },
               orderBy: {
-                createdAt: 'desc',
+                createdAt: "desc",
               },
               include: {
                 price: {
@@ -317,11 +305,11 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               },
             },
           },
-        })
+        });
 
-        if (!result) return null
+        if (!result) return null;
 
-        const usage = await getCustomerUsageByRefId(result.id)
+        const usage = await getCustomerUsageByRefId(result.id);
 
         return {
           id: result.id,
@@ -360,7 +348,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             createdAt: result.subscriptions[0].createdAt,
             updatedAt: result.subscriptions[0].updatedAt,
           },
-        }
+        };
       },
 
       async createPrice(params: PriceDTO): Promise<Price> {
@@ -375,7 +363,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             intervalCount: params.intervalCount,
             metadata: params.metadata,
           },
-        })
+        });
 
         return {
           id: createdPrice.id,
@@ -390,7 +378,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           active: true,
           createdAt: createdPrice.createdAt,
           updatedAt: createdPrice.updatedAt,
-        }
+        };
       },
 
       async getCustomerActiveSubscription(
@@ -401,11 +389,11 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             customer: {
               organizationId: customerId,
             },
-            status: 'active',
+            status: "active",
           },
-        })
+        });
 
-        return subscription as Subscription | null
+        return subscription as Subscription | null;
       },
 
       // Plans and Prices
@@ -432,14 +420,12 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           include: {
             prices: true,
           },
-        })
+        });
 
-        return plan as Plan
+        return plan as unknown as Plan;
       },
 
       async updatePlan(params: Partial<PlanDTO>): Promise<Plan> {
-        
-
         const plan = await prisma.plan.update({
           where: {
             slug: params.slug,
@@ -450,9 +436,9 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             metadata: params.metadata,
             providerId: params.providerId as string,
           },
-        })
+        });
 
-        return plan as Plan
+        return plan as unknown as Plan;
       },
 
       async upsertPlan(options: PlanDTO): Promise<Plan> {
@@ -461,7 +447,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           where: {
             slug: options.slug,
           },
-        })
+        });
 
         if (existingPlan) {
           // Atualizar o plano existente
@@ -473,12 +459,12 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               metadata: options.metadata,
               providerId: options.providerId as string,
             },
-          })
+          });
 
           // Remover preços existentes
           await prisma.price.deleteMany({
             where: { planId: existingPlan.id },
-          })
+          });
 
           // Criar novos preços
           await prisma.price.createMany({
@@ -492,7 +478,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               intervalCount: price.intervalCount,
               metadata: price.metadata,
             })),
-          })
+          });
 
           // Buscar o plano atualizado com os preços
           const updatedPlan = await prisma.plan.findUnique({
@@ -500,9 +486,9 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             include: {
               prices: true,
             },
-          })
+          });
 
-          return updatedPlan as Plan
+          return updatedPlan as unknown as Plan;
         } else {
           // Criar um novo plano
           const plan = await prisma.plan.create({
@@ -527,9 +513,9 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             include: {
               prices: true,
             },
-          })
+          });
 
-          return plan as Plan
+          return plan as unknown as Plan;
         }
       },
 
@@ -537,18 +523,18 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
         await prisma.plan.update({
           where: { id: planId },
           data: { archived: true },
-        })
+        });
       },
 
       async listPlans(
         search: DatabaseAdapterQueryParams<Plan>,
       ): Promise<Plan[]> {
-        const where = search?.where ? search.where : {}
+        const where = search?.where ? search.where : {};
         const orderBy = search?.orderBy
           ? { [search.orderBy]: search.orderDirection }
-          : {}
-        const limit = search?.limit || 10
-        const offset = search?.offset || 0
+          : {};
+        const limit = search?.limit || 10;
+        const offset = search?.offset || 0;
 
         const result = await prisma.plan.findMany({
           where: where as any,
@@ -558,9 +544,9 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           include: {
             prices: true,
           },
-        })
+        });
 
-        return result as Plan[]
+        return result as unknown as Plan[];
       },
 
       async findPlanBySlug(slug: string): Promise<Plan | null> {
@@ -571,25 +557,25 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           include: {
             prices: true,
           },
-        })
+        });
 
-        return plan as Plan | null
+        return plan as unknown as Plan | null;
       },
 
       async getPlanByProviderId(providerId: string): Promise<Plan | null> {
         const plan = await prisma.plan.findFirst({
           where: { providerId },
           include: { prices: true },
-        })
-        return plan as Plan | null
+        });
+        return plan as unknown as Plan | null;
       },
 
       async getPlanBySlug(slug: string): Promise<Plan | null> {
         const plan = await prisma.plan.findFirst({
           where: { slug },
           include: { prices: true },
-        })
-        return plan as Plan | null
+        });
+        return plan as unknown as Plan | null;
       },
 
       async updatePrice(
@@ -607,7 +593,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             }),
             ...(params.metadata && { metadata: params.metadata }),
           },
-        })
+        });
 
         return {
           id: updatedPrice.id,
@@ -622,13 +608,13 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           active: true, // Default to true since Prisma schema doesn't have this field
           createdAt: updatedPrice.createdAt,
           updatedAt: updatedPrice.updatedAt,
-        }
+        };
       },
 
       async deletePrice(priceId: string): Promise<void> {
         await prisma.price.delete({
           where: { id: priceId },
-        })
+        });
       },
 
       // Subscriptions
@@ -641,20 +627,20 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             quantity: params.quantity,
             trialDays: params.trialDays,
             // @ts-expect-error
-            status: params.status ?? 'active',
+            status: params.status ?? "active",
             metadata: params.metadata,
             billingCycleAnchor: params.billingCycleAnchor,
             prorationBehavior: params.prorationBehavior,
           },
-        })
-        return subscription as Subscription
+        });
+        return subscription as Subscription;
       },
 
       async getSubscriptionById(
         subscriptionId: string,
       ): Promise<Subscription | null> {
         const subscription = await prisma.subscription.findFirst({
-          where: { 
+          where: {
             OR: [
               {
                 id: subscriptionId,
@@ -662,8 +648,8 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               {
                 providerId: subscriptionId,
               },
-            ]
-           },
+            ],
+          },
           include: {
             price: {
               include: {
@@ -671,9 +657,9 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
               },
             },
           },
-        })
+        });
 
-        return subscription as Subscription | null
+        return subscription as Subscription | null;
       },
 
       async updateSubscription(
@@ -689,10 +675,10 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             prorationBehavior: params?.prorationBehavior,
             metadata: params?.metadata,
             priceId: params?.priceId,
-            //@ts-expect-error - Expected
+            // @ts-expect-error - Expected
             status: params?.status,
           },
-        })
+        });
 
         return {
           id: subscription.id,
@@ -702,48 +688,48 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
           quantity: subscription.quantity || undefined,
           trialDays: subscription.trialDays || undefined,
           status: subscription.status as
-            | 'active'
-            | 'canceled'
-            | 'past_due'
-            | 'unpaid'
-            | 'trialing',
+            | "active"
+            | "canceled"
+            | "past_due"
+            | "unpaid"
+            | "trialing",
           metadata: subscription.metadata as Record<string, any> | undefined,
           billingCycleAnchor: subscription.billingCycleAnchor || undefined,
           prorationBehavior: subscription.prorationBehavior as
-            | 'create_prorations'
-            | 'none'
+            | "create_prorations"
+            | "none"
             | undefined,
-        }
+        };
       },
 
       async cancelSubscription(subscriptionId: string): Promise<void> {
         await prisma.subscription.update({
           where: { id: subscriptionId },
           data: {
-            status: 'canceled',
+            status: "canceled",
           },
-        })
+        });
       },
 
       async listSubscriptions(
         search: DatabaseAdapterQueryParams<Subscription>,
       ): Promise<Subscription[]> {
-        const where = search?.where ? search.where : {}
+        const where = search?.where ? search.where : {};
         const orderBy = search?.orderBy
           ? { [search.orderBy]: search.orderDirection }
-          : {}
-        const limit = search?.limit || 10
-        const offset = search?.offset || 0
+          : {};
+        const limit = search?.limit || 10;
+        const offset = search?.offset || 0;
 
         const result = await prisma.subscription.findMany({
           where,
           orderBy,
           take: limit,
           skip: offset,
-        })
+        });
 
-        return result as Subscription[]
+        return result as Subscription[];
       },
-    }
+    };
   },
-)
+);

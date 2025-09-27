@@ -74,11 +74,11 @@ export function CRMPanel() {
 
   // Buscar estatísticas do CRM
   const { data: stats, isLoading: loadingStats } =
-    api.chat.getCRMStats.useQuery()
+    (api.chat.getCRMStats as any).useQuery()
 
   // Buscar contatos por estágio
   const { data: contactsData, isLoading: loadingContacts } =
-    api.chat.listContacts.useQuery({
+    (api.chat.listContacts as any).useQuery({
       funnelStage: selectedStage || 'all',
       page: 1,
       limit: 100,

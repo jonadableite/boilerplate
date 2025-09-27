@@ -180,7 +180,7 @@ export default function WarmupPage() {
   // Parar aquecimento de uma instância específica
   const handleStopInstance = async (instanceName: string) => {
     try {
-      const result = await api.warmup.stopWarmup.mutate({
+      const result = await (api.warmup.stopWarmup as any).mutate({
         body: { instanceName },
       })
 
@@ -204,7 +204,7 @@ export default function WarmupPage() {
   // Parar todos os aquecimentos
   const handleStopAll = async () => {
     try {
-      const result = await api.warmup.stopAllWarmups.mutate()
+      const result = await (api.warmup.stopAllWarmups as any).mutate()
 
       console.log('[Warmup] Resposta da API (stop all):', result)
       toast.success('Todos os aquecimentos foram parados')

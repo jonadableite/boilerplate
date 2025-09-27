@@ -298,7 +298,7 @@ function BillingUpgradeModalUpgradeButton({
       return
     }
 
-    const response = await api.billing.createCheckoutSession.mutate({
+    const response = await (api.billing.createCheckoutSession as any).mutate({
       body: {
         plan: selectedPlan.slug,
         cycle: activePrice.interval,
@@ -365,7 +365,7 @@ function BillingUpgradeModalUpgradeButton({
 
 // Main component
 export function BillingUpgradeModal({ children }: PropsWithChildren) {
-  const plans = api.plan.findMany.useQuery()
+  const plans = (api.plan.findMany as any).query()
   const triggerRef = useRef<HTMLDivElement>(null)
 
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)

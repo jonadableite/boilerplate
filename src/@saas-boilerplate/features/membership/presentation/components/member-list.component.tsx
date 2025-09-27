@@ -35,7 +35,7 @@ export function MemberList({ members, onDelete }: MemberListProps) {
   const router = useRouter()
 
   const handleDelete = async (id: string) => {
-    await tryCatch(api.membership.delete.mutate({ params: { id } }))
+    await tryCatch((api.membership.delete as any).mutate({ params: { id } }))
     await onDelete?.(id)
 
     toast.success('Member removed successfully')

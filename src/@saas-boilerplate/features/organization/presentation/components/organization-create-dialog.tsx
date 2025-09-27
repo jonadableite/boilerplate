@@ -68,7 +68,9 @@ export function CreateOrganizationDialog({
   const dialogRef = useRef<HTMLDivElement>(null)
 
   // Mutation for creating a new organization
-  const createOrganizationMutation = api.organization.create.useMutation()
+  const createOrganizationMutation = (
+    api.organization.create as any
+  ).useMutation()
 
   // Form with Zod validation
   const form = useFormWithZod({
@@ -138,7 +140,7 @@ export function CreateOrganizationDialog({
    */
   const handleVerifySlug = async (slug: string) => {
     try {
-      const disponibility = await api.organization.verify.mutate({
+      const disponibility = await (api.organization.verify as any).mutate({
         body: { slug },
       })
 

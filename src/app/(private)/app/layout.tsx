@@ -15,7 +15,7 @@ export default async function Layout({ children }: PropsWithChildren) {
   const pathname = nextHeaders.get('x-pathname') || '/'
 
   // Business Rule: Get the current session
-  const session = await api.auth.getSession.query()
+  const session = await (api.auth.getSession as any).query()
 
   // Business Rule: If the user is not authenticated, redirect to the login page
   if (session.error || !session.data)

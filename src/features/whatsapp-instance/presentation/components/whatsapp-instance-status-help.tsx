@@ -25,7 +25,7 @@ export function WhatsAppInstanceStatusHelp({
   const handleSyncStatus = async () => {
     try {
       setIsSyncing(true)
-      await api.whatsAppInstances.syncStatus.mutate({
+      await (api.whatsAppInstances.syncStatus as any).mutate({
         params: { id: instanceId },
       })
       toast.success('Status sincronizado com sucesso!')
