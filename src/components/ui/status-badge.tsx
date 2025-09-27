@@ -26,7 +26,6 @@ export const StatusBadge = React.forwardRef<HTMLDivElement, StatusBadgeProps>(
   ({ status, label, className, ...props }, ref) => {
     return (
       <Badge
-        ref={ref}
         variant="outline"
         className={cn(
           'transition-colors duration-200',

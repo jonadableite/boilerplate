@@ -794,6 +794,78 @@ export const AIAgentFeatureProcedure = igniter.procedure({
           }
         },
 
+        // Listar todos os arquivos de conhecimento da organização
+        listOrganizationKnowledgeFiles: async (input: {
+          organizationId: string
+          limit?: number
+          offset?: number
+          search?: string
+        }) => {
+          try {
+            const where: any = {
+              organizationId: input.organizationId,
+            }
+
+            if (input.search) {
+              where.OR = [
+                { originalName: { contains: input.search, mode: 'insensitive' } },
+                { filename: { contains: input.search, mode: 'insensitive' } },
+              ]
+            }
+
+            const [files, total] = await Promise.all([
+              prisma.knowledgeFile.findMany({
+                where,
+                select: {
+                  id: true,
+                  filename: true,
+                  originalName: true,
+                  mimeType: true,
+                  size: true,
+                  status: true,
+                  createdAt: true,
+                  agentId: true,
+                  agent: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                  _count: {
+                    select: {
+                      chunks: true,
+                    },
+                  },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: input.limit || 20,
+                skip: input.offset || 0,
+              }),
+              prisma.knowledgeFile.count({ where }),
+            ])
+
+            return {
+              data: files,
+              pagination: {
+                total,
+                limit: input.limit || 20,
+                offset: input.offset || 0,
+                pages: Math.ceil(total / (input.limit || 20)),
+              },
+            }
+          } catch (error) {
+            const loggingService = getLoggingService()
+            await loggingService.logError({
+              agentId: undefined,
+              organizationId: input.organizationId,
+              message: 'Failed to list organization knowledge files',
+              error,
+            })
+
+            throw new AIAgentError('Failed to list organization knowledge files')
+          }
+        },
+
         // Deletar arquivo de conhecimento
         deleteKnowledgeFile: async (input: {
           fileId: string

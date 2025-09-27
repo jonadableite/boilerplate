@@ -102,7 +102,7 @@ const Header = React.forwardRef<
     ref={ref}
     variants={itemVariants}
     className={cn('flex items-center justify-between space-x-4', className)}
-    {...props}
+    {...(props as any)}
   >
     {children}
   </motion.div>
@@ -113,12 +113,11 @@ const Title = React.forwardRef<
   HTMLHeadingElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, children, ...props }, ref) => (
-  // @ts-expect-error - Error expected
   <motion.h3
     ref={ref}
     variants={itemVariants}
     className={cn('text-lg font-semibold', className)}
-    {...props}
+    {...(props as any)}
   >
     {children}
   </motion.h3>
@@ -129,12 +128,11 @@ const Action = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => (
-  // @ts-expect-error - Error expected
   <motion.div
     ref={ref}
     variants={itemVariants}
     className={cn('flex items-center space-x-2', className)}
-    {...props}
+    {...(props as any)}
   >
     {children}
   </motion.div>
@@ -192,7 +190,6 @@ const Item = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => (
-  // @ts-expect-error - Error expected
   <motion.div
     ref={ref}
     variants={itemVariants}
@@ -200,7 +197,7 @@ const Item = React.forwardRef<
       'rounded-lg border bg-card text-card-foreground shadow-sm',
       className,
     )}
-    {...props}
+    {...(props as any)}
   >
     {children}
   </motion.div>
@@ -211,12 +208,11 @@ const Footer = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => (
-  // @ts-expect-error - Error expected
   <motion.div
     ref={ref}
     variants={itemVariants}
     className={cn('mt-4 flex items-center justify-between', className)}
-    {...props}
+    {...(props as any)}
   >
     {children}
   </motion.div>

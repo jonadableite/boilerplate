@@ -15,6 +15,8 @@ interface MagicCardProps {
   gradientTo?: string
 }
 
+export type { MagicCardProps }
+
 export function MagicCard({
   children,
   className,

@@ -3,21 +3,31 @@
 import React, { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { 
-  Upload, 
-  FileText, 
-  Trash2, 
-  AlertCircle, 
+import {
+  Upload,
+  FileText,
+  Trash2,
+  AlertCircle,
   CheckCircle2,
   Loader2,
-  X
+  X,
 } from 'lucide-react'
-import { useKnowledgeUpload, type KnowledgeFile, type UploadProgress } from '../hooks/use-knowledge-upload'
+import {
+  useKnowledgeUpload,
+  type KnowledgeFile,
+  type UploadProgress,
+} from '../hooks/use-knowledge-upload'
 import { cn } from '@/utils/cn'
 
 interface KnowledgeUploadProps {
@@ -37,9 +47,12 @@ export function KnowledgeUpload({ agentId, className }: KnowledgeUploadProps) {
     isRemoving,
   } = useKnowledgeUpload(agentId)
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    uploadFiles(acceptedFiles)
-  }, [uploadFiles])
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      uploadFiles(acceptedFiles)
+    },
+    [uploadFiles],
+  )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -47,7 +60,8 @@ export function KnowledgeUpload({ agentId, className }: KnowledgeUploadProps) {
       'application/pdf': ['.pdf'],
       'text/plain': ['.txt'],
       'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        ['.docx'],
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isUploading,
@@ -63,8 +77,8 @@ export function KnowledgeUpload({ agentId, className }: KnowledgeUploadProps) {
             Upload de Arquivos de Conhecimento
           </CardTitle>
           <CardDescription>
-            Faça upload de documentos PDF, TXT, DOC ou DOCX para criar a base de conhecimento do agente.
-            Tamanho máximo: 10MB por arquivo.
+            Faça upload de documentos PDF, TXT, DOC ou DOCX para criar a base de
+            conhecimento do agente. Tamanho máximo: 10MB por arquivo.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,7 +89,7 @@ export function KnowledgeUpload({ agentId, className }: KnowledgeUploadProps) {
               isDragActive
                 ? 'border-primary bg-primary/5'
                 : 'border-muted-foreground/25 hover:border-muted-foreground/50',
-              isUploading && 'cursor-not-allowed opacity-50'
+              isUploading && 'cursor-not-allowed opacity-50',
             )}
           >
             <input {...getInputProps()} />
@@ -116,15 +130,23 @@ export function KnowledgeUpload({ agentId, className }: KnowledgeUploadProps) {
       {files.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Arquivos da Base de Conhecimento</CardTitle>
+            <CardTitle className="text-lg">
+              Arquivos da Base de Conhecimento
+            </CardTitle>
             <CardDescription>
-              {files.length} arquivo(s) • {files.reduce((total, file) => total + file.chunksCount, 0)} chunk(s) total
+              {files.length} arquivo(s) •{' '}
+              {files.reduce(
+                (total: number, file: KnowledgeFile) =>
+                  total + file.chunksCount,
+                0,
+              )}{' '}
+              chunk(s) total
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
-                {files.map((file) => (
+                {files.map((file: KnowledgeFile) => (
                   <KnowledgeFileItem
                     key={file.id}
                     file={file}
@@ -147,9 +169,12 @@ export function KnowledgeUpload({ agentId, className }: KnowledgeUploadProps) {
             <div className="text-center space-y-4">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
               <div className="space-y-2">
-                <h3 className="text-lg font-medium">Nenhum arquivo na base de conhecimento</h3>
+                <h3 className="text-lg font-medium">
+                  Nenhum arquivo na base de conhecimento
+                </h3>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Faça upload de documentos para que o agente possa usar essas informações nas respostas.
+                  Faça upload de documentos para que o agente possa usar essas
+                  informações nas respostas.
                 </p>
               </div>
             </div>
@@ -192,18 +217,18 @@ function UploadProgressItem({ progress }: { progress: UploadProgress }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {getStatusIcon()}
-          <span className="text-sm font-medium truncate">{progress.fileName}</span>
+          <span className="text-sm font-medium truncate">
+            {progress.fileName}
+          </span>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {getStatusText()}
-        </span>
+        <span className="text-xs text-muted-foreground">{getStatusText()}</span>
       </div>
-      <Progress 
-        value={progress.progress} 
+      <Progress
+        value={progress.progress}
         className={cn(
           'h-2',
           progress.status === 'error' && 'bg-red-100',
-          progress.status === 'completed' && 'bg-green-100'
+          progress.status === 'completed' && 'bg-green-100',
         )}
       />
     </div>
@@ -219,12 +244,12 @@ interface KnowledgeFileItemProps {
   getFileIcon: (type: string) => string
 }
 
-function KnowledgeFileItem({ 
-  file, 
-  onRemove, 
-  isRemoving, 
-  formatFileSize, 
-  getFileIcon 
+function KnowledgeFileItem({
+  file,
+  onRemove,
+  isRemoving,
+  formatFileSize,
+  getFileIcon,
 }: KnowledgeFileItemProps) {
   return (
     <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -235,11 +260,13 @@ function KnowledgeFileItem({
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>{formatFileSize(file.size)}</span>
             <span>{file.chunksCount} chunks</span>
-            <span>Processado em {new Date(file.processedAt).toLocaleDateString()}</span>
+            <span>
+              Processado em {new Date(file.processedAt).toLocaleDateString()}
+            </span>
           </div>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <Badge variant="secondary" className="text-xs">
           {file.type.split('/')[1].toUpperCase()}

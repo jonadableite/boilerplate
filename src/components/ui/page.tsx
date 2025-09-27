@@ -11,7 +11,7 @@ const pageVariants = {
     opacity: 1,
     transition: {
       duration: 0.4,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   },
 }
@@ -23,7 +23,7 @@ const headerVariants = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
     },
   },
 }
@@ -35,7 +35,7 @@ const bodyVariants = {
     y: 0,
     transition: {
       duration: 0.4,
-      ease: 'easeOut',
+      ease: 'easeOut' as const,
       delay: 0.2,
     },
   },
@@ -61,7 +61,6 @@ const PageWrapper = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   return (
     <PageContext.Provider value={{ className }}>
-      {/* @ts-expect-error - TODO: Fix this */}
       <motion.div
         ref={ref}
         variants={pageVariants}
@@ -71,7 +70,7 @@ const PageWrapper = React.forwardRef<
           'relative overflow-hidden bg-background dark:bg-secondary/30 flex flex-col w-full border rounded-md shadow-md min-h-[calc(100vh_-_5rem)] md:min-h-[calc(100vh_-_2rem)] !max-w-[100vw]',
           className,
         )}
-        {...props}
+        {...(props as any)}
       >
         {children}
       </motion.div>
@@ -84,7 +83,6 @@ const PageHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  // @ts-expect-error - TODO: Fix this
   <motion.div
     ref={ref}
     variants={headerVariants}
@@ -94,7 +92,7 @@ const PageHeader = React.forwardRef<
       'flex h-10 items-center gap-4 border-b px-6 sticky top-0 bg-secondary/50 backdrop-blur-sm z-10',
       className,
     )}
-    {...props}
+    {...(props as any)}
   />
 ))
 PageHeader.displayName = 'PageHeader'
@@ -127,14 +125,13 @@ const PageSecondaryHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  // @ts-expect-error - TODO: Fix this
   <motion.div
     ref={ref}
     variants={headerVariants}
     initial="hidden"
     animate="visible"
     className={cn('flex items-center gap-2 px-6 py-2 border-b', className)}
-    {...props}
+    {...(props as any)}
   />
 ))
 PageSecondaryHeader.displayName = 'PageSecondaryHeader'
@@ -143,14 +140,13 @@ const PageBody = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  // @ts-expect-error - TODO: Fix this
   <motion.div
     ref={ref}
     variants={bodyVariants}
     initial="hidden"
     animate="visible"
     className={cn('flex-1 p-6 h-full flex flex-col flex-grow', className)}
-    {...props}
+    {...(props as any)}
   />
 ))
 PageBody.displayName = 'PageBody'
@@ -159,7 +155,6 @@ const PageActions = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  // @ts-expect-error - TODO: Fix this
   <motion.div
     ref={ref}
     initial={{ opacity: 0, y: 20 }}
@@ -168,7 +163,7 @@ const PageActions = React.forwardRef<
       y: 0,
       transition: {
         duration: 0.4,
-        ease: 'easeOut',
+        ease: 'easeOut' as const,
         delay: 0.3,
       },
     }}
@@ -176,7 +171,7 @@ const PageActions = React.forwardRef<
       'flex h-14 items-center justify-end gap-4 border-t px-6',
       className,
     )}
-    {...props}
+    {...(props as any)}
   />
 ))
 PageActions.displayName = 'PageActions'
