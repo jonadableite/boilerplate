@@ -206,6 +206,7 @@ export class WarmupService {
     const timer = setInterval(async () => {
       if (this.stop) {
         clearInterval(timer);
+        this.activeInstances.delete(instanceName);
         return;
       }
 
@@ -238,7 +239,7 @@ export class WarmupService {
       }
     }, 1000);
 
-    this.activeInstances.set(instanceName, timer);
+    this.activeInstances.set(instanceName, timer as NodeJS.Timeout);
   }
 
   /**

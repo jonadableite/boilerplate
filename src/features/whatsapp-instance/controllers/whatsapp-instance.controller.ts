@@ -30,39 +30,25 @@ export const WhatsAppInstanceController = igniter.controller({
         sortOrder: z.enum(["asc", "desc"]).optional(),
       }),
       handler: async ({ request, response, context }) => {
-        // Valida sessão e requer organização ativa
         const session = await context.auth.getSession({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
         const result = await context.whatsAppInstance.list({
           organizationId: session.organization.id,
-          ...request.query,
+          status: request.query.status,
+          search: request.query.search,
+          page: request.query.page,
+          limit: request.query.limit,
+          sortBy: request.query.sortBy,
+          sortOrder: request.query.sortOrder,
         });
 
-        // Map status from Prisma enum to local InstanceConnectionStatus
-        const mappedData = result.data.map(
-          (instance: {
-            status: InstanceConnectionStatus;
-            metadata: string | Record<string, any> | null;
-          }) => ({
-            ...instance,
-            status: instance.status as InstanceConnectionStatus,
-            metadata:
-              typeof instance.metadata === "string"
-                ? (JSON.parse(instance.metadata) as Record<string, any>)
-                : (instance.metadata as Record<string, any> | null),
-          }),
-        );
-
-        return response.success<WhatsAppInstanceListResponse>({
-          ...result,
-          data: mappedData,
-        });
+        return response.success(result);
       },
     }),
 
@@ -77,18 +63,18 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
-        const instance = await context.whatsAppInstance.create({
+        const result = await context.whatsAppInstance.create({
           ...request.body,
           organizationId: session.organization.id,
           userId: session.user.id,
           createdById: session.user.id,
         });
 
-        return response.created(instance);
+        return response.success(result);
       },
     }),
 
@@ -102,20 +88,20 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
-        await context.whatsAppInstance.delete({
+        const result = await context.whatsAppInstance.delete({
           id: request.params.id,
           organizationId: session.organization.id,
         });
 
-        return response.noContent();
+        return response.success(result);
       },
     }),
 
-    // Atualizar status/reconectar
+    // Atualizar instância
     update: igniter.mutation({
       method: "PATCH",
       path: "/:id" as const,
@@ -129,21 +115,21 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
-        const instance = await context.whatsAppInstance.update({
+        const result = await context.whatsAppInstance.update({
           id: request.params.id,
           organizationId: session.organization.id,
           ...request.body,
         });
 
-        return response.success(instance);
+        return response.success(result);
       },
     }),
 
-    // Sincronizar status com Evolution API
+    // Sincronizar status de uma instância
     syncStatus: igniter.mutation({
       method: "POST",
       path: "/:id/sync" as const,
@@ -153,20 +139,20 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
-        const updatedInstance = await context.whatsAppInstance.syncStatus({
+        const result = await context.whatsAppInstance.syncStatus({
           id: request.params.id,
           organizationId: session.organization.id,
         });
 
-        return response.success(updatedInstance);
+        return response.success(result);
       },
     }),
 
-    // Sincronizar todas as instâncias com Evolution API
+    // Sincronizar todas as instâncias
     syncAll: igniter.mutation({
       method: "POST",
       path: "/sync-all" as const,
@@ -176,23 +162,19 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
-        const updatedInstances =
-          await context.whatsAppInstance.syncAllInstances(
-            session.organization.id,
-          );
+        const result = await context.whatsAppInstance.syncAllInstances(
+          session.organization.id,
+        );
 
-        return response.success({
-          message: `${updatedInstances.length} instâncias sincronizadas`,
-          data: updatedInstances,
-        });
+        return response.success(result);
       },
     }),
 
-    // Obter contadores/stats
+    // Estatísticas das instâncias
     stats: igniter.query({
       method: "GET",
       path: "/stats",
@@ -202,19 +184,19 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
-        const stats = await context.whatsAppInstance.getStats(
+        const result = await context.whatsAppInstance.getStats(
           session.organization.id,
         );
 
-        return response.success(stats);
+        return response.success(result);
       },
     }),
 
-    // Configurar proxy para instância
+    // Configurar proxy
     setProxy: igniter.mutation({
       method: "POST",
       path: "/:id/proxy" as const,
@@ -225,8 +207,8 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
         const result = await context.whatsAppInstance.setProxy({
@@ -239,7 +221,7 @@ export const WhatsAppInstanceController = igniter.controller({
       },
     }),
 
-    // Obter configuração de proxy da instância
+    // Obter configuração de proxy
     getProxy: igniter.query({
       method: "GET",
       path: "/:id/proxy" as const,
@@ -249,8 +231,8 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
         const result = await context.whatsAppInstance.getProxy({
@@ -262,7 +244,7 @@ export const WhatsAppInstanceController = igniter.controller({
       },
     }),
 
-    // Conectar instância e obter QR Code
+    // Conectar instância
     connect: igniter.mutation({
       method: "POST",
       path: "/:id/connect" as const,
@@ -272,8 +254,8 @@ export const WhatsAppInstanceController = igniter.controller({
           requirements: "authenticated",
         });
 
-        if (!session?.organization) {
-          return response.unauthorized("Organização não selecionada");
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
         }
 
         const result = await context.whatsAppInstance.connectInstance({
@@ -285,5 +267,4 @@ export const WhatsAppInstanceController = igniter.controller({
       },
     }),
   },
-  name: "",
 });
