@@ -1,4 +1,21 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://docker:docker@postgres:5432/docker
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-secret-key-here
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - app-network
+
   postgres:
     image: postgres:latest
     environment:
@@ -9,6 +26,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
   minio:
     image: minio/minio:latest
@@ -21,6 +40,8 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -35,6 +56,12 @@ services:
     environment:
       MH_STORAGE: memory
       MH_CORS_ORIGIN: "*"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data: 
