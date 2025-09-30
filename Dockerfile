@@ -10,8 +10,8 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-# Use --force to resolve peer dependency conflicts automatically
-RUN npm ci --omit=dev --force
+# Use npm install with --force for better compatibility with complex dependency trees
+RUN npm install --only=production --force
 
 # Rebuild the source code only when needed
 FROM base AS builder
