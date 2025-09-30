@@ -85,7 +85,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       (socketRef.current.emit as any)(event, data);
     } else {
       console.warn("Socket não conectado. Tentando reconectar...");
-      connect()?.emit(event, data as Parameters<ClientToServerEvents[T]>[0]);
+      (connect()?.emit as any)(event, data);
     }
   };
 
