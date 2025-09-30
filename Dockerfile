@@ -10,8 +10,8 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-# Use npm install with --force for better compatibility with complex dependency trees
-RUN npm install --only=production --force
+# Use npm install with --force and exclude problematic native modules
+RUN npm install --only=production --force --ignore-scripts
 
 # Rebuild the source code only when needed
 FROM base AS builder
