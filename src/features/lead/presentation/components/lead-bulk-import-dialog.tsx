@@ -56,7 +56,7 @@ export function LeadBulkImportDialog({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const bulkImportMutation = (api.lead.bulkImport as any).useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result: ImportResult) => {
       setImportResult(result)
       setIsUploading(false)
       setUploadProgress(100)
@@ -362,7 +362,7 @@ export function LeadBulkImportDialog({
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-green-800">
-                        {importResult.successful}
+                        {importResult.success}
                       </p>
                       <p className="text-sm text-green-600 font-medium">
                         Leads criados
@@ -378,7 +378,7 @@ export function LeadBulkImportDialog({
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-yellow-800">
-                        {importResult.duplicates}
+                        {importResult.total - importResult.success - importResult.errors.length}
                       </p>
                       <p className="text-sm text-yellow-600 font-medium">
                         Duplicados ignorados
@@ -394,7 +394,7 @@ export function LeadBulkImportDialog({
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-red-800">
-                        {importResult.errors}
+                        {importResult.errors.length}
                       </p>
                       <p className="text-sm text-red-600 font-medium">
                         Erros encontrados
@@ -404,15 +404,15 @@ export function LeadBulkImportDialog({
                 </div>
               </div>
 
-              {importResult.errorDetails &&
-                importResult.errorDetails.length > 0 && (
+              {importResult.errors &&
+                importResult.errors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                     <h4 className="text-sm font-semibold text-red-800 mb-3 flex items-center">
                       <AlertTriangle className="h-4 w-4 mr-2" />
                       Detalhes dos Erros:
                     </h4>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {importResult.errorDetails.map((error, index) => (
+                      {importResult.errors.map((error, index) => (
                         <div
                           key={index}
                           className="text-xs text-red-700 bg-red-100 p-2 rounded-lg"

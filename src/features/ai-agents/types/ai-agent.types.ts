@@ -3,251 +3,326 @@ import {
   AIAgentMemory,
   KnowledgeChunk,
   OpenAICreds,
-} from '@prisma/client'
+} from "@prisma/client";
 
 // Tipos base do Prisma estendidos
 export type AIAgentWithRelations = AIAgent & {
   organization: {
-    id: string
-    name: string
-    slug: string
-  }
+    id: string;
+    name: string;
+    slug: string;
+  };
   createdBy: {
-    id: string
-    name: string
-    email: string
-  }
-  openaiCreds?: OpenAICreds | null
-  memories?: AIAgentMemory[]
-  knowledgeChunks?: KnowledgeChunk[]
-}
+    id: string;
+    name: string;
+    email: string;
+  };
+  openaiCreds?: OpenAICreds | null;
+  memories?: AIAgentMemory[];
+  knowledgeChunks?: KnowledgeChunk[];
+};
 
 // Tipos para criação e atualização
 export interface CreateAIAgentInput {
-  name: string
-  description?: string
-  type?: string
-  role?: string
-  goal?: string
-  systemPrompt: string
+  name: string;
+  description?: string;
+  type?: string;
+  role?: string;
+  goal?: string;
+  systemPrompt: string;
 
   // Configurações do modelo
-  model?: string
-  temperature?: number
-  maxTokens?: number
-  topP?: number
-  frequencyPenalty?: number
-  presencePenalty?: number
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
 
   // Base de conhecimento
-  knowledgeBaseId?: string
+  knowledgeBaseId?: string;
 
   // Configurações de segurança
-  enableContentFilter?: boolean
-  enablePiiDetection?: boolean
-  maxResponseLength?: number
-  allowedTopics?: string[]
-  blockedTopics?: string[]
+  enableContentFilter?: boolean;
+  enablePiiDetection?: boolean;
+  maxResponseLength?: number;
+  allowedTopics?: string[];
+  blockedTopics?: string[];
 
   // Configurações gerais
-  fallbackMessage?: string
-  isActive?: boolean
+  fallbackMessage?: string;
+  isActive?: boolean;
 
   // Credenciais OpenAI específicas
-  openaiCredsId?: string
+  openaiCredsId?: string;
 
   // Metadados
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>;
 }
 
 export interface UpdateAIAgentInput extends Partial<CreateAIAgentInput> {
-  id: string
+  id: string;
 }
 
 // Tipos para configuração do modelo
 export interface ModelConfig {
-  model: string
-  temperature: number
-  maxTokens: number
-  topP?: number
-  frequencyPenalty?: number
-  presencePenalty?: number
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
 }
 
 // Tipos para guardrails (segurança)
 export interface GuardrailConfig {
-  enableContentFilter: boolean
-  enablePiiDetection: boolean
-  maxResponseLength?: number
-  allowedTopics: string[]
-  blockedTopics: string[]
+  enableContentFilter: boolean;
+  enablePiiDetection: boolean;
+  maxResponseLength?: number;
+  allowedTopics: string[];
+  blockedTopics: string[];
 }
 
 // Configuração completa do agente para o engine
 export interface AgentConfig {
-  id: string
-  name: string
-  description?: string
-  type?: string
-  role?: string
-  goal?: string
-  systemPrompt: string
-  modelConfig: ModelConfig
-  knowledgeBaseId?: string
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  role?: string;
+  goal?: string;
+  systemPrompt: string;
+  modelConfig: ModelConfig;
+  knowledgeBaseId?: string;
   ttsConfig?: {
-    enabled: boolean
-    voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
-    model: 'tts-1' | 'tts-1-hd'
-    speed: number
-  }
-  guardrails?: GuardrailConfig
-  fallbackMessage?: string
-  isActive: boolean
-  organizationId: string
+    enabled: boolean;
+    voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
+    model: "tts-1" | "tts-1-hd";
+    speed: number;
+  };
+  guardrails?: GuardrailConfig;
+  fallbackMessage?: string;
+  isActive: boolean;
+  organizationId: string;
 }
 
 // Tipos para processamento de mensagens
 export interface ProcessMessageInput {
-  agentId: string
-  organizationId: string
-  sessionId: string
-  userMessage: string
+  agentId: string;
+  organizationId: string;
+  sessionId: string;
+  userMessage: string;
   context?: {
-    remoteJid?: string
-    instanceName?: string
-    messageId?: string
-    metadata?: Record<string, any>
-  }
+    remoteJid?: string;
+    instanceName?: string;
+    messageId?: string;
+    metadata?: Record<string, any>;
+  };
 }
 
 export interface ProcessMessageResult {
-  response: string
+  response: string;
   tokenUsage: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
-  conversationId: string
-  metadata?: Record<string, any>
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  conversationId: string;
+  metadata?: Record<string, any>;
 }
 
 // Tipos para memória do agente
 export interface AgentMemoryInput {
-  agentId: string
-  sessionId: string
-  organizationId: string
-  userMessage: string
-  assistantMessage: string
+  agentId: string;
+  sessionId: string;
+  organizationId: string;
+  userMessage: string;
+  assistantMessage: string;
   tokenUsage: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
-  metadata?: Record<string, any>
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  metadata?: Record<string, any>;
 }
 
 export interface ConversationHistoryInput {
-  agentId: string
-  sessionId: string
-  limit?: number
-  offset?: number
+  agentId: string;
+  sessionId: string;
+  limit?: number;
+  offset?: number;
 }
 
 // Tipos para RAG (Retrieval-Augmented Generation)
 export interface RAGRetrievalInput {
-  query: string
-  knowledgeBaseId: string
-  limit?: number
-  threshold?: number
+  query: string;
+  knowledgeBaseId: string;
+  limit?: number;
+  threshold?: number;
 }
 
 export interface RAGRetrievalResult {
-  id: string
-  content: string
-  score: number
-  metadata?: Record<string, any>
+  id: string;
+  content: string;
+  score: number;
+  metadata?: Record<string, any>;
 }
 
 // Tipos para validação de entrada
 export interface ValidateAgentInputResult {
-  isValid: boolean
-  errors: string[]
-  warnings?: string[]
+  isValid: boolean;
+  errors: string[];
+  warnings?: string[];
 }
 
 // Tipos para estatísticas do agente
 export interface AgentStats {
-  totalMessages: number
-  totalTokensUsed: number
-  averageResponseTime: number
-  successRate: number
-  lastActive?: Date
+  totalMessages: number;
+  totalTokensUsed: number;
+  averageResponseTime: number;
+  successRate: number;
+  lastActive?: Date;
 }
 
 // Tipos para listagem de agentes
 export interface ListAgentsInput {
-  organizationId: string
-  type?: string
-  isActive?: boolean
-  limit?: number
-  offset?: number
-  search?: string
+  organizationId: string;
+  type?: string;
+  isActive?: boolean;
+  limit?: number;
+  offset?: number;
+  search?: string;
 }
 
 export interface ListAgentsResult {
-  agents: AIAgentWithRelations[]
-  total: number
-  hasMore: boolean
+  agents: AIAgentWithRelations[];
+  total: number;
+  hasMore: boolean;
 }
 
 // Enums para tipos de agente
 export enum AIAgentType {
-  LLM_AGENT = 'LLM_AGENT',
-  CREW_AI = 'CREW_AI',
-  LANGGRAPH_WORKFLOW = 'LANGGRAPH_WORKFLOW',
-  GOOGLE_ADK = 'GOOGLE_ADK',
-  A2A_PROTOCOL = 'A2A_PROTOCOL',
-  MCP_SERVER = 'MCP_SERVER',
+  LLM_AGENT = "LLM_AGENT",
+  CREW_AI = "CREW_AI",
+  LANGGRAPH_WORKFLOW = "LANGGRAPH_WORKFLOW",
+  GOOGLE_ADK = "GOOGLE_ADK",
+  A2A_PROTOCOL = "A2A_PROTOCOL",
+  MCP_SERVER = "MCP_SERVER",
 }
 
 // Enums para tipos de memória
 export enum MemoryType {
-  SHORT_TERM = 'short_term',
-  LONG_TERM = 'long_term',
-  KNOWLEDGE_BASE = 'knowledge_base',
-  CONVERSATION = 'conversation',
+  SHORT_TERM = "short_term",
+  LONG_TERM = "long_term",
+  KNOWLEDGE_BASE = "knowledge_base",
+  CONVERSATION = "conversation",
 }
 
 // Enums para roles de mensagem
 export enum MessageRole {
-  USER = 'user',
-  ASSISTANT = 'assistant',
-  SYSTEM = 'system',
+  USER = "user",
+  ASSISTANT = "assistant",
+  SYSTEM = "system",
 }
 
 // Tipos para Evolution API integration
 export interface EvolutionAPIWebhookPayload {
-  instanceName: string
-  evolutionBotId?: string
-  remoteJid: string
+  instanceName: string;
+  evolutionBotId?: string;
+  remoteJid: string;
   message: {
-    id: string
-    content: string
-    type: string
-    timestamp: number
-  }
+    id: string;
+    content: string;
+    type: string;
+    timestamp: number;
+  };
   contact: {
-    name?: string
-    pushName?: string
-  }
-  metadata?: Record<string, any>
+    name?: string;
+    pushName?: string;
+  };
+  metadata?: Record<string, any>;
 }
 
 export interface EvolutionAPIResponse {
-  success: boolean
-  message: string
+  success: boolean;
+  message: string;
   data?: {
-    messageId: string
-    status: string
-  }
+    messageId: string;
+    status: string;
+  };
 }
+
+// Tipos para knowledge chunks
+export interface AddKnowledgeChunkInput {
+  agentId: string;
+  content: string;
+  metadata?: Record<string, any>;
+  source?: string;
+  tags?: string[];
+}
+
+export interface UpdateKnowledgeChunkInput {
+  id: string;
+  content?: string;
+  metadata?: Record<string, any>;
+  source?: string;
+  tags?: string[];
+}
+
+// Tipos para Evolution Bot
+export interface CreateEvolutionBotInput {
+  agentId: string;
+  instanceName: string;
+  config?: {
+    instanceName?: string;
+    apiUrl?: string;
+    apiKey?: string;
+    triggerType?: "all" | "keyword" | "mention";
+    triggerValue?: string;
+    expire?: number;
+    keywordFinish?: string;
+    delayMessage?: number;
+    unknownMessage?: string;
+    listeningFromMe?: boolean;
+    stopBotFromMe?: boolean;
+    keepOpen?: boolean;
+    debounceTime?: number;
+  };
+}
+
+export interface UpdateEvolutionBotInput {
+  evolutionBotId: string;
+  config?: {
+    instanceName?: string;
+    apiUrl?: string;
+    apiKey?: string;
+    triggerType?: "all" | "keyword" | "mention";
+    triggerValue?: string;
+    expire?: number;
+    keywordFinish?: string;
+    delayMessage?: number;
+    unknownMessage?: string;
+    listeningFromMe?: boolean;
+    stopBotFromMe?: boolean;
+    keepOpen?: boolean;
+    debounceTime?: number;
+  };
+}
+
+// Tipos para upload de documentos
+export interface UploadKnowledgeBaseDocumentInput {
+  organizationId: string;
+  agentId: string;
+  file: Buffer;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  metadata?: Record<string, any>;
+}
+
+export type KnowledgeFileStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "deleted";

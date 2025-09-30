@@ -21,7 +21,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@saas-boilerplate/igniter": ["./src/igniter"],
+      "@saas-boilerplate/features/*": ["./src/@saas-boilerplate/features/*"]
     }
   },
   "include": [

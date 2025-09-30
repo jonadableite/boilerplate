@@ -91,14 +91,14 @@ export const POST = async (req: NextRequest) => {
             "[Evolution Webhook] Mensagem processada via ChatProcedure:",
             {
               processed: result.processed,
-              messageId: result.message?.id,
-              conversationId: result.conversation?.id,
-              contactId: result.contact?.id,
+              messageId: (result as any).message?.id,
+              conversationId: (result as any).conversation?.id,
+              contactId: (result as any).contact?.id,
             },
           );
 
           // Processar mensagem com agentes AI se configurado
-          if (result.processed && result.message) {
+          if (result.processed && (result as any).message) {
             try {
               const aiProcessResponse = await fetch(
                 `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/ai-agents/process-message`,
@@ -110,14 +110,14 @@ export const POST = async (req: NextRequest) => {
                   body: JSON.stringify({
                     instanceName: instance.instanceName,
                     remoteJid: messageData.key.remoteJid,
-                    content: result.message.content,
-                    messageType: result.message.type,
-                    fromNumber: result.message.fromNumber,
+                    content: (result as any).message.content,
+                    messageType: (result as any).message.type,
+                    fromNumber: (result as any).message.fromNumber,
                     timestamp: messageData.messageTimestamp,
                     fromMe: messageData.key.fromMe || false,
                     organizationId: instance.organizationId,
-                    conversationId: result.conversation?.id,
-                    contactId: result.contact?.id,
+                    conversationId: (result as any).conversation?.id,
+                    contactId: (result as any).contact?.id,
                   }),
                 },
               );

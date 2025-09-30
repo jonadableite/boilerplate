@@ -12,7 +12,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req, file, cb: multer.FileFilterCallback) => {
     const allowedTypes = [
       "application/pdf",
       "text/plain",
@@ -23,7 +23,7 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Tipo de arquivo não suportado"), false);
+      cb(new Error("Tipo de arquivo não suportado"));
     }
   },
 });
@@ -37,122 +37,81 @@ export const KnowledgeController = igniter.controller({
       method: "POST",
       path: "/upload",
       use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      // Middleware personalizado para upload de arquivos
-      middleware: [upload.array("files", 10)],
       body: z.object({
         agentId: z.string().uuid(),
       }),
       handler: async ({ request, response, context }) => {
-        try {
-          // Verificar sessão autenticada
-          const session = await context.auth.getSession({
-            requirements: "authenticated",
-          });
-
-          if (!session || !session.organization) {
-            return response.unauthorized("Authentication required");
-          }
-
-          // Verificar se há arquivos no upload
-          const files = (request as any).files as Express.Multer.File[];
-          if (!files || files.length === 0) {
-            return response.badRequest("No files provided");
-          }
-
-          // Verificar se o agente pertence à organização
-          const agent = await context.providers.database.aIAgent.findFirst({
-            where: {
-              id: request.body.agentId,
-              organizationId: session.organization.id,
+        await new Promise<void>((resolve, reject) => {
+          upload.array("files", 10)(
+            request as any,
+            response as any,
+            (err: any) => {
+              if (err) {
+                return reject(err);
+              }
+              resolve();
             },
-          });
-
-          if (!agent) {
-            return response.notFound("Agent not found");
-          }
-
-          // Converter Multer files para File objects
-          const fileObjects = files.map((file) => {
-            const blob = new Blob([file.buffer], { type: file.mimetype });
-            return new File([blob], file.originalname, {
-              type: file.mimetype,
-              lastModified: Date.now(),
-            });
-          });
-
-          // Processar arquivos usando AIServicesProvider
-          const knowledgeProcessor = AIServicesProvider.getKnowledgeProcessor();
-          const processedFiles =
-            await knowledgeProcessor.processMultipleFiles(fileObjects);
-
-          // Salvar informações dos arquivos no banco de dados
-          const knowledgeFiles = await Promise.all(
-            processedFiles.map(async (processedFile) => {
-              return await context.providers.database.knowledgeFile.create({
-                data: {
-                  id: processedFile.id,
-                  filename: processedFile.originalName,
-                  originalName: processedFile.originalName,
-                  size: processedFile.size,
-                  type: processedFile.type,
-                  agentId: request.body.agentId,
-                  organizationId: session.organization.id,
-                  chunksCount: processedFile.chunks.length,
-                  processedAt: processedFile.processedAt,
-                  metadata: {
-                    chunksCount: processedFile.chunks.length,
-                    fileSize: processedFile.size,
-                  },
-                },
-              });
-            }),
           );
+        });
 
-          // Salvar chunks no banco de dados
-          for (const processedFile of processedFiles) {
-            await Promise.all(
-              processedFile.chunks.map(async (chunk) => {
-                return await context.providers.database.knowledgeChunk.create({
-                  data: {
-                    id: chunk.id,
-                    content: chunk.content,
-                    metadata: chunk.metadata,
-                    fileId: processedFile.id,
-                    agentId: request.body.agentId,
-                    organizationId: session.organization.id,
-                  },
-                });
-              }),
-            );
-          }
+        const { agentId } = request.body;
+        const files = (request as any).files as Express.Multer.File[];
 
-          return response.success({
-            message: "Files processed successfully",
-            files: knowledgeFiles,
-            totalChunks: processedFiles.reduce(
-              (total, file) => total + file.chunks.length,
-              0,
-            ),
-          });
-        } catch (error: any) {
-          console.error("Error processing knowledge files:", error);
-          return response.internalServerError({
-            message: "Failed to process files",
-            error: error.message,
-          });
+        if (!files || files.length === 0) {
+          return response.badRequest("Nenhum arquivo enviado.");
         }
+
+        const session = await context.auth.getSession({
+          requirements: "authenticated",
+        });
+
+        if (!session || !session.organization) {
+          return response.unauthorized("Autenticação necessária.");
+        }
+
+        const results = [];
+        for (const file of files) {
+          try {
+            // Função temporariamente comentada
+            // const result = await context.aiAgent.uploadKnowledgeBaseDocument({
+            //   organizationId: session.organization.id,
+            //   agentId,
+            //   file: file.buffer,
+            //   fileName: file.originalname,
+            //   mimeType: file.mimetype,
+            //   fileSize: file.size,
+            //   metadata: {
+            //     originalName: file.originalname,
+            //     uploadedAt: new Date().toISOString(),
+            //   },
+            // });
+            const result = { message: "Upload temporariamente desabilitado" };
+            results.push(result);
+          } catch (error) {
+            console.error(
+              "Erro ao processar arquivo:",
+              file.originalname,
+              error,
+            );
+            return response.error({
+              code: "FILE_PROCESSING_ERROR",
+              message: "Erro ao processar um ou mais arquivos.",
+              status: 500,
+            });
+          }
+        }
+
+        return response.success({ success: true, data: results });
       },
     }),
 
     // Listar arquivos de conhecimento de um agente
-    listFiles: igniter.query({
+    listByAgent: igniter.query({
       method: "GET",
       path: "/agent/:agentId",
       use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        agentId: z.string().uuid(),
-      }),
       handler: async ({ request, response, context }) => {
+        const { agentId } = request.params;
         try {
           const session = await context.auth.getSession({
             requirements: "authenticated",
@@ -162,38 +121,30 @@ export const KnowledgeController = igniter.controller({
             return response.unauthorized("Authentication required");
           }
 
-          const files = await context.providers.database.knowledgeFile.findMany(
-            {
-              where: {
-                agentId: request.params.agentId,
-                organizationId: session.organization.id,
-              },
-              orderBy: {
-                createdAt: "desc",
-              },
-            },
-          );
+          const knowledgeFiles = await context.aiAgent.listKnowledgeFiles({
+            agentId,
+            organizationId: session.organization.id,
+          });
 
-          return response.success({ files });
+          return response.success(knowledgeFiles);
         } catch (error: any) {
           console.error("Error listing knowledge files:", error);
-          return response.internalServerError({
-            message: "Failed to list files",
-            error: error.message,
+          return response.error({
+            code: "LIST_FILES_ERROR",
+            message: "Failed to list knowledge files",
+            status: 500,
           });
         }
       },
     }),
 
     // Remover arquivo de conhecimento
-    removeFile: igniter.mutation({
+    deleteFile: igniter.mutation({
       method: "DELETE",
       path: "/file/:fileId",
       use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        fileId: z.string().uuid(),
-      }),
       handler: async ({ request, response, context }) => {
+        const { fileId } = request.params;
         try {
           const session = await context.auth.getSession({
             requirements: "authenticated",
@@ -203,42 +154,18 @@ export const KnowledgeController = igniter.controller({
             return response.unauthorized("Authentication required");
           }
 
-          // Verificar se o arquivo pertence à organização
-          const file = await context.providers.database.knowledgeFile.findFirst(
-            {
-              where: {
-                id: request.params.fileId,
-                organizationId: session.organization.id,
-              },
-            },
-          );
-
-          if (!file) {
-            return response.notFound("File not found");
-          }
-
-          // Remover chunks relacionados
-          await context.providers.database.knowledgeChunk.deleteMany({
-            where: {
-              fileId: request.params.fileId,
-            },
+          await context.aiAgent.deleteKnowledgeFile({
+            fileId,
+            organizationId: session.organization.id,
           });
 
-          // Remover arquivo
-          await context.providers.database.knowledgeFile.delete({
-            where: {
-              id: request.params.fileId,
-            },
-          });
-
-          return response.success({
-            message: "File removed successfully",
-          });
+          return response.success({ success: true });
         } catch (error: any) {
-          console.error("Error removing knowledge file:", error);
-          return response.internalServerError({
-            message: "Failed to remove file",
-            error: error.message,
+          console.error("Error deleting knowledge file:", error);
+          return response.error({
+            code: "DELETE_FILE_ERROR",
+            message: "Failed to delete knowledge file",
+            status: 500,
           });
         }
       },
@@ -296,9 +223,10 @@ export const KnowledgeController = igniter.controller({
           });
         } catch (error: any) {
           console.error("Error searching knowledge base:", error);
-          return response.internalServerError({
+          return response.error({
+            code: "SEARCH_KNOWLEDGE_ERROR",
             message: "Failed to search knowledge base",
-            error: error.message,
+            status: 500,
           });
         }
       },

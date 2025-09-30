@@ -73,6 +73,9 @@ export const ChatController = igniter.controller({
         const contact = await context.chat.createContact({
           ...request.body,
           organizationId: session.organization.id,
+          status: request.body.status ?? ContactStatus.LEAD,
+          funnelStage: request.body.funnelStage ?? FunnelStage.NEW_LEAD,
+          tags: request.body.tags ?? [],
         })
 
         return response.created(contact)
@@ -212,6 +215,7 @@ export const ChatController = igniter.controller({
         const conversation = await context.chat.createConversation({
           ...request.body,
           organizationId: session.organization.id,
+          isGroup: request.body.isGroup ?? false,
         })
 
         return response.created(conversation)
@@ -346,6 +350,7 @@ export const ChatController = igniter.controller({
           messageData: {
             ...request.body,
             conversationId: request.params.conversationId,
+            type: request.body.type ?? MessageType.TEXT,
           },
           organizationId: session.organization.id,
           userId: session.user.id,
@@ -383,7 +388,11 @@ export const ChatController = igniter.controller({
           return response.success(result)
         } catch (error) {
           console.error('[Chat Controller] Erro no webhook:', error)
-          return response.internalServerError('Erro ao processar webhook')
+          return response.error({
+            code: "WEBHOOK_PROCESSING_ERROR",
+            message: "Erro ao processar webhook",
+            status: 500,
+          });
         }
       },
     }),
@@ -441,7 +450,7 @@ export const ChatController = igniter.controller({
           },
         })
 
-        const users = members.map(member => member.user)
+        const users = members.map((member: any) => member.user)
 
         return response.success(users)
       },
@@ -499,7 +508,7 @@ export const ChatController = igniter.controller({
           select: { tags: true },
         })
 
-        const allTags = contactsWithTags.flatMap(contact => contact.tags)
+        const allTags = contactsWithTags.flatMap((contact: any) => contact.tags)
         const uniqueTags = [...new Set(allTags)]
 
         // Buscar usuários para atribuição
@@ -516,7 +525,7 @@ export const ChatController = igniter.controller({
           },
         })
 
-        const users = members.map(member => ({
+        const users = members.map((member: any) => ({
           id: member.user.id,
           name: member.user.name,
           email: member.user.email,

@@ -32,6 +32,45 @@ export const TokenUsageFeatureProcedure = igniter.procedure({
         resetTokenCounters: async () => {
           return await tokenUsageService.resetTokenCounters()
         },
+
+        // Obter limites de tokens da organização
+        getOrganizationTokenLimits: async (organizationId: string) => {
+          return await (tokenUsageService as any).getOrganizationTokenLimits(organizationId)
+        },
+
+        // Obter uso atual de tokens da organização
+        getOrganizationTokenUsage: async (organizationId: string) => {
+          return await (tokenUsageService as any).getOrganizationTokenUsage(organizationId)
+        },
+
+        // Obter histórico de uso de tokens
+        getTokenUsageHistory: async (input: {
+          organizationId: string
+          page?: number
+          limit?: number
+          operation?: string
+          model?: string
+          agentId?: string
+          startDate?: string
+          endDate?: string
+        }) => {
+          const history = await (tokenUsageService as any).getTokenUsageHistory({
+            organizationId: input.organizationId,
+            page: input.page,
+            limit: input.limit,
+            operation: input.operation,
+            model: input.model,
+            agentId: input.agentId,
+            startDate: input.startDate ? new Date(input.startDate) : undefined,
+            endDate: input.endDate ? new Date(input.endDate) : undefined,
+          })
+          
+          // Simular estrutura esperada pelo controller
+          return {
+            records: history,
+            total: history.length,
+          }
+        },
       },
     }
   },

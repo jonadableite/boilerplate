@@ -334,7 +334,7 @@ export class CampaignSchedulerService {
   async getUpcomingExecutions(organizationId: string): Promise<Campaign[]> {
     try {
       const now = new Date()
-      return await prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: {
           organizationId,
           status: 'SCHEDULED',
@@ -346,6 +346,12 @@ export class CampaignSchedulerService {
           scheduledAt: 'asc',
         },
       })
+      
+      // Converter null para undefined para compatibilidade com o tipo Campaign
+      return campaigns.map(campaign => ({
+        ...campaign,
+        description: campaign.description ?? undefined,
+      })) as Campaign[]
     } catch (error) {
       console.error(
         '[CampaignScheduler] Erro ao buscar próximas execuções:',
@@ -363,7 +369,7 @@ export class CampaignSchedulerService {
     limit: number = 50,
   ): Promise<Campaign[]> {
     try {
-      return await prisma.campaign.findMany({
+      const campaigns = await prisma.campaign.findMany({
         where: {
           organizationId,
           status: {
@@ -375,6 +381,12 @@ export class CampaignSchedulerService {
         },
         take: limit,
       })
+      
+      // Converter null para undefined para compatibilidade com o tipo Campaign
+      return campaigns.map(campaign => ({
+        ...campaign,
+        description: campaign.description ?? undefined,
+      })) as Campaign[]
     } catch (error) {
       console.error(
         '[CampaignScheduler] Erro ao buscar histórico de execuções:',

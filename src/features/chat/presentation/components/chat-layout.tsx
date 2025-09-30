@@ -40,7 +40,7 @@ export function ChatLayout({
   )
 
   // Socket.IO para tempo real
-  const { isConnected, joinInbox, on, off } = useChatSocket()
+  const { isConnected, on, off } = useChatSocket()
 
   // Buscar conversas
   const {
@@ -71,8 +71,6 @@ export function ChatLayout({
   // Socket.IO: Entrar na inbox e escutar eventos
   useEffect(() => {
     if (isConnected) {
-      joinInbox()
-
       // Listener para novas mensagens
       const handleNewMessage = (data: {
         conversationId: string
@@ -105,12 +103,8 @@ export function ChatLayout({
       // Listener para novos contatos
       const handleNewContact = (data: {
         contactId: string
-        contact: {
-          id: string
-          name?: string
-          whatsappNumber: string
-          profilePicUrl?: string
-        }
+        name?: string
+        lastSeen?: string
       }) => {
         // Refetch contacts to update the list
         refetchContacts()
@@ -118,15 +112,15 @@ export function ChatLayout({
 
       on('message:received', handleNewMessage)
       on('conversation:updated', handleConversationUpdate)
-      on('contact:created', handleNewContact)
+      on('contact:updated', handleNewContact)
 
       return () => {
         off('message:received', handleNewMessage)
         off('conversation:updated', handleConversationUpdate)
-        off('contact:created', handleNewContact)
+        off('contact:updated', handleNewContact)
       }
     }
-  }, [isConnected, joinInbox, on, off, refetchConversations, refetchContacts])
+  }, [isConnected, on, off, refetchConversations, refetchContacts])
 
   const conversations = conversationsData?.data || []
   const contacts = contactsData?.data || []
@@ -210,7 +204,7 @@ export function ChatLayout({
                   <p>Nenhuma conversa encontrada</p>
                 </div>
               ) : (
-                conversations.map((conversation) => (
+                conversations.map((conversation: any) => (
                   <ConversationItem
                     key={conversation.id}
                     conversation={conversation}
@@ -239,7 +233,7 @@ export function ChatLayout({
                   <p>Nenhum contato encontrado</p>
                 </div>
               ) : (
-                contacts.map((contact) => (
+                contacts.map((contact: any) => (
                   <ContactItem key={contact.id} contact={contact} />
                 ))
               )}

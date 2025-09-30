@@ -327,14 +327,14 @@ export const LeadFeatureProcedure = igniter.procedure({
                 results.errors.push({
                   row: rowNumber,
                   message:
-                    error.message || "Erro desconhecido ao processar linha",
+                    (error instanceof Error ? error.message : String(error)) || "Erro desconhecido ao processar linha",
                 });
               }
             }
 
             return results;
           } catch (error) {
-            throw new Error(`Erro ao processar arquivo: ${error.message}`);
+            throw new Error(`Erro ao processar arquivo: ${error instanceof Error ? error.message : String(error)}`);
           }
         },
       },

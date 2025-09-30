@@ -67,47 +67,49 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
     }
   }
 
-
-
   /**
    * Process a file and extract knowledge chunks
    * @param filePath - Path to the file
    * @param originalName - Original filename
    * @returns Promise of processed knowledge file
    */
-  async processFile(filePath: string, originalName: string): Promise<ProcessedKnowledgeFile> {
+  async processFile(
+    filePath: string,
+    originalName: string,
+  ): Promise<ProcessedKnowledgeFile> {
     try {
       console.log(`Processing file: ${originalName}`);
-      
+
       // Validate file exists
       if (!fs.existsSync(filePath)) {
         throw new Error(`File not found: ${filePath}`);
       }
-      
+
       const fileStats = fs.statSync(filePath);
       const fileType = this.getFileType(originalName);
-      
+
       // Use factory pattern to get appropriate loader
       const loader = DocumentLoaderFactory.getLoader(fileType);
       if (!loader) {
         throw new Error(`Unsupported file type: ${fileType}`);
       }
-      
+
       // Load documents using the appropriate loader
       const documents = await loader.load(filePath);
       console.log(`Loaded ${documents.length} documents from ${originalName}`);
-      
+
       if (documents.length === 0) {
         throw new Error(`No content could be extracted from ${originalName}`);
       }
-      
+
       // Split documents into chunks using text splitter service
-      const splitDocs = await this.textSplitterService.splitDocuments(documents);
+      const splitDocs =
+        await this.textSplitterService.splitDocuments(documents);
       console.log(`Split into ${splitDocs.length} chunks`);
-      
+
       // Add documents to vector store
       await this.vectorStoreService.addDocuments(splitDocs);
-      
+
       // Create knowledge chunks with proper metadata
       const chunks: KnowledgeChunk[] = splitDocs.map((doc, index) => ({
         id: uuidv4(),
@@ -117,10 +119,10 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
           page: doc.metadata.page || undefined,
           chunk: index,
           totalChunks: splitDocs.length,
-          ...doc.metadata
-        }
+          ...doc.metadata,
+        },
       }));
-      
+
       const processedFile: ProcessedKnowledgeFile = {
         id: uuidv4(),
         filename: path.basename(filePath),
@@ -128,18 +130,21 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
         size: fileStats.size,
         type: fileType,
         chunks,
-        processedAt: new Date()
+        processedAt: new Date(),
       };
-      
+
       // Store processed file for future reference
       this.processedFiles.set(processedFile.id, processedFile);
-      
-      console.log(`Successfully processed ${originalName} with ${chunks.length} chunks`);
+
+      console.log(
+        `Successfully processed ${originalName} with ${chunks.length} chunks`,
+      );
       return processedFile;
-      
     } catch (error) {
       console.error(`Error processing file ${originalName}:`, error);
-      throw new Error(`Failed to process file ${originalName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to process file ${originalName}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -149,17 +154,17 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
   private getFileType(filename: string): string {
     const extension = path.extname(filename).toLowerCase();
     switch (extension) {
-      case '.pdf':
-        return 'application/pdf';
-      case '.txt':
-      case '.md':
-        return 'text/plain';
-      case '.docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      case '.doc':
-        return 'application/msword';
+      case ".pdf":
+        return "application/pdf";
+      case ".txt":
+      case ".md":
+        return "text/plain";
+      case ".docx":
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      case ".doc":
+        return "application/msword";
       default:
-        return 'application/octet-stream';
+        return "application/octet-stream";
     }
   }
 
@@ -169,33 +174,41 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
    * @param fileType - MIME type of the file
    * @returns Promise of loaded documents
    */
-  private async loadDocument(filePath: string, fileType: string): Promise<Document[]> {
+  private async loadDocument(
+    filePath: string,
+    fileType: string,
+  ): Promise<Document[]> {
     try {
-      const loaderFactory = new DocumentLoaderFactory();
-      const loader = loaderFactory.createLoader(filePath, fileType);
-      
+      const loader = DocumentLoaderFactory.getLoader(fileType);
+
       if (!loader) {
         throw new Error(`No loader available for file type: ${fileType}`);
       }
-      
-      const documents = await loader.load();
-      
+
+      const documents = await loader.load(filePath);
+
       if (!documents || documents.length === 0) {
         throw new Error(`No content could be extracted from file: ${filePath}`);
       }
-      
-      console.log(`Successfully loaded ${documents.length} documents from ${filePath}`);
+
+      console.log(
+        `Successfully loaded ${documents.length} documents from ${filePath}`,
+      );
       return documents;
     } catch (error) {
       console.error(`Error loading document from ${filePath}:`, error);
-      throw new Error(`Failed to load document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load document: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   /**
    * Process multiple files
    */
-  async processMultipleFiles(filePaths: string[]): Promise<ProcessedKnowledgeFile[]> {
+  async processMultipleFiles(
+    filePaths: string[],
+  ): Promise<ProcessedKnowledgeFile[]> {
     const results: ProcessedKnowledgeFile[] = [];
 
     for (const filePath of filePaths) {
@@ -221,53 +234,71 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
    * @param fileId - Optional file ID to search within
    * @returns Promise of relevant chunks
    */
-  async searchKnowledge(query: string, fileId?: string): Promise<KnowledgeChunk[]> {
+  async searchKnowledge(
+    query: string,
+    fileId?: string,
+  ): Promise<KnowledgeChunk[]> {
     try {
       if (!query || query.trim().length === 0) {
-        console.log('Empty query provided for knowledge search');
+        console.log("Empty query provided for knowledge search");
         return [];
       }
 
-      console.log(`Searching knowledge for query: "${query.substring(0, 50)}..."`);
-      
+      console.log(
+        `Searching knowledge for query: "${query.substring(0, 50)}..."`,
+      );
+
       if (fileId) {
         // Search within specific file
         const processedFile = this.processedFiles.get(fileId);
         if (!processedFile) {
           throw new Error(`Processed file not found for ID: ${fileId}`);
         }
-        
+
         // Use vector store service for similarity search
-        const results = await this.vectorStoreService.similaritySearch(query, 5);
+        const results = await this.vectorStoreService.similaritySearch(
+          query,
+          5,
+        );
         return this.convertToKnowledgeChunks(results, processedFile);
       } else {
         // Search across all processed files
         if (this.processedFiles.size === 0) {
-          console.log('No processed files available for search');
+          console.log("No processed files available for search");
           return [];
         }
-        
+
         // Use vector store service for global search
-        const results = await this.vectorStoreService.similaritySearch(query, 10);
+        const results = await this.vectorStoreService.similaritySearch(
+          query,
+          10,
+        );
         return this.convertToKnowledgeChunks(results);
       }
     } catch (error) {
       console.error(`Error searching knowledge:`, error);
-      throw new Error(`Failed to search knowledge: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to search knowledge: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
   /**
    * Convert search results to knowledge chunks
    */
-  private convertToKnowledgeChunks(results: Document[], processedFile?: ProcessedKnowledgeFile): KnowledgeChunk[] {
-    return results.map(doc => ({
+  private convertToKnowledgeChunks(
+    results: Document[],
+    processedFile?: ProcessedKnowledgeFile,
+  ): KnowledgeChunk[] {
+    return results.map((doc, index) => ({
       id: uuidv4(),
       content: doc.pageContent,
       metadata: {
-        source: processedFile?.originalName || doc.metadata.source || 'unknown',
-        ...doc.metadata
-      }
+        source: processedFile?.originalName || doc.metadata.source || "unknown",
+        page: doc.metadata.page || undefined,
+        chunk: index,
+        ...doc.metadata,
+      },
     }));
   }
 
@@ -290,15 +321,15 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
    */
   async clearProcessedFiles(): Promise<void> {
     try {
-      // Clear vector store
-      await this.vectorStoreService.clear();
-      
+      // Reset vector store (clear method doesn't exist, use reset instead)
+      this.vectorStoreService.reset();
+
       // Clear processed files map
       this.processedFiles.clear();
-      
-      console.log('All processed files cleared');
+
+      console.log("All processed files cleared");
     } catch (error) {
-      console.error('Error clearing processed files:', error);
+      console.error("Error clearing processed files:", error);
       throw error;
     }
   }
@@ -315,7 +346,7 @@ export class KnowledgeProcessorService implements IKnowledgeProcessor {
 
       // Remove from vector store (this would need to be implemented in VectorStoreService)
       // await this.vectorStoreService.removeDocuments(processedFile.chunks);
-      
+
       // Remove physical file
       const filePath = path.join(this.uploadDir, processedFile.filename);
       if (fs.existsSync(filePath)) {

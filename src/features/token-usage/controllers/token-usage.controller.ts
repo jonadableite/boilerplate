@@ -33,9 +33,6 @@ export const TokenUsageController = igniter.controller({
         try {
           const stats = await context.tokenUsage.getTokenUsageStats({
             organizationId: session.organization.id,
-            period: request.query.period,
-            startDate: request.query.startDate,
-            endDate: request.query.endDate,
           })
 
           return response.success({
@@ -43,7 +40,11 @@ export const TokenUsageController = igniter.controller({
           })
         } catch (error) {
           console.error('[TokenUsage Controller] Error getting stats:', error)
-          return response.internalServerError('Failed to get token usage stats')
+          return response.error({
+            code: "FAILED_TO_GET_TOKEN_USAGE_STATS",
+            message: "Failed to get token usage stats",
+            status: 500,
+          });
         }
       },
     }),
@@ -73,7 +74,11 @@ export const TokenUsageController = igniter.controller({
           })
         } catch (error) {
           console.error('[TokenUsage Controller] Error getting limits:', error)
-          return response.internalServerError('Failed to get token limits')
+          return response.error({
+            code: "FAILED_TO_GET_TOKEN_LIMITS",
+            message: "Failed to get token limits",
+            status: 500,
+          });
         }
       },
     }),
@@ -106,9 +111,11 @@ export const TokenUsageController = igniter.controller({
             '[TokenUsage Controller] Error getting current usage:',
             error,
           )
-          return response.internalServerError(
-            'Failed to get current token usage',
-          )
+          return response.error({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to get current token usage',
+            status: 500,
+          })
         }
       },
     }),
@@ -155,14 +162,16 @@ export const TokenUsageController = igniter.controller({
               page: request.query.page,
               limit: request.query.limit,
               total: history.total,
-              pages: Math.ceil(history.total / request.query.limit),
+              pages: Math.ceil(history.total / (request.query.limit || 50)),
             },
           })
         } catch (error) {
           console.error('[TokenUsage Controller] Error getting history:', error)
-          return response.internalServerError(
-            'Failed to get token usage history',
-          )
+          return response.error({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to get token usage history',
+            status: 500,
+          })
         }
       },
     }),
@@ -194,7 +203,11 @@ export const TokenUsageController = igniter.controller({
             '[TokenUsage Controller] Error resetting counters:',
             error,
           )
-          return response.internalServerError('Failed to reset token counters')
+          return response.error({
+            code: "FAILED_TO_RESET_TOKEN_COUNTERS",
+            message: "Failed to reset token counters",
+            status: 500,
+          });
         }
       },
     }),

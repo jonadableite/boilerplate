@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { api } from "@/igniter.client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface KnowledgeFile {
   id: string;
@@ -24,14 +25,18 @@ export interface UploadProgress {
 export function useKnowledgeUpload(agentId: string) {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const queryClient = useQueryClient();
 
   // Upload mutation
   const uploadMutation = (api.knowledge.upload as any).useMutation({
-    onSuccess: (data) => {
-      setUploadProgress((prev) => ({
-        ...prev,
-        [data.id]: { progress: 100, status: "completed" },
-      }));
+    onSuccess: (data: any) => {
+      setUploadProgress((prev) =>
+        prev.map((progress) =>
+          progress.fileId === data.id
+            ? { ...progress, progress: 100, status: "completed" as const }
+            : progress,
+        ),
+      );
 
       // Refresh knowledge files list
       queryClient.invalidateQueries({ queryKey: ["knowledge", agentId] });
@@ -39,22 +44,22 @@ export function useKnowledgeUpload(agentId: string) {
     onError: (error: any) => {
       console.error("Upload failed:", error);
       // Update progress to show error
-      Object.keys(uploadProgress).forEach((fileId) => {
-        if (uploadProgress[fileId].status === "uploading") {
-          setUploadProgress((prev) => ({
-            ...prev,
-            [fileId]: { progress: 0, status: "error" },
-          }));
-        }
-      });
+      setUploadProgress((prev) =>
+        prev.map((progress) =>
+          progress.status === "uploading"
+            ? { ...progress, progress: 0, status: "error" as const }
+            : progress,
+        ),
+      );
     },
   });
 
   // Query to get knowledge files
-  const { data: knowledgeFiles = [], isLoading } = (api.knowledge.list as any).useQuery(
-    agentId,
-    { enabled: !!agentId },
-  );
+  const {
+    data: knowledgeFiles = [],
+    isLoading,
+    refetch: refetchFiles,
+  } = (api.knowledge.list as any).useQuery(agentId, { enabled: !!agentId });
 
   // Remove file mutation
   const removeMutation = (api.knowledge.delete as any).useMutation({
@@ -164,7 +169,7 @@ export function useKnowledgeUpload(agentId: string) {
           prev.map((p) => ({
             ...p,
             progress: 100,
-            status: "completed",
+            status: "completed" as const,
           })),
         );
 
@@ -185,7 +190,7 @@ export function useKnowledgeUpload(agentId: string) {
         setUploadProgress((prev) =>
           prev.map((p) => ({
             ...p,
-            status: "error",
+            status: "error" as const,
             error: error.message,
           })),
         );

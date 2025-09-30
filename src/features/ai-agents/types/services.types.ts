@@ -61,6 +61,7 @@ export interface ClearConversationInput {
   agentId: string
   sessionId: string
   organizationId: string
+  olderThan?: Date
 }
 
 export interface ConversationMessage {
@@ -74,8 +75,10 @@ export interface ConversationMessage {
 export interface GetConversationHistoryInput {
   agentId: string
   sessionId: string
+  organizationId: string
   limit?: number
   offset?: number
+  includeMetadata?: boolean
 }
 
 export interface GetConversationHistoryResult {
@@ -85,24 +88,21 @@ export interface GetConversationHistoryResult {
 }
 
 // RAG Service Types
-export interface RetrieveRelevantChunksInput {
+export interface RAGRetrievalInput {
   query: string
-  knowledgeBaseId: string
+  agentId: string
   limit?: number
   threshold?: number
-  metadata?: Record<string, any>
 }
 
-export interface KnowledgeChunkResult {
-  id: string
-  content: string
-  score: number
-  sourceId: string
-  metadata?: Record<string, any>
-}
-
-export interface RetrieveRelevantChunksResult {
-  chunks: KnowledgeChunkResult[]
+export interface RAGRetrievalResult {
+  chunks: Array<{
+    id: string
+    content: string
+    score: number
+    sourceId: string
+    metadata?: Record<string, any>
+  }>
   totalFound: number
 }
 
@@ -117,6 +117,28 @@ export interface UpdateKnowledgeChunkInput {
   id: string
   content?: string
   metadata?: Record<string, any>
+}
+
+export interface RAGService {
+  retrieveRelevantChunks(input: RAGRetrievalInput): Promise<RAGRetrievalResult>
+  addKnowledgeChunk(input: AddKnowledgeChunkInput): Promise<string>
+  updateKnowledgeChunk(input: UpdateKnowledgeChunkInput): Promise<void>
+  deleteKnowledgeChunk(chunkId: string): Promise<void>
+  getKnowledgeChunks(input: {
+    agentId: string
+    sourceId?: string
+    limit?: number
+    offset?: number
+  }): Promise<{
+    chunks: Array<{
+      id: string
+      content: string
+      sourceId: string
+      metadata: Record<string, any> | null
+      createdAt: Date
+    }>
+    total: number
+  }>
 }
 
 // Guardrail Service Types

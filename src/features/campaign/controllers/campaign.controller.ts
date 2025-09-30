@@ -19,10 +19,21 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.create({
             ...request.body,
             organizationId: session.organization.id,
-            createdById: session.user.id,
+            createdBy: session.user.id,
+            type: request.body.type || 'IMMEDIATE', // Garantir que type não seja undefined
+            useInstanceRotation: request.body.useInstanceRotation ?? true, // Garantir que useInstanceRotation não seja undefined
+            timezone: request.body.timezone || 'America/Sao_Paulo', // Garantir que timezone não seja undefined
           })
 
           return response.success(result)
@@ -54,6 +65,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.list({
             organizationId: session.organization.id,
             ...request.query,
@@ -81,6 +100,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.getById({
             id: request.params.id,
             organizationId: session.organization.id,
@@ -96,10 +123,10 @@ export const CampaignController = igniter.controller({
 
           return response.success(result)
         } catch (error) {
-          console.error('[CampaignController] Erro ao obter campanha:', error)
+          console.error('[CampaignController] Erro ao buscar campanha:', error)
           return response.error({
             code: 'CAMPAIGN_GET_FAILED',
-            message: 'Erro ao obter campanha',
+            message: 'Erro ao buscar campanha',
             status: 500,
           })
         }
@@ -116,6 +143,14 @@ export const CampaignController = igniter.controller({
           const session = await context.auth.getSession({
             requirements: 'authenticated',
           })
+
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
 
           const result = await context.campaign.update({
             id: request.params.id,
@@ -145,6 +180,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           await context.campaign.delete({
             id: request.params.id,
             organizationId: session.organization.id,
@@ -171,6 +214,14 @@ export const CampaignController = igniter.controller({
           const session = await context.auth.getSession({
             requirements: 'authenticated',
           })
+
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
 
           const result = await context.campaign.pause({
             id: request.params.id,
@@ -199,6 +250,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.resume({
             id: request.params.id,
             organizationId: session.organization.id,
@@ -225,6 +284,14 @@ export const CampaignController = igniter.controller({
           const session = await context.auth.getSession({
             requirements: 'authenticated',
           })
+
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
 
           const result = await context.campaign.cancel({
             id: request.params.id,
@@ -262,6 +329,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.uploadLeads({
             campaignId: request.params.id,
             organizationId: session.organization.id,
@@ -293,6 +368,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.startDispatch({
             campaignId: request.params.id,
             organizationId: session.organization.id,
@@ -321,6 +404,14 @@ export const CampaignController = igniter.controller({
             requirements: 'authenticated',
           })
 
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
+
           const result = await context.campaign.getStats({
             id: request.params.id,
             organizationId: session.organization.id,
@@ -347,6 +438,14 @@ export const CampaignController = igniter.controller({
           const session = await context.auth.getSession({
             requirements: 'authenticated',
           })
+
+          if (!session?.organization) {
+            return response.error({
+              code: 'NO_ORGANIZATION',
+              message: 'Nenhuma organização ativa encontrada',
+              status: 400,
+            })
+          }
 
           const result = await context.campaign.getInstanceHealth({
             organizationId: session.organization.id,

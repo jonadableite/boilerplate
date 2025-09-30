@@ -73,13 +73,13 @@ export class RAGService implements IRAGService {
           return {
             id: chunk.id,
             content: chunk.content,
-            similarity,
-            metadata: chunk.metadata as Record<string, any> | null,
-            sourceId: chunk.sourceId,
+            score: similarity, // Usar score em vez de similarity
+            sourceId: chunk.fileId, // Usar fileId como sourceId
+            metadata: chunk.metadata as Record<string, any> | undefined, // metadata é opcional
           }
         })
-        .filter((chunk) => chunk !== null && chunk.similarity >= threshold)
-        .sort((a, b) => b!.similarity - a!.similarity)
+        .filter((chunk) => chunk !== null && chunk.score >= threshold)
+        .sort((a, b) => b!.score - a!.score)
         .slice(0, limit)
         .map((chunk) => chunk!)
 
@@ -139,9 +139,10 @@ export class RAGService implements IRAGService {
         data: {
           agentId,
           content,
-          sourceId,
+          fileId: sourceId, // Usar fileId em vez de sourceId
           embedding,
           metadata: metadata || {},
+          organizationId: agent.organizationId, // Adicionar organizationId obrigatório
         },
       })
 
@@ -170,7 +171,7 @@ export class RAGService implements IRAGService {
 
   async updateKnowledgeChunk(input: UpdateKnowledgeChunkInput): Promise<void> {
     try {
-      const { chunkId, content, metadata } = input
+      const { id: chunkId, content, metadata } = input
 
       // Buscar chunk existente
       const existingChunk = await prisma.knowledgeChunk.findUnique({
@@ -230,7 +231,7 @@ export class RAGService implements IRAGService {
         message: 'Failed to update knowledge chunk',
         error: error as Error,
         metadata: {
-          chunkId: input.chunkId,
+          chunkId: input.id,
         },
       })
       throw error
@@ -262,7 +263,7 @@ export class RAGService implements IRAGService {
         message: 'Deleted knowledge chunk',
         metadata: {
           chunkId,
-          sourceId: chunk.sourceId,
+          sourceId: chunk.fileId, // Usar fileId como sourceId
         },
       })
     } catch (error) {
@@ -301,7 +302,7 @@ export class RAGService implements IRAGService {
       }
 
       if (sourceId) {
-        where.sourceId = sourceId
+        where.fileId = sourceId // Usar fileId em vez de sourceId
       }
 
       const [chunks, total] = await Promise.all([
@@ -310,7 +311,7 @@ export class RAGService implements IRAGService {
           select: {
             id: true,
             content: true,
-            sourceId: true,
+            fileId: true, // Usar fileId em vez de sourceId
             metadata: true,
             createdAt: true,
           },
@@ -326,6 +327,7 @@ export class RAGService implements IRAGService {
       return {
         chunks: chunks.map((chunk) => ({
           ...chunk,
+          sourceId: chunk.fileId, // Mapear fileId para sourceId na resposta
           metadata: chunk.metadata as Record<string, any> | null,
         })),
         total,

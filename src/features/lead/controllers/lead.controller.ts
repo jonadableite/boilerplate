@@ -159,7 +159,7 @@ export const LeadController = igniter.controller({
           return response.success(result);
         } catch (error) {
           return response.badRequest(
-            error.message || "Erro ao processar arquivo",
+            (error instanceof Error ? error.message : String(error)) || "Erro ao processar arquivo",
           );
         }
       },

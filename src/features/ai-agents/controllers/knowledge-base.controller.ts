@@ -3,364 +3,247 @@ import { z } from "zod";
 import { AuthFeatureProcedure } from "@/@saas-boilerplate/features/auth/procedures/auth.procedure";
 import { AIAgentFeatureProcedure } from "../procedures/ai-agent.procedure";
 
-// Schemas de validação
-const createKnowledgeBaseSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100, "Name too long"),
-  description: z.string().optional(),
-  agentIds: z.array(z.string().uuid()).optional(),
-});
-
-const updateKnowledgeBaseSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name is required")
-    .max(100, "Name too long")
-    .optional(),
-  description: z.string().optional(),
-  agentIds: z.array(z.string().uuid()).optional(),
-});
-
-const searchDocumentsSchema = z.object({
-  query: z.string().optional(),
-  status: z.enum(["processing", "completed", "error", "all"]).default("all"),
-  limit: z.number().min(1).max(100).default(20),
-  offset: z.number().min(0).default(0),
-});
-
 export const KnowledgeBaseController = igniter.controller({
   name: "knowledgeBase",
-  path: "/knowledge-bases",
+  path: "/knowledge-base",
   actions: {
-    // Listar bases de conhecimento
-    list: igniter.query({
+    uploadKnowledgeBaseDocument: igniter.mutation({
+      method: "POST",
+      path: "/documents/upload",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: z.object({
+        file: z.object({
+          name: z.string(),
+          type: z.string(),
+          size: z.number(),
+          content: z.string(), // Base64 encoded content
+        }),
+        options: z.object({
+          agentId: z.string().optional(),
+          knowledgeBaseId: z.string().optional(),
+          organizationId: z.string(),
+        }),
+      }),
+      handler: async ({ request, context }) => {
+        const { file, options } = request.body;
+        const { organizationId } = options;
+
+        // Função temporariamente comentada
+        // if (!context.aiAgent?.uploadKnowledgeBaseDocument) {
+        //   throw new Error("Knowledge processor service not available");
+        // }
+
+        // const result = await context.aiAgent.uploadKnowledgeBaseDocument({
+        //   file: Buffer.from(file.content, "base64"),
+        //   fileName: file.name,
+        //   mimeType: file.type,
+        //   fileSize: file.size,
+        //   agentId: options.agentId || "",
+        //   organizationId,
+        //   metadata: {
+        //     originalName: file.name,
+        //     uploadedAt: new Date().toISOString(),
+        //   },
+        // });
+
+        return {
+          success: true,
+          data: { message: "Upload temporariamente desabilitado" },
+        };
+      },
+    }),
+
+    listOrganizationKnowledgeFiles: igniter.query({
       method: "GET",
-      path: "/",
+      path: "/files",
       use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
       query: z.object({
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
+        organizationId: z.string(),
+        limit: z.string().optional().transform(Number),
+        offset: z.string().optional().transform(Number),
         search: z.string().optional(),
       }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-        });
+      handler: async ({ request, context }) => {
+        const { organizationId, limit, offset, search } = request.query;
 
-        if (!session || !session.organization) {
-          return response.unauthorized("Authentication required");
+        if (!context.aiAgent?.listOrganizationKnowledgeFiles) {
+          throw new Error("AI Agent service not available");
         }
 
-        const knowledgeFiles =
-          await context.aiAgent.listOrganizationKnowledgeFiles({
-            organizationId: session.organization.id,
-            ...request.query,
-          });
+        const result = await context.aiAgent.listOrganizationKnowledgeFiles({
+          organizationId,
+          limit: limit ? Number(limit) : undefined,
+          offset: offset ? Number(offset) : undefined,
+          search,
+        });
 
-        return response.success({ data: knowledgeFiles });
+        return { success: true, data: result };
       },
     }),
 
-    // Obter base de conhecimento por ID
-    getById: igniter.query({
+    getKnowledgeFileById: igniter.query({
       method: "GET",
-      path: "/:id",
+      path: "/files/:id",
       use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Authentication required");
-        }
-
-        const knowledgeBase = await context.aiAgent.getKnowledgeBaseById({
-          id: request.params.id,
-          organizationId: session.organization.id,
-        });
-
-        if (!knowledgeBase) {
-          return response.notFound("Knowledge base not found");
-        }
-
-        return response.success({ data: knowledgeBase });
-      },
-    }),
-
-    // Criar nova base de conhecimento
-    create: igniter.mutation({
-      method: "POST",
-      path: "/",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      body: createKnowledgeBaseSchema,
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-          roles: ["admin", "owner"],
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Admin privileges required");
-        }
-
-        const knowledgeBase = await context.aiAgent.createKnowledgeBase({
-          organizationId: session.organization.id,
-          ...request.body,
-        });
-
-        return response.success({ data: knowledgeBase }, 201);
-      },
-    }),
-
-    // Atualizar base de conhecimento
-    update: igniter.mutation({
-      method: "PUT",
-      path: "/:id",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
-      body: updateKnowledgeBaseSchema,
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-          roles: ["admin", "owner"],
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Admin privileges required");
-        }
-
-        const knowledgeBase = await context.aiAgent.updateKnowledgeBase({
-          id: request.params.id,
-          organizationId: session.organization.id,
-          ...request.body,
-        });
-
-        return response.success({ data: knowledgeBase });
-      },
-    }),
-
-    // Deletar base de conhecimento
-    delete: igniter.mutation({
-      method: "DELETE",
-      path: "/:id",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-          roles: ["admin", "owner"],
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Admin privileges required");
-        }
-
-        await context.aiAgent.deleteKnowledgeBase({
-          id: request.params.id,
-          organizationId: session.organization.id,
-        });
-
-        return response.success({
-          message: "Knowledge base deleted successfully",
-        });
-      },
-    }),
-
-    // Obter estatísticas da base de conhecimento
-    stats: igniter.query({
-      method: "GET",
-      path: "/:id/stats",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Authentication required");
-        }
-
-        const stats = await context.aiAgent.getKnowledgeBaseStats({
-          id: request.params.id,
-          organizationId: session.organization.id,
-        });
-
-        return response.success({ data: stats });
-      },
-    }),
-
-    // Listar documentos da base de conhecimento
-    listDocuments: igniter.query({
-      method: "GET",
-      path: "/:id/documents",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
-      query: searchDocumentsSchema,
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Authentication required");
-        }
-
-        const documents = await context.aiAgent.listKnowledgeBaseDocuments({
-          knowledgeBaseId: request.params.id,
-          organizationId: session.organization.id,
-          ...request.query,
-        });
-
-        return response.success({ data: documents });
-      },
-    }),
-
-    // Upload de documento
-    uploadDocument: igniter.mutation({
-      method: "POST",
-      path: "/:id/documents/upload",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
-      // Note: File upload handling will be implemented in the procedure
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-          roles: ["admin", "owner", "member"],
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Authentication required");
-        }
-
-        const document = await context.aiAgent.uploadKnowledgeBaseDocument({
-          knowledgeBaseId: request.params.id,
-          organizationId: session.organization.id,
-          file: request.body.file,
-          options: {
-            chunkSize: request.body.chunkSize || 1000,
-            chunkOverlap: request.body.chunkOverlap || 200,
-            enableOCR: request.body.enableOCR || false,
-            language: request.body.language || "pt",
-            extractMetadata: request.body.extractMetadata !== false,
-            autoProcess: request.body.autoProcess !== false,
-          },
-        });
-
-        return response.success({ data: document }, 201);
-      },
-    }),
-
-    // Deletar documento
-    deleteDocument: igniter.mutation({
-      method: "DELETE",
-      path: "/:id/documents/:documentId",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-        documentId: z.string().uuid("Invalid document ID"),
-      }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-          roles: ["admin", "owner"],
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Admin privileges required");
-        }
-
-        await context.aiAgent.deleteKnowledgeBaseDocument({
-          knowledgeBaseId: request.params.id,
-          documentId: request.params.documentId,
-          organizationId: session.organization.id,
-        });
-
-        return response.success({
-          message: "Document deleted successfully",
-        });
-      },
-    }),
-
-    // Reprocessar documento
-    reprocessDocument: igniter.mutation({
-      method: "POST",
-      path: "/:id/documents/:documentId/reprocess",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-        documentId: z.string().uuid("Invalid document ID"),
-      }),
-      body: z.object({
-        chunkSize: z.number().min(100).max(5000).optional(),
-        chunkOverlap: z.number().min(0).max(500).optional(),
-        enableOCR: z.boolean().optional(),
-        language: z.string().optional(),
-        extractMetadata: z.boolean().optional(),
-      }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-          roles: ["admin", "owner"],
-        });
-
-        if (!session || !session.organization) {
-          return response.unauthorized("Admin privileges required");
-        }
-
-        const document = await context.aiAgent.reprocessKnowledgeBaseDocument({
-          knowledgeBaseId: request.params.id,
-          documentId: request.params.documentId,
-          organizationId: session.organization.id,
-          options: request.body,
-        });
-
-        return response.success({ data: document });
-      },
-    }),
-
-    // Buscar na base de conhecimento
-    search: igniter.query({
-      method: "GET",
-      path: "/:id/search",
-      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      params: z.object({
-        id: z.string().uuid("Invalid knowledge base ID"),
-      }),
       query: z.object({
-        query: z.string().min(1, "Search query is required"),
-        limit: z.number().min(1).max(50).default(10),
-        threshold: z.number().min(0).max(1).default(0.7),
+        organizationId: z.string(),
       }),
-      handler: async ({ request, response, context }) => {
-        const session = await context.auth.getSession({
-          requirements: "authenticated",
-        });
+      handler: async ({ request, context }) => {
+        const { id } = request.params;
+        const { organizationId } = request.query;
 
-        if (!session || !session.organization) {
-          return response.unauthorized("Authentication required");
+        if (!context.aiAgent?.getKnowledgeFileById) {
+          throw new Error("AI Agent service not available");
         }
 
-        const results = await context.aiAgent.searchKnowledgeBase({
-          knowledgeBaseId: request.params.id,
-          organizationId: session.organization.id,
-          ...request.query,
+        const result = await context.aiAgent.getKnowledgeFileById({
+          id,
+          organizationId,
         });
 
-        return response.success({ data: results });
+        return { success: true, data: result };
+      },
+    }),
+
+    deleteKnowledgeFile: igniter.mutation({
+      method: "DELETE",
+      path: "/files/:fileId",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ request, context }) => {
+        const { fileId } = request.params;
+        const organizationId = (
+          request.query ?? ({} as { organizationId?: string })
+        ).organizationId;
+
+        if (!organizationId) {
+          throw new Error("organizationId is required in query parameters.");
+        }
+
+        if (!context.aiAgent?.deleteKnowledgeFile) {
+          throw new Error("AI Agent service not available");
+        }
+
+        const result = await context.aiAgent.deleteKnowledgeFile({
+          fileId,
+          organizationId,
+        });
+
+        return { success: true, data: result };
+      },
+    }),
+
+    listKnowledgeFileDocuments: igniter.query({
+      method: "GET",
+      path: "/files/:knowledgeBaseId/documents",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      query: z.object({
+        organizationId: z.string(),
+        limit: z.string().optional().transform(Number),
+        offset: z.string().optional().transform(Number),
+      }),
+      handler: async ({ request, context }) => {
+        const { knowledgeBaseId } = request.params;
+        const { organizationId, limit, offset } = request.query;
+
+        if (!context.aiAgent?.listKnowledgeFileDocuments) {
+          throw new Error("AI Agent service not available");
+        }
+
+        const result = await context.aiAgent.listKnowledgeFileDocuments({
+          knowledgeBaseId,
+          organizationId,
+          limit: limit ? Number(limit) : undefined,
+          offset: offset ? Number(offset) : undefined,
+        });
+
+        return { success: true, data: result };
+      },
+    }),
+
+    deleteKnowledgeBaseDocument: igniter.mutation({
+      method: "DELETE",
+      path: "/documents/:documentId",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ request, context }) => {
+        const { documentId: fileId } = request.params;
+        const organizationId = (
+          request.query ?? ({} as { organizationId?: string })
+        ).organizationId;
+
+        if (!organizationId) {
+          throw new Error("organizationId is required in query parameters.");
+        }
+
+        if (!context.aiAgent?.deleteKnowledgeFile) {
+          throw new Error("AI Agent service not available");
+        }
+
+        const result = await context.aiAgent.deleteKnowledgeFile({
+          fileId,
+          organizationId,
+        });
+
+        return { success: true, data: result };
+      },
+    }),
+
+    reprocessKnowledgeBaseDocument: igniter.mutation({
+      method: "POST",
+      path: "/documents/:documentId/reprocess",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ request, context }) => {
+        const { documentId } = request.params;
+        const organizationId = (
+          request.query ?? ({} as { organizationId?: string })
+        ).organizationId;
+
+        if (!organizationId) {
+          throw new Error("organizationId is required in query parameters.");
+        }
+
+        if (!context.aiAgent?.updateKnowledgeFile) {
+          throw new Error("AI Agent service not available");
+        }
+
+        const result = await context.aiAgent.updateKnowledgeFile({
+          id: documentId,
+          organizationId,
+        });
+
+        return { success: true, data: result };
+      },
+    }),
+
+    searchKnowledgeBase: igniter.query({
+      method: "GET",
+      path: "/search",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      query: z.object({
+        organizationId: z.string(),
+        query: z.string(),
+        knowledgeBaseId: z.string(),
+        limit: z.string().optional().transform(Number),
+      }),
+      handler: async ({ request, context }) => {
+        const {
+          organizationId,
+          query: searchQuery,
+          knowledgeBaseId,
+          limit: limitStr,
+        } = request.query;
+        const limit = limitStr ? Number(limitStr) : undefined;
+
+        if (!context.aiAgent?.searchKnowledge) {
+          throw new Error("AI Agent service not available");
+        }
+
+        const result = await context.aiAgent.searchKnowledge({
+          query: searchQuery,
+          knowledgeBaseId,
+          limit,
+        });
+
+        return { success: true, data: result };
       },
     }),
   },

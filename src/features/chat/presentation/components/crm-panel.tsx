@@ -162,20 +162,20 @@ export function CRMPanel() {
             {FUNNEL_STAGES.map((stageConfig) => (
               <FunnelColumn
                 key={stageConfig.stage}
-                stage={stageConfig.stage}
+                stage={stageConfig.stage as FunnelStage}
                 name={stageConfig.name}
                 color={stageConfig.color}
                 description={stageConfig.description}
-                count={stats?.contacts.byFunnelStage[stageConfig.stage] || 0}
+                count={stats?.contacts.byFunnelStage[stageConfig.stage as FunnelStage] || 0}
                 contacts={contacts.filter(
-                  (c) => c.funnelStage === stageConfig.stage,
+                  (c: any) => c.funnelStage === stageConfig.stage,
                 )}
                 isSelected={selectedStage === stageConfig.stage}
                 onClick={() =>
                   setSelectedStage(
                     selectedStage === stageConfig.stage
                       ? null
-                      : stageConfig.stage,
+                      : (stageConfig.stage as FunnelStage),
                   )
                 }
               />
@@ -189,7 +189,7 @@ export function CRMPanel() {
         <div className="w-80 border-l border-border bg-muted/20">
           <ContactDetailsSidebar
             stage={selectedStage}
-            contacts={contacts.filter((c) => c.funnelStage === selectedStage)}
+            contacts={contacts.filter((c: any) => c.funnelStage === selectedStage)}
             onClose={() => setSelectedStage(null)}
           />
         </div>

@@ -37,7 +37,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const [isTyping, setIsTyping] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Socket.IO para tempo real
   const {
@@ -305,7 +305,7 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {messages.map((message, index) => (
+            {messages.map((message: any, index: number) => (
               <MessageBubble
                 key={message.id}
                 message={message}

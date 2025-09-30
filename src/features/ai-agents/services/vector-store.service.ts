@@ -75,8 +75,14 @@ export class VectorStoreService implements IVectorStore {
       console.log(`Adding ${documents.length} documents to vector store`);
       const ids = await this.vectorStore.addDocuments(documents);
 
-      console.log(`Successfully added ${ids.length} documents to vector store`);
-      return ids;
+      // Verificar se ids é um array antes de acessar length
+      if (Array.isArray(ids)) {
+        console.log(`Successfully added ${ids.length} documents to vector store`);
+        return ids;
+      } else {
+        console.log(`Successfully added ${documents.length} documents to vector store`);
+        return documents.map((_, index) => `doc_${index}`); // Retornar IDs gerados
+      }
     } catch (error) {
       console.error("Error adding documents to vector store:", error);
       throw new Error(

@@ -3,6 +3,23 @@ import { igniter } from '@/igniter'
 import { z } from 'zod'
 import { HealthAnalyzerProcedure } from '../procedures/health-analyzer.procedure'
 
+// Função auxiliar para calcular tendência
+function calculateTrend(history: any[]): 'IMPROVING' | 'DECLINING' | 'STABLE' {
+  if (history.length < 2) return 'STABLE'
+
+  const recent = history.slice(0, Math.ceil(history.length / 2))
+  const older = history.slice(Math.ceil(history.length / 2))
+
+  const recentAvg = recent.reduce((sum: number, h: any) => sum + h.healthScore, 0) / recent.length
+  const olderAvg = older.reduce((sum: number, h: any) => sum + h.healthScore, 0) / older.length
+
+  const diff = recentAvg - olderAvg
+
+  if (diff > 5) return 'IMPROVING'
+  if (diff < -5) return 'DECLINING'
+  return 'STABLE'
+}
+
 export const healthMonitorController = igniter.controller({
   name: 'health-monitor',
   path: '/health',
@@ -14,9 +31,6 @@ export const healthMonitorController = igniter.controller({
       method: 'POST',
       path: '/analyze/:instanceName',
       use: [AuthFeatureProcedure()],
-      params: z.object({
-        instanceName: z.string().min(1)
-      }),
       handler: async ({ request, response, context }) => {
         const auth = await context.auth.getSession({
           requirements: 'authenticated',
@@ -72,9 +86,6 @@ export const healthMonitorController = igniter.controller({
       method: 'GET',
       path: '/history/:instanceName',
       use: [AuthFeatureProcedure()],
-      params: z.object({
-        instanceName: z.string().min(1)
-      }),
       query: z.object({
         days: z.coerce.number().min(1).max(30).default(7),
         limit: z.coerce.number().min(1).max(100).default(20)
@@ -107,7 +118,7 @@ export const healthMonitorController = igniter.controller({
           }
 
           const endDate = new Date()
-          const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000)
+          const startDate = new Date(endDate.getTime() - (days || 7) * 24 * 60 * 60 * 1000)
 
           const history = await context.providers.database.healthMetrics.findMany({
             where: {
@@ -126,12 +137,12 @@ export const healthMonitorController = igniter.controller({
           const stats = {
             totalAnalyses: history.length,
             averageHealthScore: history.length > 0
-              ? history.reduce((sum, h) => sum + h.healthScore, 0) / history.length
+              ? history.reduce((sum: number, h: any) => sum + h.healthScore, 0) / history.length
               : 0,
             currentRiskLevel: history[0]?.riskLevel || 'UNKNOWN',
-            trend: this.calculateTrend(history),
-            bestScore: Math.max(...history.map(h => h.healthScore), 0),
-            worstScore: Math.min(...history.map(h => h.healthScore), 100)
+            trend: calculateTrend(history),
+            bestScore: Math.max(...history.map((h: any) => h.healthScore), 0),
+            worstScore: Math.min(...history.map((h: any) => h.healthScore), 100)
           }
 
           return response.success({
@@ -197,16 +208,16 @@ export const healthMonitorController = igniter.controller({
           const summary = {
             totalInstances: recentMetrics.length,
             averageHealthScore: recentMetrics.length > 0
-              ? recentMetrics.reduce((sum, m) => sum + m.healthScore, 0) / recentMetrics.length
+              ? recentMetrics.reduce((sum: number, m: any) => sum + m.healthScore, 0) / recentMetrics.length
               : 0,
             riskDistribution: {
-              LOW: recentMetrics.filter(m => m.riskLevel === 'LOW').length,
-              MEDIUM: recentMetrics.filter(m => m.riskLevel === 'MEDIUM').length,
-              HIGH: recentMetrics.filter(m => m.riskLevel === 'HIGH').length,
-              CRITICAL: recentMetrics.filter(m => m.riskLevel === 'CRITICAL').length
+              LOW: recentMetrics.filter((m: any) => m.riskLevel === 'LOW').length,
+              MEDIUM: recentMetrics.filter((m: any) => m.riskLevel === 'MEDIUM').length,
+              HIGH: recentMetrics.filter((m: any) => m.riskLevel === 'HIGH').length,
+              CRITICAL: recentMetrics.filter((m: any) => m.riskLevel === 'CRITICAL').length
             },
-            healthyInstances: recentMetrics.filter(m => m.healthScore >= 80).length,
-            criticalInstances: recentMetrics.filter(m => m.riskLevel === 'CRITICAL').length,
+            healthyInstances: recentMetrics.filter((m: any) => m.healthScore >= 80).length,
+            criticalInstances: recentMetrics.filter((m: any) => m.riskLevel === 'CRITICAL').length,
             lastAnalysis: recentMetrics[0]?.analyzedAt || null
           }
 
@@ -225,7 +236,7 @@ export const healthMonitorController = igniter.controller({
             success: true,
             data: {
               summary,
-              instances: recentMetrics.map(m => ({
+              instances: recentMetrics.map((m: any) => ({
                 instanceName: m.instanceName,
                 healthScore: m.healthScore,
                 riskLevel: m.riskLevel,
@@ -254,9 +265,6 @@ export const healthMonitorController = igniter.controller({
       method: 'GET',
       path: '/alerts/:instanceName',
       use: [AuthFeatureProcedure()],
-      params: z.object({
-        instanceName: z.string().min(1)
-      }),
       query: z.object({
         severity: z.enum(['INFO', 'WARNING', 'ERROR', 'CRITICAL']).optional(),
         limit: z.coerce.number().min(1).max(50).default(20)
@@ -309,10 +317,10 @@ export const healthMonitorController = igniter.controller({
 
           const alertStats = {
             total: alerts.length,
-            critical: alerts.filter(a => a.severity === 'CRITICAL').length,
-            errors: alerts.filter(a => a.severity === 'ERROR').length,
-            warnings: alerts.filter(a => a.severity === 'WARNING').length,
-            info: alerts.filter(a => a.severity === 'INFO').length
+            critical: alerts.filter((a: any) => a.severity === 'CRITICAL').length,
+            errors: alerts.filter((a: any) => a.severity === 'ERROR').length,
+            warnings: alerts.filter((a: any) => a.severity === 'WARNING').length,
+            info: alerts.filter((a: any) => a.severity === 'INFO').length
           }
 
           return response.success({
@@ -341,9 +349,6 @@ export const healthMonitorController = igniter.controller({
       method: 'POST',
       path: '/alerts/:alertId/resolve',
       use: [AuthFeatureProcedure()],
-      params: z.object({
-        alertId: z.string().min(1)
-      }),
       body: z.object({
         resolution: z.string().min(1).max(500)
       }),
@@ -424,9 +429,6 @@ export const healthMonitorController = igniter.controller({
       method: 'GET',
       path: '/recommendations/:instanceName',
       use: [AuthFeatureProcedure()],
-      params: z.object({
-        instanceName: z.string().min(1)
-      }),
       query: z.object({
         priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
         implemented: z.coerce.boolean().optional()
@@ -502,9 +504,6 @@ export const healthMonitorController = igniter.controller({
       method: 'POST',
       path: '/recommendations/:recommendationId/implement',
       use: [AuthFeatureProcedure()],
-      params: z.object({
-        recommendationId: z.string().min(1)
-      }),
       body: z.object({
         effectiveness: z.number().min(0).max(10).optional(),
         notes: z.string().max(500).optional()
@@ -578,22 +577,5 @@ export const healthMonitorController = igniter.controller({
         }
       },
     })
-  },
-
-  // Método auxiliar para calcular tendência
-  calculateTrend(history: any[]): 'IMPROVING' | 'DECLINING' | 'STABLE' {
-    if (history.length < 2) return 'STABLE'
-
-    const recent = history.slice(0, Math.ceil(history.length / 2))
-    const older = history.slice(Math.ceil(history.length / 2))
-
-    const recentAvg = recent.reduce((sum, h) => sum + h.healthScore, 0) / recent.length
-    const olderAvg = older.reduce((sum, h) => sum + h.healthScore, 0) / older.length
-
-    const diff = recentAvg - olderAvg
-
-    if (diff > 5) return 'IMPROVING'
-    if (diff < -5) return 'DECLINING'
-    return 'STABLE'
   }
 })

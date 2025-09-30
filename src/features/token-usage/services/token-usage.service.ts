@@ -208,12 +208,16 @@ export class TokenUsageService {
       include: {
         customer: {
           include: {
-            subscription: {
+            subscriptions: {
               include: {
-                plan: {
-                  select: {
-                    dailyTokenLimit: true,
-                    monthlyTokenLimit: true,
+                price: {
+                  include: {
+                    plan: {
+                      select: {
+                        dailyTokenLimit: true,
+                        monthlyTokenLimit: true,
+                      },
+                    },
                   },
                 },
               },
@@ -227,7 +231,7 @@ export class TokenUsageService {
       throw new Error(`Organization with id ${organizationId} not found`)
     }
 
-    const plan = organization.customer?.subscription?.plan
+    const plan = organization.customer?.subscriptions?.[0]?.price?.plan
 
     return {
       dailyTokenLimit: plan?.dailyTokenLimit || undefined,

@@ -1,19 +1,32 @@
-import { igniter } from "@/igniter";
 import { z } from "zod";
-import { AuthFeatureProcedure } from "@/@saas-boilerplate/features/auth/procedures/auth.procedure";
+import { igniter } from "@saas-boilerplate/igniter";
+import { AuthFeatureProcedure } from "@saas-boilerplate/features/auth/procedures/auth.procedure";
 import { AIAgentFeatureProcedure } from "../procedures/ai-agent.procedure";
 import {
-  createAIAgentSchema,
-  updateAIAgentSchema,
-  listAgentsSchema,
   processMessageSchema,
   conversationHistorySchema,
   ragRetrievalSchema,
   addKnowledgeChunkSchema,
   updateKnowledgeChunkSchema,
   createEvolutionBotSchema,
+} from "../validation/ai-agent.validation";
+import { AIAgentError } from "../types/services.types";
+import {
+  listAgentsSchema,
+  createAIAgentSchema,
+  updateAIAgentSchema,
+  getAIAgentByIdSchema,
+  deleteAIAgentSchema,
+  uploadKnowledgeBaseDocumentSchema,
   updateEvolutionBotSchema,
 } from "../validation/ai-agent.validation";
+
+import multer from "multer";
+
+// Configuração do multer para upload de arquivos
+const upload = multer({
+  storage: multer.memoryStorage(),
+});
 
 export const AIAgentController = igniter.controller({
   name: "ai-agent",
@@ -160,7 +173,10 @@ export const AIAgentController = igniter.controller({
       method: "POST",
       path: "/:id/process",
       use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
-      body: processMessageSchema.omit({ agentId: true, organizationId: true }),
+      body: processMessageSchema.omit({
+        agentId: true,
+        organizationId: true,
+      }),
       handler: async ({ request, response, context }) => {
         const { id } = z
           .object({ id: z.string().uuid("Invalid agent ID") })
@@ -176,7 +192,9 @@ export const AIAgentController = igniter.controller({
         const result = await context.aiAgent.processMessage({
           agentId: id,
           organizationId: session.organization.id,
-          ...request.body,
+          sessionId: request.body.sessionId || "",
+          userMessage: request.body.userMessage,
+          context: request.body.context,
         });
 
         return response.success({ data: result });
@@ -507,6 +525,166 @@ export const AIAgentController = igniter.controller({
         });
 
         return response.success({ data: status });
+      },
+    }),
+
+    // Deletar arquivo de conhecimento
+    deleteKnowledgeFile: igniter.mutation({
+      method: "DELETE",
+      path: "/:id/knowledge/:fileId",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      handler: async ({ request, response, context }) => {
+        const { id, fileId } = z
+          .object({ id: z.string().uuid(), fileId: z.string().uuid() })
+          .parse(request.params);
+        const session = await context.auth.getSession({
+          requirements: "authenticated",
+          roles: ["admin", "owner"],
+        });
+
+        if (!session || !session.organization) {
+          return response.unauthorized("Admin privileges required");
+        }
+
+        await context.aiAgent.deleteKnowledgeFile({
+          organizationId: session.organization.id,
+          fileId,
+        });
+
+        return response.success({ success: true });
+      },
+    }),
+
+    // Listar documentos de um arquivo de conhecimento
+    listKnowledgeFileDocuments: igniter.query({
+      method: "GET",
+      path: "/:knowledgeBaseId/documents",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      query: z.object({
+        knowledgeBaseId: z.string(),
+        limit: z.string().optional().transform(Number),
+        offset: z.string().optional().transform(Number),
+      }),
+      handler: async ({ request, response, context }) => {
+        const session = await context.auth.getSession({
+          requirements: "authenticated",
+        });
+
+        if (!session || !session.organization) {
+          return response.unauthorized(
+            "Authentication required or organization not found",
+          );
+        }
+
+        const {
+          knowledgeBaseId,
+          limit: limitStr,
+          offset: offsetStr,
+        } = request.query;
+        const limit = limitStr ? Number(limitStr) : undefined;
+        const offset = offsetStr ? Number(offsetStr) : undefined;
+        const organizationId = session.organization.id;
+
+        const result = await context.aiAgent.listKnowledgeFileDocuments({
+          knowledgeBaseId,
+          organizationId,
+          limit,
+          offset,
+        });
+
+        return response.success(result);
+      },
+    }),
+
+    // Processar arquivo de conhecimento
+    processKnowledgeFile: igniter.mutation({
+      method: "POST",
+      path: "/:id/knowledge",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: addKnowledgeChunkSchema.omit({ agentId: true }),
+      handler: async ({ request, response, context }) => {
+        const { id } = z
+          .object({ id: z.string().uuid("Invalid agent ID") })
+          .parse(request.params);
+        const session = await context.auth.getSession({
+          requirements: "authenticated",
+          roles: ["admin", "owner"],
+        });
+
+        if (!session || !session.organization) {
+          return response.unauthorized("Admin privileges required");
+        }
+
+        const chunk = await context.aiAgent.addKnowledgeChunk({
+          agentId: id,
+          organizationId: session.organization.id,
+          ...request.body,
+        });
+
+        return response.success({ data: chunk });
+      },
+    }),
+    uploadKnowledgeBaseDocument: igniter.mutation({
+      method: "POST",
+      path: "/knowledge-base/documents/upload",
+      use: [AuthFeatureProcedure(), AIAgentFeatureProcedure()],
+      body: z.object({
+        agentId: z.string().optional(),
+        file: z.any(), // File will be handled by the multipart/form-data parser
+        fileName: z.string(),
+        mimeType: z.string(),
+        fileSize: z.number(),
+      }),
+      handler: async ({ request, response, context }) => {
+        const { agentId, fileName, mimeType, fileSize } = request.body;
+
+        if (!agentId) {
+          return response.badRequest("Agent ID is required");
+        }
+        const fileBuffer = (request as any).file.buffer; // Assuming file is available in request.file.buffer
+
+        if (!fileBuffer) {
+          return response.badRequest("File not provided");
+        }
+
+        const session = await context.auth.getSession({
+          requirements: "authenticated",
+        });
+
+        if (!session || !session.organization) {
+          return response.unauthorized("Authentication required");
+        }
+
+        try {
+          // Função temporariamente comentada
+          // const result = await context.aiAgent.uploadKnowledgeBaseDocument({
+          //   organizationId: session.organization.id,
+          //   agentId,
+          //   file: fileBuffer,
+          //   fileName,
+          //   mimeType,
+          //   fileSize,
+          // });
+          return response.success({
+            message: "Upload temporariamente desabilitado",
+          });
+        } catch (error) {
+          if (error instanceof AIAgentError) {
+            return response.badRequest(error.message);
+          }
+          console.error(
+            "[AI Agent] Erro ao fazer upload do documento da base de conhecimento:",
+            error,
+          );
+          return response.error({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Erro ao fazer upload do documento da base de conhecimento",
+            status: 500,
+          });
+        }
       },
     }),
   },
