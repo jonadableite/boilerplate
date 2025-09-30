@@ -70,11 +70,9 @@ export function WhatsAppInstanceQrModal({
 
     try {
       setIsRefreshing(true)
-      const result = await api.whatsAppInstances.list.query({
-        query: {
-          search: currentInstance.instanceName,
-          limit: 1,
-        },
+      const result = await (api.whatsAppInstances.list as any).query({
+        search: currentInstance.instanceName,
+        limit: 1,
       })
 
       if (result.data && result.data.data.length > 0) {

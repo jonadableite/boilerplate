@@ -1,7 +1,7 @@
-import { KnowledgeProcessorService } from '../features/ai-agents/services/knowledge-processor.service';
-import { TTSService } from '../features/ai-agents/services/tts.service';
-import { TextSplitterService } from '../features/ai-agents/services/text-splitter.service';
-import { VectorStoreService } from '../features/ai-agents/services/vector-store.service';
+import { KnowledgeProcessorService } from "../features/ai-agents/services/knowledge-processor.service";
+import { TTSService } from "../features/ai-agents/services/tts.service";
+import { TextSplitterService } from "../features/ai-agents/services/text-splitter.service";
+import { VectorStoreService } from "../features/ai-agents/services/vector-store.service";
 
 /**
  * AI Services Provider following IgniterJS patterns
@@ -38,13 +38,14 @@ class AIServicesProvider {
    */
   static getKnowledgeProcessor(): KnowledgeProcessorService {
     if (!this.knowledgeProcessor) {
-      const textSplitter = this.getTextSplitterService();
-      const vectorStore = this.getVectorStoreService();
-      
-      this.knowledgeProcessor = new KnowledgeProcessorService(
-        textSplitter,
-        vectorStore
-      );
+      this.knowledgeProcessor = new KnowledgeProcessorService({
+        // Configuration object - the service will create its own instances internally
+        textSplitter: {
+          chunkSize: 0,
+          chunkOverlap: 0,
+        },
+        vectorStore: {},
+      });
     }
     return this.knowledgeProcessor;
   }

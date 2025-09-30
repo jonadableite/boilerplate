@@ -137,17 +137,17 @@ export function WhatsAppInstanceQuickConnect({
 
                       {instance.status ===
                         InstanceConnectionStatus.CONNECTING && (
-                          <div className="text-xs text-center text-muted-foreground">
-                            Criado há{' '}
-                            {Math.floor(
-                              (Date.now() -
-                                new Date(instance.createdAt).getTime()) /
+                        <div className="text-xs text-center text-muted-foreground">
+                          Criado há{' '}
+                          {Math.floor(
+                            (Date.now() -
+                              new Date(instance.createdAt).getTime()) /
                               1000 /
                               60,
-                            )}{' '}
-                            min
-                          </div>
-                        )}
+                          )}{' '}
+                          min
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

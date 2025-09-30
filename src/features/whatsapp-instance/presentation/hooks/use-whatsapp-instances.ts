@@ -54,15 +54,17 @@ export function useWhatsAppInstances(
 
   // Filtrar instâncias no frontend se necessário
   const filteredInstances =
-    query.data?.data?.filter((instance) => {
-      if (onlyConnected && includeConnecting) {
-        return (
-          instance.status === InstanceConnectionStatus.OPEN ||
-          instance.status === InstanceConnectionStatus.CONNECTING
-        );
-      }
-      return true;
-    }) || [];
+    query.data?.data?.filter(
+      (instance: { status: InstanceConnectionStatus }) => {
+        if (onlyConnected && includeConnecting) {
+          return (
+            instance.status === InstanceConnectionStatus.OPEN ||
+            instance.status === InstanceConnectionStatus.CONNECTING
+          );
+        }
+        return true;
+      },
+    ) || [];
 
   return {
     instances: filteredInstances,
@@ -73,13 +75,16 @@ export function useWhatsAppInstances(
     stats: {
       total: filteredInstances.length,
       connected: filteredInstances.filter(
-        (i) => i.status === InstanceConnectionStatus.OPEN,
+        (i: { status: InstanceConnectionStatus }) =>
+          i.status === InstanceConnectionStatus.OPEN,
       ).length,
       connecting: filteredInstances.filter(
-        (i) => i.status === InstanceConnectionStatus.CONNECTING,
+        (i: { status: InstanceConnectionStatus }) =>
+          i.status === InstanceConnectionStatus.CONNECTING,
       ).length,
       disconnected: filteredInstances.filter(
-        (i) => i.status === InstanceConnectionStatus.CLOSE,
+        (i: { status: InstanceConnectionStatus }) =>
+          i.status === InstanceConnectionStatus.CLOSE,
       ).length,
     },
   };

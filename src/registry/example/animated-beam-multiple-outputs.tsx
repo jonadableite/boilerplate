@@ -1,8 +1,8 @@
 'use client'
 
-import { forwardRef, useRef } from "react"
-import { cn } from "@/utils/cn"
-import { AnimatedBeam } from "@/components/magicui/animated-beam"
+import { forwardRef, useRef } from 'react'
+import { cn } from '@/utils/cn'
+import { AnimatedBeam } from '@/components/magicui/animated-beam'
 
 const Circle = forwardRef<
   HTMLDivElement,
@@ -12,7 +12,7 @@ const Circle = forwardRef<
     <div
       ref={ref}
       className={cn(
-        "z-10 flex size-12 items-center justify-center rounded-full border-2 bg-white p-3 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+        'z-10 flex size-12 items-center justify-center rounded-full border-2 bg-white p-3 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]',
         className,
       )}
     >
@@ -21,7 +21,7 @@ const Circle = forwardRef<
   )
 })
 
-Circle.displayName = "Circle"
+Circle.displayName = 'Circle'
 
 export default function AnimatedBeamMultipleOutputDemo({
   className,
@@ -40,7 +40,7 @@ export default function AnimatedBeamMultipleOutputDemo({
   return (
     <div
       className={cn(
-        "relative flex w-full max-w-[500px] items-center justify-center overflow-hidden rounded-lg border bg-background p-10 md:shadow-xl",
+        'relative flex w-full max-w-[500px] items-center justify-center overflow-hidden rounded-lg border bg-background p-10 md:shadow-xl',
         className,
       )}
       ref={containerRef}
@@ -251,10 +251,7 @@ const Icons = {
         fill="#ff4a00"
         d="M149.6 362.4v-75.1l-75.1-75.1v150.2h75.1zm0 0M362.4 149.6v75.1l75.1 75.1V149.6h-75.1zm0 0"
       />
-      <path
-        fill="#ff4a00"
-        d="M224.7 224.7h62.6v62.6h-62.6v-62.6zm0 0"
-      />
+      <path fill="#ff4a00" d="M224.7 224.7h62.6v62.6h-62.6v-62.6zm0 0" />
     </svg>
   ),
   user: () => (

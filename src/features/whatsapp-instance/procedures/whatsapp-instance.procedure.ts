@@ -1,13 +1,13 @@
 // src/features/whatsapp-instance/procedures/whatsapp-instance.procedure.ts
 /* eslint-disable prettier/prettier */
-import { igniter } from '@/igniter';
-import { Prisma } from '@prisma/client';
+import { igniter } from "@/igniter";
+import { Prisma } from "@prisma/client";
 import {
   type CreateWhatsAppInstanceDTO,
   InstanceConnectionStatus,
   type WhatsAppInstanceFilters,
   type WhatsAppInstanceStats,
-} from '../whatsapp-instance.types';
+} from "../whatsapp-instance.types";
 
 // Interface para Evolution API
 interface EvolutionApiService {
@@ -32,7 +32,7 @@ interface EvolutionApiService {
     enabled: boolean;
     host: string;
     port: string;
-    protocol: 'http' | 'https' | 'socks4' | 'socks5';
+    protocol: "http" | "https" | "socks4" | "socks5";
     username?: string;
     password?: string;
   }) => Promise<any>;
@@ -42,87 +42,105 @@ interface EvolutionApiService {
 
 // Implementação mock para client-side (nunca será executada)
 const createEvolutionApiService = (): EvolutionApiService => {
-  const isServer = typeof window === 'undefined';
+  const isServer = typeof window === "undefined";
 
   if (!isServer) {
     // No cliente, retorna funções que nunca serão executadas
     return {
-      createInstance: async () => { throw new Error('Só executável no servidor') },
-      getInstanceStatus: async () => { throw new Error('Só executável no servidor') },
-      deleteInstance: async () => { throw new Error('Só executável no servidor') },
-      restartInstance: async () => { throw new Error('Só executável no servidor') },
-      logoutInstance: async () => { throw new Error('Só executável no servidor') },
-      listInstances: async () => { throw new Error('Só executável no servidor') }, // Mock para listInstances
-      setProxy: async () => { throw new Error('Só executável no servidor') },
-      findProxy: async () => { throw new Error('Só executável no servidor') },
-      connectInstance: async () => { throw new Error('Só executável no servidor') }, // Mock para connectInstance
+      createInstance: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      getInstanceStatus: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      deleteInstance: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      restartInstance: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      logoutInstance: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      listInstances: async () => {
+        throw new Error("Só executável no servidor");
+      }, // Mock para listInstances
+      setProxy: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      findProxy: async () => {
+        throw new Error("Só executável no servidor");
+      },
+      connectInstance: async () => {
+        throw new Error("Só executável no servidor");
+      }, // Mock para connectInstance
     };
   }
 
   // No servidor, importa e usa o plugin real
   return {
     createInstance: async (data) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.createInstance.handler({
         config: {},
         input: {
           instanceName: data.instanceName,
           qrcode: data.qrcode ?? true, // Default para true se não fornecido
-          integration: data.integration ?? 'WHATSAPP-BAILEYS', // Default integration
+          integration: data.integration ?? "WHATSAPP-BAILEYS", // Default integration
         },
       });
     },
     getInstanceStatus: async (instanceName) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.connectionStatus.handler({
         config: {},
         input: { instanceName },
       });
     },
     deleteInstance: async (instanceName) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.deleteInstance.handler({
         config: {},
         input: { instanceName },
       });
     },
     restartInstance: async (instanceName) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.restartInstance.handler({
         config: {},
         input: { instanceName },
       });
     },
     logoutInstance: async (instanceName) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.logoutInstance.handler({
         config: {},
         input: { instanceName },
       });
     },
     listInstances: async () => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.listInstances.handler({
         config: {},
         input: {},
       });
     },
     setProxy: async (data) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.setProxy.handler({
         config: {},
         input: data,
       });
     },
     findProxy: async (data) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.findProxy.handler({
         config: {},
         input: data,
       });
     },
     connectInstance: async (instanceName) => {
-      const { evolutionApi } = await import('@/plugins/evolution-api.plugin');
+      const { evolutionApi } = await import("@/plugins/evolution-api.plugin");
       return await evolutionApi.actions.connectInstance.handler({
         config: {},
         input: { instanceName },
@@ -132,7 +150,7 @@ const createEvolutionApiService = (): EvolutionApiService => {
 };
 
 export const WhatsAppInstanceProcedure = igniter.procedure({
-  name: 'WhatsAppInstanceProcedure',
+  name: "WhatsAppInstanceProcedure",
   handler: async (_, { context }) => {
     return {
       whatsAppInstance: {
@@ -151,17 +169,19 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
           } = filters;
 
           // Garantir que page e limit sejam números
-          const pageNumber = typeof page === 'string' ? parseInt(page, 10) : page;
-          const limitNumber = typeof limit === 'string' ? parseInt(limit, 10) : limit;
+          const pageNumber =
+            typeof page === "string" ? parseInt(page, 10) : page;
+          const limitNumber =
+            typeof limit === "string" ? parseInt(limit, 10) : limit;
 
           // Constrói where clause do Prisma
           const where: Prisma.WhatsAppInstanceWhereInput = {
             organizationId,
-            ...(status && status !== 'all' && { status }),
+            ...(status && status !== "all" && { status }),
             ...(search && {
               OR: [
-                { instanceName: { contains: search, mode: 'insensitive' } },
-                { profileName: { contains: search, mode: 'insensitive' } },
+                { instanceName: { contains: search, mode: "insensitive" } },
+                { profileName: { contains: search, mode: "insensitive" } },
               ],
             }),
           };
@@ -174,8 +194,8 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               skip: (pageNumber - 1) * limitNumber,
               take: limitNumber,
               orderBy: sortBy
-                ? { [sortBy]: sortOrder || 'desc' }
-                : { createdAt: 'desc' },
+                ? { [sortBy]: sortOrder || "desc" }
+                : { createdAt: "desc" },
               select: {
                 id: true,
                 instanceName: true,
@@ -214,7 +234,7 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
 
             // Contadores por status (usando groupBy do Prisma)
             context.providers.database.whatsAppInstance.groupBy({
-              by: ['status'],
+              by: ["status"],
               where: { organizationId },
               _count: true,
             }),
@@ -222,7 +242,10 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
 
           // Processa contadores
           const statsMap = stats.reduce(
-            (acc, curr) => {
+            (
+              acc: Record<string, number>,
+              curr: { status: string | number; _count: number },
+            ) => {
               acc[curr.status] = curr._count;
               return acc;
             },
@@ -255,60 +278,71 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             integration?: string; // Adicionado para permitir passar o tipo de integração
           },
         ) => {
-          console.log('[WhatsApp Instance Procedure] Iniciando criação:', data);
+          console.log("[WhatsApp Instance Procedure] Iniciando criação:", data);
 
           try {
             // Verificar limite do plano antes de criar
-            const existingInstances = await context.providers.database.whatsAppInstance.count({
-              where: { organizationId: data.organizationId },
-            });
+            const existingInstances =
+              await context.providers.database.whatsAppInstance.count({
+                where: { organizationId: data.organizationId },
+              });
 
             // Buscar informações do plano atual da organização
-            const organization = await context.providers.database.organization.findUnique({
-              where: { id: data.organizationId },
-              include: {
-                customer: {
-                  include: {
-                    subscriptions: {
-                      where: {
-                        status: {
-                          in: ['active', 'trialing'],
+            const organization =
+              await context.providers.database.organization.findUnique({
+                where: { id: data.organizationId },
+                include: {
+                  customer: {
+                    include: {
+                      subscriptions: {
+                        where: {
+                          status: {
+                            in: ["active", "trialing"],
+                          },
                         },
-                      },
-                      include: {
-                        price: {
-                          include: {
-                            plan: true,
+                        include: {
+                          price: {
+                            include: {
+                              plan: true,
+                            },
                           },
                         },
                       },
                     },
                   },
                 },
-              },
-            });
+              });
 
             // Determinar limite baseado no plano (fallback para free se não houver subscription)
             let planLimit = 2; // Plano free padrão
-            if (organization?.customer?.subscriptions?.[0]?.price?.plan?.metadata) {
-              const metadata = organization.customer.subscriptions[0].price.plan.metadata as any;
-              const whatsappFeature = metadata.features?.find((f: any) => f.slug === 'whatsapp-instances');
+            if (
+              organization?.customer?.subscriptions?.[0]?.price?.plan?.metadata
+            ) {
+              const metadata = organization.customer.subscriptions[0].price.plan
+                .metadata as any;
+              const whatsappFeature = metadata.features?.find(
+                (f: any) => f.slug === "whatsapp-instances",
+              );
               if (whatsappFeature?.limit) {
                 planLimit = whatsappFeature.limit;
               }
             }
 
             if (existingInstances >= planLimit) {
-              throw new Error(`Limite de instâncias excedido para o seu plano. Máximo permitido: ${planLimit}`);
+              throw new Error(
+                `Limite de instâncias excedido para o seu plano. Máximo permitido: ${planLimit}`,
+              );
             }
 
             // Criação na Evolution API
-            console.log('[WhatsApp Instance Procedure] Chamando Evolution API...');
+            console.log(
+              "[WhatsApp Instance Procedure] Chamando Evolution API...",
+            );
 
             // Configurar webhook URL para nosso endpoint
             const webhookUrl = process.env.NEXT_PUBLIC_APP_URL
               ? `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/evolution`
-              : `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/webhooks/evolution`;
+              : `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}/api/webhooks/evolution`;
 
             const evolutionResponse =
               await createEvolutionApiService().createInstance({
@@ -320,19 +354,24 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
                   byEvents: false,
                   base64: false,
                   events: [
-                    'CONNECTION_UPDATE',
-                    'QRCODE_UPDATED',
-                    'MESSAGES_UPSERT',
-                    'SEND_MESSAGE',
-                    'INSTANCE_DELETE',
+                    "CONNECTION_UPDATE",
+                    "QRCODE_UPDATED",
+                    "MESSAGES_UPSERT",
+                    "SEND_MESSAGE",
+                    "INSTANCE_DELETE",
                   ],
                 },
               });
 
-            console.log('[WhatsApp Instance Procedure] Evolution API response:', evolutionResponse);
+            console.log(
+              "[WhatsApp Instance Procedure] Evolution API response:",
+              evolutionResponse,
+            );
 
             // Criar no banco
-            console.log('[WhatsApp Instance Procedure] Criando no banco de dados...');
+            console.log(
+              "[WhatsApp Instance Procedure] Criando no banco de dados...",
+            );
             const instance =
               await context.providers.database.whatsAppInstance.create({
                 data: {
@@ -349,38 +388,52 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
                 },
               });
 
-            console.log('[WhatsApp Instance Procedure] Instância criada no banco:', instance);
+            console.log(
+              "[WhatsApp Instance Procedure] Instância criada no banco:",
+              instance,
+            );
 
             // Iniciar processo de verificação de status
             setTimeout(async () => {
               try {
                 // Usa instance.instanceName para verificar o status
-                const status = await createEvolutionApiService().getInstanceStatus(
-                  instance.instanceName, // Usa instanceName aqui
-                );
+                const status =
+                  await createEvolutionApiService().getInstanceStatus(
+                    instance.instanceName, // Usa instanceName aqui
+                  );
 
                 await context.providers.database.whatsAppInstance.update({
                   where: { id: instance.id },
                   data: {
-                    status: status.state === 'open'
-                      ? InstanceConnectionStatus.OPEN
-                      : status.state === 'close'
-                        ? InstanceConnectionStatus.CLOSE
-                        : InstanceConnectionStatus.CONNECTING,
+                    status:
+                      status.state === "open"
+                        ? InstanceConnectionStatus.OPEN
+                        : status.state === "close"
+                          ? InstanceConnectionStatus.CLOSE
+                          : InstanceConnectionStatus.CONNECTING,
                     metadata: {
-                      ...(typeof instance.metadata === 'object' && instance.metadata !== null ? instance.metadata : {}),
+                      ...(typeof instance.metadata === "object" &&
+                      instance.metadata !== null
+                        ? instance.metadata
+                        : {}),
                       status, // Mescla as novas informações de status no metadata
                     },
                   },
                 });
               } catch (error) {
-                console.error('[Evolution API] Erro ao atualizar status da instância:', error);
+                console.error(
+                  "[Evolution API] Erro ao atualizar status da instância:",
+                  error,
+                );
               }
             }, 5000); // Verificar status após 5 segundos
 
             return instance;
           } catch (error) {
-            console.error('[WhatsApp Instance Procedure] Erro na criação:', error);
+            console.error(
+              "[WhatsApp Instance Procedure] Erro na criação:",
+              error,
+            );
             throw error;
           }
         },
@@ -399,11 +452,13 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             });
 
           if (!instance) {
-            throw new Error('Instância não encontrada');
+            throw new Error("Instância não encontrada");
           }
 
           // Deletar na Evolution API usando instanceName
-          await createEvolutionApiService().deleteInstance(instance.instanceName);
+          await createEvolutionApiService().deleteInstance(
+            instance.instanceName,
+          );
 
           // Deletar no banco
           await context.providers.database.whatsAppInstance.delete({
@@ -429,15 +484,19 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             });
 
           if (!instance) {
-            throw new Error('Instância não encontrada');
+            throw new Error("Instância não encontrada");
           }
 
           // Se mudou status, atualizar na Evolution API usando instanceName
           if (status) {
             if (status === InstanceConnectionStatus.CLOSE) {
-              await createEvolutionApiService().logoutInstance(instance.instanceName);
+              await createEvolutionApiService().logoutInstance(
+                instance.instanceName,
+              );
             } else if (status === InstanceConnectionStatus.CONNECTING) {
-              await createEvolutionApiService().restartInstance(instance.instanceName);
+              await createEvolutionApiService().restartInstance(
+                instance.instanceName,
+              );
             }
           }
 
@@ -448,14 +507,14 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               status,
               metadata: metadata
                 ? {
-                  ...(typeof instance.metadata === 'object' &&
+                    ...(typeof instance.metadata === "object" &&
                     instance.metadata !== null
-                    ? instance.metadata
-                    : {}),
-                  ...(typeof metadata === 'object' && metadata !== null
-                    ? metadata
-                    : {}),
-                }
+                      ? instance.metadata
+                      : {}),
+                    ...(typeof metadata === "object" && metadata !== null
+                      ? metadata
+                      : {}),
+                  }
                 : undefined,
             },
             include: {
@@ -479,27 +538,31 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             });
 
           if (!instance) {
-            throw new Error('Instância não encontrada');
+            throw new Error("Instância não encontrada");
           }
 
           try {
             // Buscar status atual na Evolution API
-            const evolutionStatus = await createEvolutionApiService().getInstanceStatus(
-              instance.instanceName,
-            );
+            const evolutionStatus =
+              await createEvolutionApiService().getInstanceStatus(
+                instance.instanceName,
+              );
 
-            console.log('[WhatsApp Instance Procedure] Status da Evolution API:', evolutionStatus);
+            console.log(
+              "[WhatsApp Instance Procedure] Status da Evolution API:",
+              evolutionStatus,
+            );
 
             // Mapear status da Evolution API para nosso enum
             let newStatus: InstanceConnectionStatus;
             switch (evolutionStatus.state) {
-              case 'open':
+              case "open":
                 newStatus = InstanceConnectionStatus.OPEN;
                 break;
-              case 'close':
+              case "close":
                 newStatus = InstanceConnectionStatus.CLOSE;
                 break;
-              case 'connecting':
+              case "connecting":
                 newStatus = InstanceConnectionStatus.CONNECTING;
                 break;
               default:
@@ -508,83 +571,106 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             }
 
             // Atualizar no banco
-            const updatedInstance = await context.providers.database.whatsAppInstance.update({
-              where: { id },
-              data: {
-                status: newStatus,
-                metadata: {
-                  ...(typeof instance.metadata === 'object' &&
-                    instance.metadata !== null
-                    ? instance.metadata
-                    : {}),
-                  lastSync: {
-                    timestamp: new Date().toISOString(),
-                    evolutionStatus,
-                  },
-                },
-                // Atualizar informações do perfil se disponível
-                ...(evolutionStatus.profileName && { profileName: evolutionStatus.profileName }),
-                ...(evolutionStatus.profilePicUrl && { profilePicUrl: evolutionStatus.profilePicUrl }),
-                ...(evolutionStatus.owner && { ownerJid: evolutionStatus.owner }),
-              },
-              include: {
-                user: true,
-                createdBy: true,
-              },
-            });
-
-            console.log('[WhatsApp Instance Procedure] Status sincronizado:', newStatus);
-            return updatedInstance;
-          } catch (error: any) {
-            console.error('[WhatsApp Instance Procedure] Erro ao sincronizar status:', error);
-            
-            // Verificar se é erro 404 (instância não existe na Evolution API)
-            if (error.status === 404 || error.response?.status === 404) {
-              console.log('[WhatsApp Instance Procedure] Instância não existe na Evolution API, marcando como CLOSE');
-              
-              // Marcar instância como CLOSE no banco local
-              const updatedInstance = await context.providers.database.whatsAppInstance.update({
+            const updatedInstance =
+              await context.providers.database.whatsAppInstance.update({
                 where: { id },
                 data: {
-                  status: InstanceConnectionStatus.CLOSE,
+                  status: newStatus,
                   metadata: {
-                    ...(typeof instance.metadata === 'object' &&
-                      instance.metadata !== null
+                    ...(typeof instance.metadata === "object" &&
+                    instance.metadata !== null
                       ? instance.metadata
                       : {}),
                     lastSync: {
                       timestamp: new Date().toISOString(),
-                      error: 'Instância não encontrada na Evolution API',
-                      errorCode: 404,
+                      evolutionStatus,
                     },
                   },
+                  // Atualizar informações do perfil se disponível
+                  ...(evolutionStatus.profileName && {
+                    profileName: evolutionStatus.profileName,
+                  }),
+                  ...(evolutionStatus.profilePicUrl && {
+                    profilePicUrl: evolutionStatus.profilePicUrl,
+                  }),
+                  ...(evolutionStatus.owner && {
+                    ownerJid: evolutionStatus.owner,
+                  }),
                 },
                 include: {
                   user: true,
                   createdBy: true,
                 },
               });
-              
+
+            console.log(
+              "[WhatsApp Instance Procedure] Status sincronizado:",
+              newStatus,
+            );
+            return updatedInstance;
+          } catch (error: any) {
+            console.error(
+              "[WhatsApp Instance Procedure] Erro ao sincronizar status:",
+              error,
+            );
+
+            // Verificar se é erro 404 (instância não existe na Evolution API)
+            if (error.status === 404 || error.response?.status === 404) {
+              console.log(
+                "[WhatsApp Instance Procedure] Instância não existe na Evolution API, marcando como CLOSE",
+              );
+
+              // Marcar instância como CLOSE no banco local
+              const updatedInstance =
+                await context.providers.database.whatsAppInstance.update({
+                  where: { id },
+                  data: {
+                    status: InstanceConnectionStatus.CLOSE,
+                    metadata: {
+                      ...(typeof instance.metadata === "object" &&
+                      instance.metadata !== null
+                        ? instance.metadata
+                        : {}),
+                      lastSync: {
+                        timestamp: new Date().toISOString(),
+                        error: "Instância não encontrada na Evolution API",
+                        errorCode: 404,
+                      },
+                    },
+                  },
+                  include: {
+                    user: true,
+                    createdBy: true,
+                  },
+                });
+
               return updatedInstance;
             }
-            
-            throw new Error('Erro ao sincronizar com a Evolution API');
+
+            throw new Error("Erro ao sincronizar com a Evolution API");
           }
         },
 
         // Sincronizar todas as instâncias da organização com Evolution API
         syncAllInstances: async (organizationId: string) => {
           try {
-            console.log('[WhatsApp Instance Procedure] Sincronizando todas as instâncias...');
+            console.log(
+              "[WhatsApp Instance Procedure] Sincronizando todas as instâncias...",
+            );
 
             // Buscar todas as instâncias da organização no banco
-            const localInstances = await context.providers.database.whatsAppInstance.findMany({
-              where: { organizationId },
-            });
+            const localInstances =
+              await context.providers.database.whatsAppInstance.findMany({
+                where: { organizationId },
+              });
 
             // Buscar todas as instâncias da Evolution API
-            const evolutionInstances = await createEvolutionApiService().listInstances();
-            console.log('[WhatsApp Instance Procedure] Instâncias da Evolution API:', evolutionInstances);
+            const evolutionInstances =
+              await createEvolutionApiService().listInstances();
+            console.log(
+              "[WhatsApp Instance Procedure] Instâncias da Evolution API:",
+              evolutionInstances,
+            );
 
             const updatedInstances = [];
 
@@ -595,84 +681,104 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               const evolutionInstance = evolutionInstances.find(
                 (evInstance: any) =>
                   evInstance.name === localInstance.instanceName ||
-                  evInstance.id === localInstance.evolutionInstanceId
+                  evInstance.id === localInstance.evolutionInstanceId,
               );
 
               if (evolutionInstance) {
-                console.log('[WhatsApp Instance Procedure] Encontrada instância na Evolution API:', {
-                  name: evolutionInstance.name,
-                  status: evolutionInstance.connectionStatus,
-                  ownerJid: evolutionInstance.ownerJid,
-                  profileName: evolutionInstance.profileName,
-                  profilePicUrl: evolutionInstance.profilePicUrl,
-                });
+                console.log(
+                  "[WhatsApp Instance Procedure] Encontrada instância na Evolution API:",
+                  {
+                    name: evolutionInstance.name,
+                    status: evolutionInstance.connectionStatus,
+                    ownerJid: evolutionInstance.ownerJid,
+                    profileName: evolutionInstance.profileName,
+                    profilePicUrl: evolutionInstance.profilePicUrl,
+                  },
+                );
 
                 // Mapear status da Evolution API
                 let newStatus: InstanceConnectionStatus;
                 switch (evolutionInstance.connectionStatus) {
-                  case 'open':
+                  case "open":
                     newStatus = InstanceConnectionStatus.OPEN;
                     break;
-                  case 'close':
+                  case "close":
                     newStatus = InstanceConnectionStatus.CLOSE;
                     break;
-                  case 'connecting':
+                  case "connecting":
                     newStatus = InstanceConnectionStatus.CONNECTING;
                     break;
                   default:
-                    newStatus = localInstance.status as InstanceConnectionStatus;
+                    newStatus =
+                      localInstance.status as InstanceConnectionStatus;
                 }
 
                 // Extrair número limpo do ownerJid (remover @s.whatsapp.net)
                 const cleanOwnerJid = evolutionInstance.ownerJid
-                  ? evolutionInstance.ownerJid.replace('@s.whatsapp.net', '')
+                  ? evolutionInstance.ownerJid.replace("@s.whatsapp.net", "")
                   : null;
 
                 // Atualizar instância no banco
-                const updatedInstance = await context.providers.database.whatsAppInstance.update({
-                  where: { id: localInstance.id },
-                  data: {
-                    status: newStatus,
-                    evolutionInstanceId: evolutionInstance.id,
-                    profileName: evolutionInstance.profileName || localInstance.profileName,
-                    profilePicUrl: evolutionInstance.profilePicUrl || localInstance.profilePicUrl,
-                    ownerJid: cleanOwnerJid || localInstance.ownerJid,
-                    lastSeen: new Date(),
-                    metadata: {
-                      ...(typeof localInstance.metadata === 'object' && localInstance.metadata !== null
-                        ? localInstance.metadata
-                        : {}),
-                      lastFullSync: {
-                        timestamp: new Date().toISOString(),
-                        evolutionData: evolutionInstance,
+                const updatedInstance =
+                  await context.providers.database.whatsAppInstance.update({
+                    where: { id: localInstance.id },
+                    data: {
+                      status: newStatus,
+                      evolutionInstanceId: evolutionInstance.id,
+                      profileName:
+                        evolutionInstance.profileName ||
+                        localInstance.profileName,
+                      profilePicUrl:
+                        evolutionInstance.profilePicUrl ||
+                        localInstance.profilePicUrl,
+                      ownerJid: cleanOwnerJid || localInstance.ownerJid,
+                      lastSeen: new Date(),
+                      metadata: {
+                        ...(typeof localInstance.metadata === "object" &&
+                        localInstance.metadata !== null
+                          ? localInstance.metadata
+                          : {}),
+                        lastFullSync: {
+                          timestamp: new Date().toISOString(),
+                          evolutionData: evolutionInstance,
+                        },
                       },
                     },
-                  },
-                  include: {
-                    user: true,
-                    createdBy: true,
-                  },
-                });
+                    include: {
+                      user: true,
+                      createdBy: true,
+                    },
+                  });
 
                 updatedInstances.push(updatedInstance);
-                console.log('[WhatsApp Instance Procedure] Instância atualizada:', {
-                  id: updatedInstance.id,
-                  instanceName: updatedInstance.instanceName,
-                  status: updatedInstance.status,
-                  profileName: updatedInstance.profileName,
-                  ownerJid: updatedInstance.ownerJid,
-                });
+                console.log(
+                  "[WhatsApp Instance Procedure] Instância atualizada:",
+                  {
+                    id: updatedInstance.id,
+                    instanceName: updatedInstance.instanceName,
+                    status: updatedInstance.status,
+                    profileName: updatedInstance.profileName,
+                    ownerJid: updatedInstance.ownerJid,
+                  },
+                );
               } else {
-                console.log('[WhatsApp Instance Procedure] Instância não encontrada na Evolution API:', localInstance.instanceName);
+                console.log(
+                  "[WhatsApp Instance Procedure] Instância não encontrada na Evolution API:",
+                  localInstance.instanceName,
+                );
               }
             }
 
-            console.log(`[WhatsApp Instance Procedure] ${updatedInstances.length} instâncias sincronizadas`);
+            console.log(
+              `[WhatsApp Instance Procedure] ${updatedInstances.length} instâncias sincronizadas`,
+            );
             return updatedInstances;
-
           } catch (error) {
-            console.error('[WhatsApp Instance Procedure] Erro ao sincronizar todas as instâncias:', error);
-            throw new Error('Erro ao sincronizar com a Evolution API');
+            console.error(
+              "[WhatsApp Instance Procedure] Erro ao sincronizar todas as instâncias:",
+              error,
+            );
+            throw new Error("Erro ao sincronizar com a Evolution API");
           }
         },
 
@@ -682,23 +788,29 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
         ): Promise<WhatsAppInstanceStats> => {
           const stats =
             await context.providers.database.whatsAppInstance.groupBy({
-              by: ['status'],
+              by: ["status"],
               where: { organizationId },
               _count: true,
             });
 
           const statsMap = stats.reduce(
-            (acc, curr) => {
+            (
+              acc: { [x: string]: any },
+              curr: { status: string | number; _count: any },
+            ) => {
               acc[curr.status] = curr._count;
               return acc;
             },
             {} as Record<string, number>,
           );
 
-          const total = Object.values(statsMap).reduce((a, b) => a + b, 0);
+          const total = Object.values<number>(statsMap).reduce(
+            (a, b) => a + b,
+            0,
+          );
 
           return {
-            total,
+            total: Number(total),
             connected: statsMap[InstanceConnectionStatus.OPEN] || 0,
             connecting: statsMap[InstanceConnectionStatus.CONNECTING] || 0,
             disconnected: statsMap[InstanceConnectionStatus.CLOSE] || 0,
@@ -713,21 +825,22 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             enabled: boolean;
             host: string;
             port: string;
-            protocol: 'http' | 'https' | 'socks4' | 'socks5';
+            protocol: "http" | "https" | "socks4" | "socks5";
             username?: string;
             password?: string;
           };
         }) => {
           // Verificar se a instância existe e pertence à organização
-          const instance = await context.providers.database.whatsAppInstance.findFirst({
-            where: {
-              id: data.id,
-              organizationId: data.organizationId,
-            },
-          });
+          const instance =
+            await context.providers.database.whatsAppInstance.findFirst({
+              where: {
+                id: data.id,
+                organizationId: data.organizationId,
+              },
+            });
 
           if (!instance) {
-            throw new Error('Instância não encontrada');
+            throw new Error("Instância não encontrada");
           }
 
           // Configurar proxy via Evolution API
@@ -739,31 +852,35 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             });
 
             // Atualizar metadata da instância com informações do proxy
-            const updatedInstance = await context.providers.database.whatsAppInstance.update({
-              where: { id: data.id },
-              data: {
-                metadata: {
-                  ...(instance.metadata as Record<string, any> || {}),
-                  proxy: {
-                    enabled: data.proxyConfig.enabled,
-                    host: data.proxyConfig.host,
-                    port: data.proxyConfig.port,
-                    protocol: data.proxyConfig.protocol,
-                    username: data.proxyConfig.username,
-                    configuredAt: new Date().toISOString(),
+            const updatedInstance =
+              await context.providers.database.whatsAppInstance.update({
+                where: { id: data.id },
+                data: {
+                  metadata: {
+                    ...((instance.metadata as Record<string, any>) || {}),
+                    proxy: {
+                      enabled: data.proxyConfig.enabled,
+                      host: data.proxyConfig.host,
+                      port: data.proxyConfig.port,
+                      protocol: data.proxyConfig.protocol,
+                      username: data.proxyConfig.username,
+                      configuredAt: new Date().toISOString(),
+                    },
                   },
                 },
-              },
-            });
+              });
 
             return {
               success: true,
-              message: 'Proxy configurado com sucesso',
+              message: "Proxy configurado com sucesso",
               data: updatedInstance,
               evolutionResponse: result,
             };
           } catch (error: any) {
-            console.error('[WhatsApp Instance] Erro ao configurar proxy:', error);
+            console.error(
+              "[WhatsApp Instance] Erro ao configurar proxy:",
+              error,
+            );
             throw new Error(`Erro ao configurar proxy: ${error.message}`);
           }
         },
@@ -771,15 +888,16 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
         // Obter configuração de proxy da instância
         getProxy: async (data: { id: string; organizationId: string }) => {
           // Verificar se a instância existe e pertence à organização
-          const instance = await context.providers.database.whatsAppInstance.findFirst({
-            where: {
-              id: data.id,
-              organizationId: data.organizationId,
-            },
-          });
+          const instance =
+            await context.providers.database.whatsAppInstance.findFirst({
+              where: {
+                id: data.id,
+                organizationId: data.organizationId,
+              },
+            });
 
           if (!instance) {
-            throw new Error('Instância não encontrada');
+            throw new Error("Instância não encontrada");
           }
 
           // Buscar configuração do proxy via Evolution API
@@ -793,12 +911,14 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               success: true,
               hasProxy: !!result?.enabled,
               config: result,
-              localMetadata: (instance.metadata as Record<string, any>)?.proxy || null,
+              localMetadata:
+                (instance.metadata as Record<string, any>)?.proxy || null,
             };
           } catch (error: any) {
-            console.error('[WhatsApp Instance] Erro ao buscar proxy:', error);
+            console.error("[WhatsApp Instance] Erro ao buscar proxy:", error);
             // Se não conseguir buscar da API, retorna apenas dados locais
-            const localProxy = (instance.metadata as Record<string, any>)?.proxy || null;
+            const localProxy =
+              (instance.metadata as Record<string, any>)?.proxy || null;
             return {
               success: false,
               hasProxy: !!localProxy?.enabled,
@@ -810,39 +930,53 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
         },
 
         // Conectar instância e obter QR Code
-        connectInstance: async (data: { id: string; organizationId: string }) => {
+        connectInstance: async (data: {
+          id: string;
+          organizationId: string;
+        }) => {
           // Verificar se a instância existe e pertence à organização
-          const instance = await context.providers.database.whatsAppInstance.findFirst({
-            where: {
-              id: data.id,
-              organizationId: data.organizationId,
-            },
-          });
+          const instance =
+            await context.providers.database.whatsAppInstance.findFirst({
+              where: {
+                id: data.id,
+                organizationId: data.organizationId,
+              },
+            });
 
           if (!instance) {
-            throw new Error('Instância não encontrada');
+            throw new Error("Instância não encontrada");
           }
 
           // Verificar se a instância pode ser conectada
           if (instance.status === InstanceConnectionStatus.OPEN) {
-            throw new Error('Instância já está conectada');
+            throw new Error("Instância já está conectada");
           }
 
           try {
-            console.log('[WhatsApp Instance] Conectando instância:', instance.instanceName);
+            console.log(
+              "[WhatsApp Instance] Conectando instância:",
+              instance.instanceName,
+            );
 
             // Chamar Evolution API para conectar a instância
             const evolutionApi = createEvolutionApiService();
-            const connectionResult = await evolutionApi.connectInstance(instance.instanceName);
+            const connectionResult = await evolutionApi.connectInstance(
+              instance.instanceName,
+            );
 
-            console.log('[WhatsApp Instance] Resultado da conexão:', connectionResult);
+            console.log(
+              "[WhatsApp Instance] Resultado da conexão:",
+              connectionResult,
+            );
 
             // Verificar se há QR Code na resposta
             // A Evolution API retorna o QR Code diretamente no objeto principal
-            const hasQrCode = !!(connectionResult?.base64 || connectionResult?.qrcode?.base64);
+            const hasQrCode = !!(
+              connectionResult?.base64 || connectionResult?.qrcode?.base64
+            );
             const qrCodeData = connectionResult?.qrcode || connectionResult;
 
-            console.log('[WhatsApp Instance] Análise do QR Code:', {
+            console.log("[WhatsApp Instance] Análise do QR Code:", {
               hasQrCode,
               qrCodeData,
               connectionResultKeys: Object.keys(connectionResult || {}),
@@ -852,52 +986,67 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             });
 
             // Atualizar status da instância para "connecting"
-            const updatedInstance = await context.providers.database.whatsAppInstance.update({
-              where: { id: data.id },
-              data: {
-                status: InstanceConnectionStatus.CONNECTING,
-                metadata: {
-                  ...(instance.metadata as Record<string, any> || {}),
-                  lastConnectionAttempt: {
-                    timestamp: new Date().toISOString(),
-                    evolutionResponse: connectionResult,
-                  },
-                  // Armazenar QR Code se disponível
-                  ...(hasQrCode && {
-                    qrcode: {
-                      base64: connectionResult?.base64 || connectionResult?.qrcode?.base64,
-                      code: connectionResult?.code || connectionResult?.qrcode?.code || null,
+            const updatedInstance =
+              await context.providers.database.whatsAppInstance.update({
+                where: { id: data.id },
+                data: {
+                  status: InstanceConnectionStatus.CONNECTING,
+                  metadata: {
+                    ...((instance.metadata as Record<string, any>) || {}),
+                    lastConnectionAttempt: {
+                      timestamp: new Date().toISOString(),
+                      evolutionResponse: connectionResult,
                     },
-                  }),
+                    // Armazenar QR Code se disponível
+                    ...(hasQrCode && {
+                      qrcode: {
+                        base64:
+                          connectionResult?.base64 ||
+                          connectionResult?.qrcode?.base64,
+                        code:
+                          connectionResult?.code ||
+                          connectionResult?.qrcode?.code ||
+                          null,
+                      },
+                    }),
+                  },
                 },
-              },
-              include: {
-                user: true,
-                createdBy: true,
-              },
-            });
+                include: {
+                  user: true,
+                  createdBy: true,
+                },
+              });
 
-            console.log('[WhatsApp Instance] Instância atualizada:', {
+            console.log("[WhatsApp Instance] Instância atualizada:", {
               id: updatedInstance.id,
               status: updatedInstance.status,
               hasQrCode,
-              qrCodeData: hasQrCode ? 'disponível' : 'não disponível',
-              metadataQrCode: (updatedInstance.metadata as any)?.qrcode ? 'armazenado' : 'não armazenado',
+              qrCodeData: hasQrCode ? "disponível" : "não disponível",
+              metadataQrCode: (updatedInstance.metadata as any)?.qrcode
+                ? "armazenado"
+                : "não armazenado",
             });
 
             return {
               success: true,
-              message: hasQrCode ? 'QR Code gerado com sucesso' : 'Instância conectada com sucesso',
+              message: hasQrCode
+                ? "QR Code gerado com sucesso"
+                : "Instância conectada com sucesso",
               data: updatedInstance,
               hasQrCode,
-              qrCode: hasQrCode ? {
-                base64: qrCodeData.base64,
-                code: qrCodeData.code || null,
-              } : null,
+              qrCode: hasQrCode
+                ? {
+                    base64: qrCodeData.base64,
+                    code: qrCodeData.code || null,
+                  }
+                : null,
               evolutionResponse: connectionResult,
             };
           } catch (error: any) {
-            console.error('[WhatsApp Instance] Erro ao conectar instância:', error);
+            console.error(
+              "[WhatsApp Instance] Erro ao conectar instância:",
+              error,
+            );
 
             // Atualizar status para "close" em caso de erro
             await context.providers.database.whatsAppInstance.update({
@@ -905,7 +1054,7 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               data: {
                 status: InstanceConnectionStatus.CLOSE,
                 metadata: {
-                  ...(instance.metadata as Record<string, any> || {}),
+                  ...((instance.metadata as Record<string, any>) || {}),
                   lastConnectionError: {
                     timestamp: new Date().toISOString(),
                     error: error.message,

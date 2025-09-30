@@ -89,7 +89,7 @@ export function WhatsAppInstanceProxySetup({
 
   const loadCurrentConfig = async () => {
     try {
-      const response = await api.whatsAppInstances.getProxy.query({
+      const response = await (api.whatsAppInstances.getProxy as any).query({
         params: { id: instance.id },
       })
 
