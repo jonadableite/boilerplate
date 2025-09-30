@@ -160,6 +160,11 @@
     "vite-tsconfig-paths": "5.1.3",
     "vitest": "2.1.6"
   },
+  "overrides": {
+    "embla-carousel": "8.1.7",
+    "embla-carousel-react": "8.1.7",
+    "embla-carousel-autoplay": "8.1.7"
+  },
   "legacyPeerDeps": true,
   "packageManager": "npm@10.2.0"
 }
