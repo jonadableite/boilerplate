@@ -16,9 +16,16 @@ export function WhatsAppInstanceDebug() {
 
       const result = await (api.whatsAppInstances.syncAll as any).mutate()
 
+      // Invalidar cache das queries relacionadas
+      await Promise.all([
+        (api.whatsAppInstances.list as any).invalidate(),
+        (api.whatsAppInstances.stats as any).invalidate(),
+      ])
+
       setDebugLogs(prev => [
         ...prev,
         '✅ Sincronização concluída!',
+        '🔄 Cache invalidado!',
         `📊 Resposta: ${JSON.stringify(result, null, 2)}`,
       ])
 

@@ -45,6 +45,13 @@ export function WhatsAppInstanceToolbar() {
     try {
       setIsRefreshing(true)
       const result = await (api.whatsAppInstances.syncAll as any).mutate()
+      
+      // Invalidar cache das queries relacionadas
+      await Promise.all([
+        (api.whatsAppInstances.list as any).invalidate(),
+        (api.whatsAppInstances.stats as any).invalidate(),
+      ])
+      
       // Verifica se a resposta é de sucesso e tem dados
       if (result && 'data' in result && result.data) {
         toast.success(
@@ -53,8 +60,11 @@ export function WhatsAppInstanceToolbar() {
       } else {
         toast.success('Instâncias sincronizadas com sucesso!')
       }
+      
+      // Forçar refresh da página como fallback
       router.refresh()
     } catch (error) {
+      console.error('Erro ao sincronizar instâncias:', error)
       toast.error('Erro ao sincronizar instâncias')
     } finally {
       setIsRefreshing(false)
