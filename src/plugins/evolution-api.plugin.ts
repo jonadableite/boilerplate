@@ -6,6 +6,9 @@ import { z } from 'zod'
 // Verificar se estamos no servidor
 const isServer = typeof window === 'undefined'
 
+// Verificar se estamos em build time
+const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL && !process.env.RAILWAY_ENVIRONMENT
+
 // Só executa no servidor
 let EVOLUTION_API_URL: string | undefined
 let EVOLUTION_API_KEY: string | undefined
@@ -14,25 +17,32 @@ if (isServer) {
   EVOLUTION_API_URL = process.env.EVOLUTION_API_URL
   EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY
 
-  // Verificação das variáveis de ambiente apenas no servidor
-  if (!EVOLUTION_API_URL) {
-    console.error('[Evolution API] EVOLUTION_API_URL não está definida')
-    throw new Error(
-      '[Evolution API] EVOLUTION_API_URL não está definida no arquivo .env.local',
-    )
-  }
+  // Verificação das variáveis de ambiente apenas no servidor e não durante build
+  if (!isBuildTime) {
+    if (!EVOLUTION_API_URL) {
+      console.error('[Evolution API] EVOLUTION_API_URL não está definida')
+      throw new Error(
+        '[Evolution API] EVOLUTION_API_URL não está definida no arquivo .env.local',
+      )
+    }
 
-  if (!EVOLUTION_API_KEY) {
-    console.error('[Evolution API] EVOLUTION_API_KEY não está definida')
-    throw new Error(
-      '[Evolution API] EVOLUTION_API_KEY não está definida no arquivo .env.local',
-    )
-  }
+    if (!EVOLUTION_API_KEY) {
+      console.error('[Evolution API] EVOLUTION_API_KEY não está definida')
+      throw new Error(
+        '[Evolution API] EVOLUTION_API_KEY não está definida no arquivo .env.local',
+      )
+    }
 
-  console.log('[Evolution API] Plugin inicializado com sucesso:', {
-    url: EVOLUTION_API_URL,
-    hasKey: !!EVOLUTION_API_KEY,
-  })
+    console.log('[Evolution API] Plugin inicializado com sucesso:', {
+      url: EVOLUTION_API_URL,
+      hasKey: !!EVOLUTION_API_KEY,
+    })
+  } else {
+    // Durante o build, usar valores padrão para evitar erros
+    EVOLUTION_API_URL = EVOLUTION_API_URL || 'http://localhost:8080'
+    EVOLUTION_API_KEY = EVOLUTION_API_KEY || 'build-time-key'
+    console.log('[Evolution API] Plugin inicializado em modo build')
+  }
 } else {
   // No cliente, apenas define valores vazios
   EVOLUTION_API_URL = ''
@@ -44,6 +54,17 @@ const createEvolutionApiClient = () => {
   if (!isServer) {
     throw new Error('Esta ação só pode ser executada no servidor')
   }
+  
+  // Durante build time, retornar um mock client
+  if (isBuildTime) {
+    return {
+      get: () => Promise.resolve({ data: {} }),
+      post: () => Promise.resolve({ data: {} }),
+      put: () => Promise.resolve({ data: {} }),
+      delete: () => Promise.resolve({ data: {} }),
+    }
+  }
+  
   return axios.create({
     baseURL: EVOLUTION_API_URL,
     headers: {
