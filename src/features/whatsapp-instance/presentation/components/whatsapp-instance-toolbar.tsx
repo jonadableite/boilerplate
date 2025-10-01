@@ -1,7 +1,5 @@
-import useDebounce from '@/@saas-boilerplate/hooks/use-debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -10,10 +8,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/igniter.client'
-import { useQueryClient } from '@tanstack/react-query'
 import { Plus, RefreshCw, Search } from 'lucide-react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import useDebounce from '@/@saas-boilerplate/hooks/use-debounce'
 import { toast } from 'sonner'
 import { InstanceConnectionStatus } from '../../whatsapp-instance.types'
 
@@ -33,8 +31,11 @@ export function WhatsAppInstanceToolbar() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const queryClient = useQueryClient()
   const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Queries para refetch
+  const listQuery = (api.whatsAppInstances.list as any).useQuery({})
+  const statsQuery = (api.whatsAppInstances.stats as any).useQuery({})
 
   // Estado local para inputs
   const [search, setSearch] = useState(searchParams.get('search') || '')
@@ -49,10 +50,10 @@ export function WhatsAppInstanceToolbar() {
       setIsRefreshing(true)
       const result = await (api.whatsAppInstances.syncAll as any).mutate()
       
-      // Invalidar cache das queries relacionadas
+      // Refetch das queries relacionadas usando a API do Igniter
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'list'] }),
-        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'stats'] }),
+        listQuery.refetch(),
+        statsQuery.refetch(),
       ])
       
       // Verifica se a resposta é de sucesso e tem dados

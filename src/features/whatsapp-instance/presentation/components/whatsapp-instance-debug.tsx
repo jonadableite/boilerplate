@@ -1,27 +1,29 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { api } from '@/igniter.client'
-import { useQueryClient } from '@tanstack/react-query'
 import { Code, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 export function WhatsAppInstanceDebug() {
-  const queryClient = useQueryClient()
   const [isDebugging, setIsDebugging] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
+  
+  // Queries para refetch
+  const listQuery = (api.whatsAppInstances.list as any).useQuery({})
+  const statsQuery = (api.whatsAppInstances.stats as any).useQuery({})
 
-  const handleDebugSync = async () => {
+  const handleSyncAll = async () => {
     try {
       setIsDebugging(true)
       setDebugLogs(['🔄 Iniciando sincronização...'])
 
       const result = await (api.whatsAppInstances.syncAll as any).mutate()
 
-      // Invalidar cache das queries relacionadas
+      // Refetch das queries relacionadas usando a API do Igniter
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'list'] }),
-        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'stats'] }),
+        listQuery.refetch(),
+        statsQuery.refetch(),
       ])
 
       setDebugLogs(prev => [
@@ -58,7 +60,7 @@ export function WhatsAppInstanceDebug() {
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Button
-            onClick={handleDebugSync}
+            onClick={handleSyncAll}
             disabled={isDebugging}
             variant="outline"
             size="sm"
