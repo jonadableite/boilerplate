@@ -4,6 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
+      args:
+        - NEXT_PUBLIC_IGNITER_APP_URL=${NEXT_PUBLIC_IGNITER_APP_URL}
+        - NEXT_PUBLIC_IGNITER_APP_BASE_PATH=${NEXT_PUBLIC_IGNITER_APP_BASE_PATH}
+        - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+        - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
     ports:
       - "3000:3000"
     environment:
@@ -19,6 +24,10 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NEXT_PUBLIC_IGNITER_APP_URL=${NEXT_PUBLIC_IGNITER_APP_URL}
+      - NEXT_PUBLIC_IGNITER_APP_BASE_PATH=${NEXT_PUBLIC_IGNITER_APP_BASE_PATH}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

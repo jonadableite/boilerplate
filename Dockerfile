@@ -27,6 +27,19 @@ RUN npx prisma generate
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Define build-time environment variables for Next.js
+# These NEXT_PUBLIC_* variables need to be available during build time
+ARG NEXT_PUBLIC_IGNITER_APP_URL
+ARG NEXT_PUBLIC_IGNITER_APP_BASE_PATH
+ARG EVOLUTION_API_URL
+ARG BETTER_AUTH_SECRET
+
+# Set environment variables for the build process
+ENV NEXT_PUBLIC_IGNITER_APP_URL=$NEXT_PUBLIC_IGNITER_APP_URL
+ENV NEXT_PUBLIC_IGNITER_APP_BASE_PATH=$NEXT_PUBLIC_IGNITER_APP_BASE_PATH
+ENV EVOLUTION_API_URL=$EVOLUTION_API_URL
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+
 RUN npm run build
 
 # Production image, copy all the files and run next

@@ -3,14 +3,15 @@ import { freePlan } from "@/content/plans/free";
 import { proPlan } from "@/content/plans/pro";
 
 export const AppConfig = {
-  url: process.env.NEXT_PUBLIC_IGNITER_APP_URL || "http://localhost:3000",
-  name: process.env.NEXT_PUBLIC_IGNITER_APP_NAME || "SaaS Boilerplate",
+  url:
+    process.env.NEXT_PUBLIC_IGNITER_APP_URL || "https://saas.whatlead.com.br",
+  name: process.env.NEXT_PUBLIC_IGNITER_APP_NAME || "SaaS WhatLead",
   keywords: [
     "SaaS",
-    "Boilerplate",
+    "WhatLead",
     "Micro-SaaS",
     "SaaS",
-    "Boilerplate",
+    "WhatLead",
     "Micro-SaaS",
   ],
   theme: "system",
