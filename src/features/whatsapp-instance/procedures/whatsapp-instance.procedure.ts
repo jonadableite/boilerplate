@@ -674,9 +674,29 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
             );
 
             // Buscar instâncias na Evolution API
-            let evolutionInstances;
+            let evolutionInstances: any[];
             try {
-              evolutionInstances = await createEvolutionApiService().listInstances();
+              const evolutionResponse = await createEvolutionApiService().listInstances();
+              console.log(
+                `[WhatsApp Instance Procedure] Resposta da Evolution API:`,
+                evolutionResponse,
+              );
+              
+              // Verificar se a resposta é um array ou se tem uma propriedade que contém o array
+              if (Array.isArray(evolutionResponse)) {
+                evolutionInstances = evolutionResponse;
+              } else if (evolutionResponse && typeof evolutionResponse === 'object' && Array.isArray((evolutionResponse as any).data)) {
+                evolutionInstances = (evolutionResponse as any).data;
+              } else if (evolutionResponse && typeof evolutionResponse === 'object' && Array.isArray((evolutionResponse as any).instances)) {
+                evolutionInstances = (evolutionResponse as any).instances;
+              } else {
+                console.warn(
+                  "[WhatsApp Instance Procedure] Formato inesperado da resposta da Evolution API:",
+                  evolutionResponse,
+                );
+                evolutionInstances = [];
+              }
+              
               console.log(
                 `[WhatsApp Instance Procedure] ${evolutionInstances.length} instâncias encontradas na Evolution API`,
               );

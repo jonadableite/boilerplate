@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { api } from '@/igniter.client'
+import { useQueryClient } from '@tanstack/react-query'
 import { Code, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 export function WhatsAppInstanceDebug() {
+  const queryClient = useQueryClient()
   const [isDebugging, setIsDebugging] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
 
@@ -18,8 +20,8 @@ export function WhatsAppInstanceDebug() {
 
       // Invalidar cache das queries relacionadas
       await Promise.all([
-        (api.whatsAppInstances.list as any).invalidate(),
-        (api.whatsAppInstances.stats as any).invalidate(),
+        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'stats'] }),
       ])
 
       setDebugLogs(prev => [

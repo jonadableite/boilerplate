@@ -1,6 +1,7 @@
 import useDebounce from '@/@saas-boilerplate/hooks/use-debounce'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -9,9 +10,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { api } from '@/igniter.client'
-import { RefreshCw, Search } from 'lucide-react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Plus, RefreshCw, Search } from 'lucide-react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import { InstanceConnectionStatus } from '../../whatsapp-instance.types'
 
@@ -31,6 +33,7 @@ export function WhatsAppInstanceToolbar() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Estado local para inputs
@@ -48,8 +51,8 @@ export function WhatsAppInstanceToolbar() {
       
       // Invalidar cache das queries relacionadas
       await Promise.all([
-        (api.whatsAppInstances.list as any).invalidate(),
-        (api.whatsAppInstances.stats as any).invalidate(),
+        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['whatsAppInstances', 'stats'] }),
       ])
       
       // Verifica se a resposta é de sucesso e tem dados
