@@ -655,130 +655,210 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
         syncAllInstances: async (organizationId: string) => {
           try {
             console.log(
-              "[WhatsApp Instance Procedure] Sincronizando todas as instâncias...",
+              "[WhatsApp Instance Procedure] Iniciando sincronização de todas as instâncias para organização:",
+              organizationId,
             );
 
-            // Buscar todas as instâncias da organização no banco
+            // Buscar instâncias locais
             const localInstances =
               await context.providers.database.whatsAppInstance.findMany({
                 where: { organizationId },
+                include: {
+                  user: true,
+                  createdBy: true,
+                },
               });
 
-            // Buscar todas as instâncias da Evolution API
-            const evolutionInstances =
-              await createEvolutionApiService().listInstances();
             console.log(
-              "[WhatsApp Instance Procedure] Instâncias da Evolution API:",
-              evolutionInstances,
+              `[WhatsApp Instance Procedure] ${localInstances.length} instâncias locais encontradas`,
             );
 
+            // Buscar instâncias na Evolution API
+            let evolutionInstances;
+            try {
+              evolutionInstances = await createEvolutionApiService().listInstances();
+              console.log(
+                `[WhatsApp Instance Procedure] ${evolutionInstances.length} instâncias encontradas na Evolution API`,
+              );
+            } catch (evolutionError) {
+              console.error(
+                "[WhatsApp Instance Procedure] Erro ao buscar instâncias na Evolution API:",
+                evolutionError,
+              );
+              throw new Error(`Falha na comunicação com Evolution API: ${evolutionError.message}`);
+            }
+
             const updatedInstances = [];
+            const errors = [];
 
             // Sincronizar cada instância local com a Evolution API
             for (const localInstance of localInstances) {
-              // A Evolution API retorna instâncias diretamente (não dentro de instance)
-              // Encontrar a instância correspondente na Evolution API pelo nome
-              const evolutionInstance = evolutionInstances.find(
-                (evInstance: any) =>
-                  evInstance.name === localInstance.instanceName ||
-                  evInstance.id === localInstance.evolutionInstanceId,
-              );
-
-              if (evolutionInstance) {
-                console.log(
-                  "[WhatsApp Instance Procedure] Encontrada instância na Evolution API:",
-                  {
-                    name: evolutionInstance.name,
-                    status: evolutionInstance.connectionStatus,
-                    ownerJid: evolutionInstance.ownerJid,
-                    profileName: evolutionInstance.profileName,
-                    profilePicUrl: evolutionInstance.profilePicUrl,
-                  },
+              try {
+                const evolutionInstance = evolutionInstances.find(
+                  (evo: any) => evo.name === localInstance.instanceName,
                 );
 
-                // Mapear status da Evolution API
-                let newStatus: InstanceConnectionStatus;
-                switch (evolutionInstance.connectionStatus) {
-                  case "open":
-                    newStatus = InstanceConnectionStatus.OPEN;
-                    break;
-                  case "close":
-                    newStatus = InstanceConnectionStatus.CLOSE;
-                    break;
-                  case "connecting":
-                    newStatus = InstanceConnectionStatus.CONNECTING;
-                    break;
-                  default:
-                    newStatus =
-                      localInstance.status as InstanceConnectionStatus;
-                }
+                if (evolutionInstance) {
+                  console.log(
+                    "[WhatsApp Instance Procedure] Sincronizando instância:",
+                    localInstance.instanceName,
+                    "Status Evolution:",
+                    evolutionInstance.connectionStatus,
+                  );
 
-                // Extrair número limpo do ownerJid (remover @s.whatsapp.net)
-                const cleanOwnerJid = evolutionInstance.ownerJid
-                  ? evolutionInstance.ownerJid.replace("@s.whatsapp.net", "")
-                  : null;
+                  // Mapear status da Evolution API para nosso enum
+                  let newStatus: InstanceConnectionStatus;
+                  switch (evolutionInstance.connectionStatus) {
+                    case "open":
+                      newStatus = InstanceConnectionStatus.OPEN;
+                      break;
+                    case "close":
+                      newStatus = InstanceConnectionStatus.CLOSE;
+                      break;
+                    case "connecting":
+                      newStatus = InstanceConnectionStatus.CONNECTING;
+                      break;
+                    default:
+                      console.warn(
+                        `[WhatsApp Instance Procedure] Status desconhecido: ${evolutionInstance.connectionStatus}, mantendo status atual`,
+                      );
+                      newStatus = localInstance.status as InstanceConnectionStatus;
+                  }
 
-                // Atualizar instância no banco
-                const updatedInstance =
-                  await context.providers.database.whatsAppInstance.update({
-                    where: { id: localInstance.id },
-                    data: {
-                      status: newStatus,
-                      evolutionInstanceId: evolutionInstance.id,
-                      profileName:
-                        evolutionInstance.profileName ||
-                        localInstance.profileName,
-                      profilePicUrl:
-                        evolutionInstance.profilePicUrl ||
-                        localInstance.profilePicUrl,
-                      ownerJid: cleanOwnerJid || localInstance.ownerJid,
-                      lastSeen: new Date(),
-                      metadata: {
-                        ...(typeof localInstance.metadata === "object" &&
-                        localInstance.metadata !== null
-                          ? localInstance.metadata
-                          : {}),
-                        lastFullSync: {
-                          timestamp: new Date().toISOString(),
-                          evolutionData: evolutionInstance,
+                  // Extrair número limpo do ownerJid (remover @s.whatsapp.net)
+                  const cleanOwnerJid = evolutionInstance.ownerJid
+                    ? evolutionInstance.ownerJid.replace("@s.whatsapp.net", "")
+                    : null;
+
+                  // Preparar dados para atualização
+                  const updateData = {
+                    status: newStatus,
+                    evolutionInstanceId: evolutionInstance.id,
+                    profileName: evolutionInstance.profileName || localInstance.profileName,
+                    profilePicUrl: evolutionInstance.profilePicUrl || localInstance.profilePicUrl,
+                    ownerJid: cleanOwnerJid || localInstance.ownerJid,
+                    lastSeen: new Date(),
+                    metadata: {
+                      ...(typeof localInstance.metadata === "object" && localInstance.metadata !== null
+                        ? localInstance.metadata
+                        : {}),
+                      lastFullSync: {
+                        timestamp: new Date().toISOString(),
+                        evolutionData: {
+                          id: evolutionInstance.id,
+                          name: evolutionInstance.name,
+                          connectionStatus: evolutionInstance.connectionStatus,
+                          ownerJid: evolutionInstance.ownerJid,
+                          profileName: evolutionInstance.profileName,
+                          profilePicUrl: evolutionInstance.profilePicUrl,
+                          disconnectionReasonCode: evolutionInstance.disconnectionReasonCode,
+                          disconnectionAt: evolutionInstance.disconnectionAt,
                         },
                       },
                     },
-                    include: {
-                      user: true,
-                      createdBy: true,
-                    },
-                  });
+                  };
 
-                updatedInstances.push(updatedInstance);
-                console.log(
-                  "[WhatsApp Instance Procedure] Instância atualizada:",
-                  {
-                    id: updatedInstance.id,
-                    instanceName: updatedInstance.instanceName,
-                    status: updatedInstance.status,
-                    profileName: updatedInstance.profileName,
-                    ownerJid: updatedInstance.ownerJid,
-                  },
+                  // Atualizar instância no banco
+                  const updatedInstance =
+                    await context.providers.database.whatsAppInstance.update({
+                      where: { id: localInstance.id },
+                      data: updateData,
+                      include: {
+                        user: true,
+                        createdBy: true,
+                      },
+                    });
+
+                  updatedInstances.push(updatedInstance);
+                  console.log(
+                    "[WhatsApp Instance Procedure] Instância atualizada:",
+                    {
+                      id: updatedInstance.id,
+                      instanceName: updatedInstance.instanceName,
+                      status: updatedInstance.status,
+                      profileName: updatedInstance.profileName,
+                      ownerJid: updatedInstance.ownerJid,
+                    },
+                  );
+                } else {
+                  console.warn(
+                    "[WhatsApp Instance Procedure] Instância não encontrada na Evolution API:",
+                    localInstance.instanceName,
+                    "- Marcando como CLOSE",
+                  );
+                  
+                  // Marcar instância como CLOSE se não existir mais na Evolution API
+                  const updatedInstance =
+                    await context.providers.database.whatsAppInstance.update({
+                      where: { id: localInstance.id },
+                      data: {
+                        status: InstanceConnectionStatus.CLOSE,
+                        lastSeen: new Date(),
+                        metadata: {
+                          ...(typeof localInstance.metadata === "object" && localInstance.metadata !== null
+                            ? localInstance.metadata
+                            : {}),
+                          lastFullSync: {
+                            timestamp: new Date().toISOString(),
+                            evolutionData: null,
+                            notFoundInEvolution: true,
+                          },
+                        },
+                      },
+                      include: {
+                        user: true,
+                        createdBy: true,
+                      },
+                    });
+                  
+                  updatedInstances.push(updatedInstance);
+                }
+              } catch (instanceError) {
+                console.error(
+                  `[WhatsApp Instance Procedure] Erro ao sincronizar instância ${localInstance.instanceName}:`,
+                  instanceError,
                 );
-              } else {
-                console.log(
-                  "[WhatsApp Instance Procedure] Instância não encontrada na Evolution API:",
-                  localInstance.instanceName,
-                );
+                errors.push({
+                  instanceName: localInstance.instanceName,
+                  error: instanceError.message,
+                });
               }
             }
 
             console.log(
               `[WhatsApp Instance Procedure] ${updatedInstances.length} instâncias sincronizadas`,
             );
-            return updatedInstances;
+            
+            if (errors.length > 0) {
+              console.warn(
+                `[WhatsApp Instance Procedure] ${errors.length} erros durante sincronização:`,
+                errors,
+              );
+            }
+
+            return {
+              updatedInstances,
+              errors,
+              summary: {
+                total: localInstances.length,
+                updated: updatedInstances.length,
+                errors: errors.length,
+              },
+            };
           } catch (error) {
             console.error(
-              "[WhatsApp Instance Procedure] Erro ao sincronizar todas as instâncias:",
+              "[WhatsApp Instance Procedure] Erro crítico ao sincronizar todas as instâncias:",
               error,
             );
-            throw new Error("Erro ao sincronizar com a Evolution API");
+            
+            // Fornecer erro mais específico baseado no tipo
+            if (error.message?.includes('Evolution API')) {
+              throw new Error(`Erro de comunicação com Evolution API: ${error.message}`);
+            } else if (error.message?.includes('database')) {
+              throw new Error(`Erro de banco de dados durante sincronização: ${error.message}`);
+            } else {
+              throw new Error(`Erro interno durante sincronização: ${error.message || 'Erro desconhecido'}`);
+            }
           }
         },
 
