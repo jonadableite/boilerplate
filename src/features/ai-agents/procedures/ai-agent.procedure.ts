@@ -1,5 +1,6 @@
 import { igniter } from "@saas-boilerplate/igniter";
 import { prisma } from "@/providers/prisma";
+import type { PrismaClient } from "@prisma/client";
 import {
   CreateAIAgentInput,
   UpdateAIAgentInput,
@@ -383,32 +384,45 @@ export const AIAgentFeatureProcedure = igniter.procedure({
             }
 
             // Deletar em transação para manter consistência
-            await prisma.$transaction(async (tx) => {
-              // Deletar memórias do agente
-              await tx.aIAgentMemory.deleteMany({
-                where: { agentId: input.id },
-              });
+            await prisma.$transaction(
+              async (tx: {
+                aIAgentMemory: {
+                  deleteMany: (arg0: { where: { agentId: string } }) => any;
+                };
+                knowledgeChunk: {
+                  deleteMany: (arg0: { where: { agentId: string } }) => any;
+                };
+                tokenUsageHistory: {
+                  deleteMany: (arg0: { where: { agentId: string } }) => any;
+                };
+                aIAgent: { delete: (arg0: { where: { id: string } }) => any };
+              }) => {
+                // Deletar memórias do agente
+                await tx.aIAgentMemory.deleteMany({
+                  where: { agentId: input.id },
+                });
 
-              // Deletar chunks de conhecimento
-              await tx.knowledgeChunk.deleteMany({
-                where: { agentId: input.id },
-              });
+                // Deletar chunks de conhecimento
+                await tx.knowledgeChunk.deleteMany({
+                  where: { agentId: input.id },
+                });
 
-              // Deletar logs - comentado temporariamente (MessageLog não tem agentId)
-              // await tx.messageLog.deleteMany({
-              //   where: { agentId: input.id },
-              // });
+                // Deletar logs - comentado temporariamente (MessageLog não tem agentId)
+                // await tx.messageLog.deleteMany({
+                //   where: { agentId: input.id },
+                // });
 
-              // Deletar histórico de uso de tokens
-              await tx.tokenUsageHistory.deleteMany({
-                where: { agentId: input.id },
-              });
+                // Deletar histórico de uso de tokens
+                await tx.tokenUsageHistory.deleteMany({
+                  where: { agentId: input.id },
+                });
 
-              // Deletar o agente
-              await tx.aIAgent.delete({
-                where: { id: input.id },
-              });
-            });
+                // Deletar o agente
+                await tx.aIAgent.delete({
+                  where: { id: input.id },
+                });
+              },
+            );
 
             const loggingService = getLoggingService();
             await loggingService.logInfo({
@@ -578,28 +592,34 @@ export const AIAgentFeatureProcedure = igniter.procedure({
         },
 
         // Buscar conhecimento (RAG)
-        searchKnowledge: async (
-          input: { query: string; knowledgeBaseId: string; limit?: number; threshold?: number },
-        ): Promise<RAGRetrievalResult> => {
+        searchKnowledge: async (input: {
+          query: string;
+          knowledgeBaseId: string;
+          limit?: number;
+          threshold?: number;
+        }): Promise<RAGRetrievalResult> => {
           try {
             const ragService = getRAGService();
-            
+
             // Buscar o agente pela knowledgeBaseId para obter o agentId
             const agent = await prisma.aIAgent.findFirst({
               where: { knowledgeBaseId: input.knowledgeBaseId },
             });
-            
+
             if (!agent) {
-              throw new AIAgentError("Agent not found for knowledge base", "AGENT_NOT_FOUND");
+              throw new AIAgentError(
+                "Agent not found for knowledge base",
+                "AGENT_NOT_FOUND",
+              );
             }
-            
+
             const ragInput: RAGRetrievalInput = {
               query: input.query,
               agentId: agent.id,
               limit: input.limit,
               threshold: input.threshold,
             };
-            
+
             const results = await ragService.retrieveRelevantChunks(ragInput);
             return results;
           } catch (error) {

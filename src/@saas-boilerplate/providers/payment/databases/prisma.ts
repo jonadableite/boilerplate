@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, SubscriptionStatus } from "@prisma/client";
 import { PaymentProvider } from "../payment.provider";
 import type {
   CustomerDTO,
@@ -626,8 +626,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             priceId: params.priceId,
             quantity: params.quantity,
             trialDays: params.trialDays,
-            // @ts-expect-error
-            status: params.status ?? "active",
+            status: (params.status ?? "active") as SubscriptionStatus,
             metadata: params.metadata,
             billingCycleAnchor: params.billingCycleAnchor,
             prorationBehavior: params.prorationBehavior,
@@ -675,8 +674,7 @@ export const prismaAdapter = PaymentProvider.database<PrismaClient>(
             prorationBehavior: params?.prorationBehavior,
             metadata: params?.metadata,
             priceId: params?.priceId,
-            // @ts-expect-error - Expected
-            status: params?.status,
+            status: params?.status as SubscriptionStatus | undefined,
           },
         });
 

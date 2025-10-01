@@ -4,6 +4,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { prisma } from "@/providers/prisma";
+import type { AIAgentMemory } from "@prisma/client";
 import { TokenUsageService } from "./token-usage.service";
 import { RAGService } from "./rag.service";
 import { GuardrailService } from "./guardrail.service";
@@ -166,7 +167,7 @@ export class AgentEngineService {
 
       // Filtrar conversas relevantes baseadas em palavras-chave
       const keywords = this.extractKeywords(currentMessage);
-      const relevantMemories = recentMemories.filter((memory) => {
+      const relevantMemories = recentMemories.filter((memory: AIAgentMemory) => {
         const memoryText = memory.content.toLowerCase();
         return keywords.some((keyword) =>
           memoryText.includes(keyword.toLowerCase()),
