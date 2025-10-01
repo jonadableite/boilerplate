@@ -680,12 +680,12 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
               console.log(
                 `[WhatsApp Instance Procedure] ${evolutionInstances.length} instâncias encontradas na Evolution API`,
               );
-            } catch (evolutionError) {
+            } catch (evolutionError: any) {
               console.error(
                 "[WhatsApp Instance Procedure] Erro ao buscar instâncias na Evolution API:",
                 evolutionError,
               );
-              throw new Error(`Falha na comunicação com Evolution API: ${evolutionError.message}`);
+              throw new Error(`Falha na comunicação com Evolution API: ${evolutionError?.message || 'Erro desconhecido'}`);
             }
 
             const updatedInstances = [];
@@ -813,14 +813,14 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
                   
                   updatedInstances.push(updatedInstance);
                 }
-              } catch (instanceError) {
+              } catch (instanceError: any) {
                 console.error(
                   `[WhatsApp Instance Procedure] Erro ao sincronizar instância ${localInstance.instanceName}:`,
                   instanceError,
                 );
                 errors.push({
                   instanceName: localInstance.instanceName,
-                  error: instanceError.message,
+                  error: instanceError?.message || 'Erro desconhecido',
                 });
               }
             }
@@ -845,19 +845,19 @@ export const WhatsAppInstanceProcedure = igniter.procedure({
                 errors: errors.length,
               },
             };
-          } catch (error) {
+          } catch (error: any) {
             console.error(
               "[WhatsApp Instance Procedure] Erro crítico ao sincronizar todas as instâncias:",
               error,
             );
             
             // Fornecer erro mais específico baseado no tipo
-            if (error.message?.includes('Evolution API')) {
+            if (error?.message?.includes('Evolution API')) {
               throw new Error(`Erro de comunicação com Evolution API: ${error.message}`);
-            } else if (error.message?.includes('database')) {
+            } else if (error?.message?.includes('database')) {
               throw new Error(`Erro de banco de dados durante sincronização: ${error.message}`);
             } else {
-              throw new Error(`Erro interno durante sincronização: ${error.message || 'Erro desconhecido'}`);
+              throw new Error(`Erro interno durante sincronização: ${error?.message || 'Erro desconhecido'}`);
             }
           }
         },
